@@ -1,6 +1,156 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:fitsSystemWindows="true">
-  <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:orientation="vertical">
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:padding="16dp">
+
+    <!-- Header Section -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📚 FrostKeys Dictionaries &amp; Wordlists"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/tv_external_stats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Total Words Loaded: 0 words"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Installed Dictionaries Section -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📁 Installed Wordlists"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/tv_no_dicts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No wordlists installed yet. Download or import one below!"
+        android:textSize="13sp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:padding="12dp"
+        android:background="@drawable/card_background"
+        android:layout_marginBottom="12dp"
+        android:visibility="gone"/>
+
+    <LinearLayout
+        android:id="@+id/ll_installed_dicts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Quick Downloads Section -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⚡ Quick Downloads (FrostKeys &amp; GitHub)"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btn_dl_bengali"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🇧🇩 Download Bengali Wordlist (43.9k+ words)"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="14dp"
+        android:layout_marginBottom="6dp"/>
+
+    <Button
+        android:id="@+id/btn_dl_en_aosp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🇬🇧 Download English AOSP Wordlist (FrostKeys)"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="14dp"
+        android:layout_marginBottom="6dp"/>
+
+    <Button
+        android:id="@+id/btn_dl_en_large"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🇬🇧 Download English Standard Wordlist"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="14dp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Custom Import Actions -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🛠️ Custom Import &amp; Options"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:layout_marginBottom="8dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+      <Button
+          android:id="@+id/btn_import_file"
+          android:layout_width="0dp"
+          android:layout_weight="1"
+          android:layout_height="wrap_content"
+          android:text="📥 Import File"
+          android:layout_marginEnd="4dp"/>
+      <Button
+          android:id="@+id/btn_custom_url"
+          android:layout_width="0dp"
+          android:layout_weight="1"
+          android:layout_height="wrap_content"
+          android:text="🔗 Custom URL"
+          android:layout_marginStart="4dp"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_clear_external"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🗑️ Clear All Custom Wordlists"
+        android:textColor="#FFFF5555"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Official Offline Dictionaries Section -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?android:attr/listDivider"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🌐 Official Offline Dictionaries (.dict)"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:layout_marginBottom="4dp"/>
+
     <TextView style="@style/paragraph" android:text="@string/dictionaries_from_internet"/>
     <juloo.keyboard2.dict.DictionaryListView device_locales="true" style="@style/dictionary_list_view"/>
     <juloo.keyboard2.dict.DictionaryListView device_locales="false" style="@style/dictionary_list_view"/>

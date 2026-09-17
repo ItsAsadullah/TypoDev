@@ -136,10 +136,17 @@ public final class KeyEventHandler
   {
     String old = _typedword.get();
     int cur_rel = _typedword.cursor_relative();
-    replace_surrounding_text(old.length() + cur_rel, -cur_rel, text);
+    String textWithSpace = text.endsWith(" ") ? text : text + " ";
+    replace_surrounding_text(old.length() + cur_rel, -cur_rel, textWithSpace);
     last_replaced_word = old;
-    last_replacement_word_len = text.length();
+    last_replacement_word_len = textWithSpace.length();
     _next_last_action = LastAction.SUGGESTION_ENTERED;
+
+    String clean = text.trim();
+    if (_suggestions != null)
+    {
+      _suggestions.predict_next_words(clean);
+    }
   }
 
   @Override
@@ -551,9 +558,18 @@ public final class KeyEventHandler
     if (_space_bar_auto_complete && _suggestions.count > 0
         && !_typedword.is_selection_not_empty()
         && _typedword.cursor_relative() == 0)
-      suggestion_entered(_suggestions.suggestions[0] + " ");
+    {
+      suggestion_entered(_suggestions.suggestions[0]);
+    }
     else
+    {
+      String currentWord = _typedword.get();
       send_text(" ");
+      if (_suggestions != null && currentWord != null && !currentWord.trim().isEmpty())
+      {
+        _suggestions.predict_next_words(currentWord.trim());
+      }
+    }
   }
 
   /** Undo the last autocorrect. */

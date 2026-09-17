@@ -33,7 +33,14 @@ class VoiceImeSwitcher
     String last_known_imes = prefs.getString(PREF_KNOWN_IMES, null);
     IME last_used_ime = get_ime_by_id(imes, last_used);
     if (imes.size() == 0)
+    {
+      if (ims instanceof Keyboard2)
+      {
+        juloo.keyboard2.voice.OfflineVoiceTypingService.toggleListening(ims, (Keyboard2)ims);
+        return true;
+      }
       return false;
+    }
     if (last_used == null || last_known_imes == null || last_used_ime == null
         || !last_known_imes.equals(serialize_ime_ids(imes)))
       choose_voice_ime_and_update_prefs(ims, prefs, imes);

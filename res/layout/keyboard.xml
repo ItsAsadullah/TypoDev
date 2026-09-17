@@ -1,12 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:hardwareAccelerated="false" android:orientation="vertical" android:background="?attr/colorKeyboard">
-  <juloo.keyboard2.suggestions.CandidatesView android:id="@+id/candidates_view" style="@style/candidates_view">
-    <TextView android:id="@+id/candidates_emoji" style="@style/candidates_emoji"/>
-    <TextView android:id="@+id/candidates_left" style="@style/candidates_item"/>
-    <TextView android:id="@+id/candidates_middle" style="@style/candidates_item"/>
-    <TextView android:id="@+id/candidates_right" style="@style/candidates_item"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:hardwareAccelerated="false"
+    android:orientation="vertical"
+    android:background="?attr/colorKeyboard">
+
+  <juloo.keyboard2.suggestions.CandidatesView
+      android:id="@+id/candidates_view"
+      style="@style/candidates_view">
+
+    <TextView
+        android:id="@+id/btn_toolbar_toggle"
+        style="@style/toolbar_toggle_button"
+        android:text="›" />
+
+    <HorizontalScrollView
+        android:id="@+id/autofill_scroll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:scrollbars="none"
+        android:visibility="gone">
+      <LinearLayout
+          android:id="@+id/autofill_container"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:orientation="horizontal"
+          android:gravity="center_vertical" />
+    </HorizontalScrollView>
+
+    <HorizontalScrollView
+        android:id="@+id/suggestions_scroll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        android:fillViewport="true">
+      <LinearLayout
+          android:id="@+id/suggestions_container"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:orientation="horizontal"
+          android:gravity="center_vertical">
+        <TextView android:id="@+id/candidates_emoji" style="@style/candidates_emoji" android:visibility="gone"/>
+      </LinearLayout>
+    </HorizontalScrollView>
+
+    <HorizontalScrollView
+        android:id="@+id/toolbar_scroll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:scrollbars="none"
+        android:visibility="gone">
+      <LinearLayout
+          android:id="@+id/toolbar_container"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:orientation="horizontal"
+          android:gravity="center_vertical">
+        <Button
+            android:id="@+id/toolbar_btn_ai"
+            style="@style/toolbar_button"
+            android:text="✨ AI" />
+        <Button
+            android:id="@+id/toolbar_btn_translate"
+            style="@style/toolbar_button"
+            android:text="🌐 Translate" />
+        <Button
+            android:id="@+id/toolbar_btn_clipboard"
+            style="@style/toolbar_button"
+            android:text="📋" />
+        <Button
+            android:id="@+id/toolbar_btn_voice"
+            style="@style/toolbar_button"
+            android:text="🎙️" />
+        <Button
+            android:id="@+id/toolbar_btn_settings"
+            style="@style/toolbar_button"
+            android:text="⚙️" />
+      </LinearLayout>
+    </HorizontalScrollView>
+
     <TextView android:id="@+id/candidates_lang_name" style="@style/candidates_lang_name"/>
     <Button android:id="@+id/dictionary_switch" style="@style/change_dictionary"/>
   </juloo.keyboard2.suggestions.CandidatesView>
-  <juloo.keyboard2.Keyboard2View android:id="@+id/keyboard_view" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+
+  <juloo.keyboard2.Keyboard2View
+      android:id="@+id/keyboard_view"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"/>
+
+  <juloo.keyboard2.ai.AiPaneView
+      android:id="@+id/ai_pane_view"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:visibility="gone"/>
 </LinearLayout>

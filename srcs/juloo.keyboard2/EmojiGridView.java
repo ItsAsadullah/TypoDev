@@ -27,24 +27,155 @@ public class EmojiGridView extends GridView
 
   private List<Emoji> _emojiArray;
   private HashMap<Emoji, Integer> _lastUsed;
+  private int _currentGroup = GROUP_LAST_USE;
+  private android.view.GestureDetector _gestureDetector;
+  private float _downX, _downY;
+  private boolean _isSwipingHorizontal = false;
 
-  /*
-   ** TODO: adapt column width and emoji size
-   ** TODO: use ArraySet instead of Emoji[]
-   */
+  public interface OnGroupChangeListener
+  {
+    void onGroupChanged(int group);
+  }
+
+  private OnGroupChangeListener _groupChangeListener = null;
+
+  public void setOnGroupChangeListener(OnGroupChangeListener listener)
+  {
+    _groupChangeListener = listener;
+  }
+
+  public int getCurrentGroup()
+  {
+    return _currentGroup;
+  }
+
   public EmojiGridView(Context context, AttributeSet attrs)
   {
     super(context, attrs);
     Emoji.init(context.getResources());
     setOnItemClickListener(this);
     loadLastUsed();
+    initGestureDetector(context);
     setEmojiGroup((_lastUsed.size() == 0) ? 0 : GROUP_LAST_USE);
+  }
+
+  private void initGestureDetector(Context context)
+  {
+    final int touchSlop = android.view.ViewConfiguration.get(context).getScaledTouchSlop();
+    final int minFlingVelocity = android.view.ViewConfiguration.get(context).getScaledMinimumFlingVelocity();
+
+    _gestureDetector = new android.view.GestureDetector(context, new android.view.GestureDetector.SimpleOnGestureListener()
+    {
+      @Override
+      public boolean onFling(android.view.MotionEvent e1, android.view.MotionEvent e2, float velocityX, float velocityY)
+      {
+        if (e1 == null || e2 == null)
+          return false;
+        float dx = e2.getX() - e1.getX();
+        float dy = e2.getY() - e1.getY();
+
+        if (Math.abs(dx) > Math.abs(dy) * 1.2f && Math.abs(dx) > touchSlop * 2 && Math.abs(velocityX) > minFlingVelocity)
+        {
+          if (dx < 0)
+          {
+            // Swiped left -> next category
+            nextEmojiGroup();
+            return true;
+          }
+          else
+          {
+            // Swiped right -> previous category
+            prevEmojiGroup();
+            return true;
+          }
+        }
+        return false;
+      }
+    });
+  }
+
+  @Override
+  public boolean onInterceptTouchEvent(android.view.MotionEvent ev)
+  {
+    if (_gestureDetector != null && _gestureDetector.onTouchEvent(ev))
+      return true;
+
+    switch (ev.getActionMasked())
+    {
+      case android.view.MotionEvent.ACTION_DOWN:
+        _downX = ev.getX();
+        _downY = ev.getY();
+        _isSwipingHorizontal = false;
+        break;
+
+      case android.view.MotionEvent.ACTION_MOVE:
+        float dx = Math.abs(ev.getX() - _downX);
+        float dy = Math.abs(ev.getY() - _downY);
+        if (dx > dy * 1.5f && dx > 25)
+        {
+          _isSwipingHorizontal = true;
+          return true; // Intercept horizontal swipe for emoji category paging
+        }
+        break;
+    }
+    return super.onInterceptTouchEvent(ev);
+  }
+
+  @Override
+  public boolean onTouchEvent(android.view.MotionEvent ev)
+  {
+    if (_gestureDetector != null && _gestureDetector.onTouchEvent(ev))
+      return true;
+
+    if (_isSwipingHorizontal && ev.getActionMasked() == android.view.MotionEvent.ACTION_UP)
+    {
+      float dx = ev.getX() - _downX;
+      if (Math.abs(dx) > 60)
+      {
+        if (dx < 0)
+          nextEmojiGroup();
+        else
+          prevEmojiGroup();
+        return true;
+      }
+    }
+    return super.onTouchEvent(ev);
+  }
+
+  public void nextEmojiGroup()
+  {
+    int numGroups = Emoji.getNumGroups();
+    if (_currentGroup == GROUP_LAST_USE)
+    {
+      if (numGroups > 0)
+        setEmojiGroup(0);
+    }
+    else if (_currentGroup < numGroups - 1)
+    {
+      setEmojiGroup(_currentGroup + 1);
+    }
+  }
+
+  public void prevEmojiGroup()
+  {
+    if (_currentGroup > 0)
+    {
+      setEmojiGroup(_currentGroup - 1);
+    }
+    else if (_currentGroup == 0)
+    {
+      setEmojiGroup(GROUP_LAST_USE);
+    }
   }
 
   public void setEmojiGroup(int group)
   {
+    _currentGroup = group;
     _emojiArray = (group == GROUP_LAST_USE) ? getLastEmojis() : Emoji.getEmojisByGroup(group);
     setAdapter(new EmojiViewAdpater(getContext(), _emojiArray));
+    setSelection(0);
+    if (_groupChangeListener != null)
+      _groupChangeListener.onGroupChanged(group);
   }
 
   public void onItemClick(AdapterView<?> parent, View v, int pos, long id)

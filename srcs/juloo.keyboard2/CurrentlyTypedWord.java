@@ -18,6 +18,8 @@ public final class CurrentlyTypedWord
 
   /** The currently typed word. */
   StringBuilder _w = new StringBuilder();
+  /** The last completed word before space/punctuation. */
+  String _last_completed_word = "";
   /** This can be disabled if the editor doesn't support looking at the text
       before the cursor. */
   boolean _enabled = false;
@@ -44,6 +46,11 @@ public final class CurrentlyTypedWord
   public String get()
   {
     return _w.toString();
+  }
+
+  public String get_last_completed_word()
+  {
+    return _last_completed_word;
   }
 
   public boolean is_selection_not_empty()
@@ -111,7 +118,7 @@ public final class CurrentlyTypedWord
     switch (code)
     {
       case KeyEvent.KEYCODE_DEL:
-        if (meta == 0)
+        if (meta == 0 && _w.length() > 0)
           remove_surrounding_text(1, 0);
         else
           delayed_refresh();
@@ -156,7 +163,13 @@ public final class CurrentlyTypedWord
         insert_start = i;
     }
     if (insert_start > 0)
+    {
+      if (_w.length() > 0)
+      {
+        _last_completed_word = _w.toString();
+      }
       _w.setLength(0);
+    }
     _w.insert(Math.max(_w.length() + _w_cursor, 0), s, insert_start, end);
   }
 
@@ -248,7 +261,11 @@ public final class CurrentlyTypedWord
       returns [true]. */
   public static boolean is_word_char(int c)
   {
-    return Character.isLetterOrDigit(c) || (c == '\'');
+    int type = Character.getType(c);
+    return Character.isLetterOrDigit(c)
+        || type == Character.NON_SPACING_MARK
+        || type == Character.COMBINING_SPACING_MARK
+        || (c == '\'');
   }
 
   public static interface Callback

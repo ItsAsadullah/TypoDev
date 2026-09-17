@@ -16,6 +16,10 @@
   <PreferenceCategory android:title="@string/pref_category_suggestions">
     <CheckBoxPreference android:key="suggestions" android:title="@string/pref_suggestions_title" android:summary="@string/pref_suggestions_summary" android:defaultValue="true"/>
     <CheckBoxPreference android:key="space_bar_auto_complete" android:title="@string/pref_space_bar_auto_complete_title" android:summary="@string/pref_space_bar_auto_complete_summary" android:defaultValue="false"/>
+    <Preference
+        android:key="pref_dictionaries_frostkeys"
+        android:title="📚 Dictionaries &amp; Wordlists (FrostKeys)"
+        android:summary="Download presets, import wordlists, or install offline dictionaries"/>
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/pref_category_typing">
     <ListPreference android:key="swipe_dist" android:title="@string/pref_swipe_dist_title" android:summary="@string/pref_swipe_dist_summary" android:defaultValue="15" android:entries="@array/pref_swipe_dist_entries" android:entryValues="@array/pref_swipe_dist_values"/>
@@ -67,5 +71,9 @@
   </PreferenceCategory>
   <PreferenceCategory android:title="@string/pref_category_clipboard">
     <ListPreference android:key="clipboard_history_duration" android:title="@string/pref_clipboard_history_duration" android:summary="%s" android:defaultValue="5" android:entries="@array/pref_clipboard_duration_entries" android:entryValues="@array/pref_clipboard_duration_values"/>
+  </PreferenceCategory>
+  <PreferenceCategory android:title="Gemini AI Assistant">
+    <EditTextPreference android:key="gemini_api_key" android:title="Gemini API Key" android:dialogTitle="Google Gemini API Key" android:summary="API Key from Google AI Studio (aistudio.google.com)"/>
+    <ListPreference android:key="gemini_working_model" android:title="Gemini AI Model" android:summary="%s" android:defaultValue="gemini-1.5-flash" android:entries="@array/pref_gemini_model_entries" android:entryValues="@array/pref_gemini_model_values"/>
   </PreferenceCategory>
 </PreferenceScreen>

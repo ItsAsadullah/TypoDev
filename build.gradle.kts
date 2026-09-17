@@ -5,6 +5,8 @@ plugins {
   id("com.android.application") version "8.13.2"
 }
 
+layout.buildDirectory.set(file("D:/unexpected/build"))
+
 dependencies {
   // Following versions of androidx.window require sdk version 23
   implementation("androidx.window:window-java:1.4.0")
@@ -14,12 +16,12 @@ dependencies {
 
 android {
   namespace = "juloo.keyboard2"
-  compileSdkVersion = "android-36"
+  compileSdkVersion = "android-35"
 
   defaultConfig {
     applicationId = "juloo.keyboard2"
     minSdk = 21
-    targetSdk { version = release(36) }
+    targetSdk = 35
     versionCode = 56
     versionName = "2.1.0"
   }
@@ -39,7 +41,7 @@ android {
 
   externalNativeBuild {
     ndkBuild {
-      path = file("vendor/Android.mk")
+      path = file("D:/unexpected/vendor/Android.mk")
     }
   }
 
@@ -162,6 +164,11 @@ val compileComposeSequences by tasks.registering(Exec::class) {
   workingDir = projectDir
   commandLine("python", `in`.resolve("compile.py").absolutePath, *sequences)
   doFirst { standardOutput = FileOutputStream(out) }
+}
+
+tasks.withType(Exec::class).configureEach {
+  environment("PYTHONUTF8", "1")
+  environment("PYTHONIOENCODING", "utf-8")
 }
 
 tasks.withType(Test::class).configureEach {

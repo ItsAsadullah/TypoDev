@@ -51,6 +51,7 @@ public class Keyboard2 extends InputMethodService
   private Dictionaries _dictionaries;
   private ViewGroup _emojiPane = null;
   private ViewGroup _clipboard_pane = null;
+  private juloo.keyboard2.ai.AiPaneView _ai_pane_view = null;
   private Handler _handler;
 
   private Config _config;
@@ -139,7 +140,7 @@ public class Keyboard2 extends InputMethodService
         _foldStateTracker.isUnfolded(), _dictionaries);
     _config = Config.globalConfig();
     Receiver recvr = this.new Receiver();
-    _suggestions = new Suggestions(recvr, _config);
+    _suggestions = new Suggestions(recvr, _config, this);
     _keyeventhandler = new KeyEventHandler(recvr, _suggestions);
     KeyValue.Stateful._handler = recvr;
     _config.handler = _keyeventhandler;
@@ -163,6 +164,36 @@ public class Keyboard2 extends InputMethodService
     _keyboard_container_view = (ViewGroup)inflate_view(R.layout.keyboard);
     _keyboard_layout_view = (Keyboard2View)_keyboard_container_view.findViewById(R.id.keyboard_view);
     _candidates_view = (CandidatesView)_keyboard_container_view.findViewById(R.id.candidates_view);
+    if (_candidates_view != null)
+      _candidates_view.set_keyboard2(this);
+    _ai_pane_view = (juloo.keyboard2.ai.AiPaneView)_keyboard_container_view.findViewById(R.id.ai_pane_view);
+    if (_ai_pane_view != null)
+      _ai_pane_view.init(this);
+  }
+
+  public boolean isAiPaneVisible()
+  {
+    return _ai_pane_view != null && _ai_pane_view.getVisibility() == View.VISIBLE;
+  }
+
+  public void showAiPane()
+  {
+    if (_ai_pane_view == null) return;
+    int h = _keyboard_layout_view != null ? _keyboard_layout_view.getHeight() : 0;
+    if (h <= 0 && _keyboard_layout_view != null)
+      h = _keyboard_layout_view.getMeasuredHeight();
+    _ai_pane_view.open(h);
+    if (_keyboard_layout_view != null)
+      _keyboard_layout_view.setVisibility(View.GONE);
+    _ai_pane_view.setVisibility(View.VISIBLE);
+  }
+
+  public void closeAiPane()
+  {
+    if (_ai_pane_view != null)
+      _ai_pane_view.setVisibility(View.GONE);
+    if (_keyboard_layout_view != null)
+      _keyboard_layout_view.setVisibility(View.VISIBLE);
   }
 
   InputMethodManager get_imm()
@@ -371,7 +402,20 @@ public class Keyboard2 extends InputMethodService
   public void onFinishInputView(boolean finishingInput)
   {
     super.onFinishInputView(finishingInput);
+    if (isAiPaneVisible())
+      closeAiPane();
     _keyboard_layout_view.reset();
+  }
+
+  @Override
+  public boolean onKeyDown(int keyCode, KeyEvent event)
+  {
+    if (keyCode == KeyEvent.KEYCODE_BACK && isAiPaneVisible())
+    {
+      closeAiPane();
+      return true;
+    }
+    return super.onKeyDown(keyCode, event);
   }
 
   @Override
@@ -582,5 +626,62 @@ public class Keyboard2 extends InputMethodService
   private View inflate_view(int layout)
   {
     return View.inflate(new ContextThemeWrapper(this, _config.theme), layout, null);
+  }
+
+  @Override
+  public android.view.inputmethod.InlineSuggestionsRequest onCreateInlineSuggestionsRequest(android.os.Bundle uiExtras)
+  {
+    if (android.os.Build.VERSION.SDK_INT < 30)
+      return null;
+
+    android.util.Size minSize = new android.util.Size(100, 40);
+    android.util.Size maxSize = new android.util.Size(700, 100);
+
+    android.widget.inline.InlinePresentationSpec spec =
+      new android.widget.inline.InlinePresentationSpec.Builder(minSize, maxSize).build();
+
+    java.util.List<android.widget.inline.InlinePresentationSpec> specs = new java.util.ArrayList<>();
+    specs.add(spec);
+
+    return new android.view.inputmethod.InlineSuggestionsRequest.Builder(specs)
+      .setMaxSuggestionCount(3)
+      .build();
+  }
+
+  @Override
+  public boolean onInlineSuggestionsResponse(android.view.inputmethod.InlineSuggestionsResponse response)
+  {
+    if (android.os.Build.VERSION.SDK_INT < 30 || _candidates_view == null)
+      return false;
+
+    java.util.List<android.view.inputmethod.InlineSuggestion> inlineSuggestions = response.getInlineSuggestions();
+    if (inlineSuggestions.isEmpty())
+    {
+      _candidates_view.setInlineSuggestions(null);
+      return false;
+    }
+
+    final int total = inlineSuggestions.size();
+    final java.util.List<android.view.View> suggestionViews = new java.util.ArrayList<>();
+    final java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger(0);
+
+    for (android.view.inputmethod.InlineSuggestion suggestion : inlineSuggestions)
+    {
+      android.util.Size size = new android.util.Size(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT);
+      suggestion.inflate(this, size, getMainExecutor(), new java.util.function.Consumer<android.widget.inline.InlineContentView>()
+      {
+        @Override
+        public void accept(android.widget.inline.InlineContentView view)
+        {
+          if (view != null)
+            suggestionViews.add(view);
+          if (count.incrementAndGet() == total)
+          {
+            _candidates_view.setInlineSuggestions(suggestionViews);
+          }
+        }
+      });
+    }
+    return true;
   }
 }

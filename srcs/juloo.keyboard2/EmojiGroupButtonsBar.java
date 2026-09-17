@@ -14,6 +14,8 @@ public class EmojiGroupButtonsBar extends LinearLayout
 {
   private EmojiGridView _emoji_grid = null;
 
+  private java.util.List<EmojiGroupButton> _buttons = new java.util.ArrayList<>();
+
   public EmojiGroupButtonsBar(Context context, AttributeSet attrs)
   {
     super(context, attrs);
@@ -26,15 +28,59 @@ public class EmojiGroupButtonsBar extends LinearLayout
     }
   }
 
+  @Override
+  protected void onAttachedToWindow()
+  {
+    super.onAttachedToWindow();
+    post(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        EmojiGridView grid = get_emoji_grid();
+        if (grid != null)
+        {
+          grid.setOnGroupChangeListener(new EmojiGridView.OnGroupChangeListener()
+          {
+            @Override
+            public void onGroupChanged(int group)
+            {
+              updateSelectedButton(group);
+            }
+          });
+          updateSelectedButton(grid.getCurrentGroup());
+        }
+      }
+    });
+  }
+
+  public void updateSelectedButton(int activeGroup)
+  {
+    for (EmojiGroupButton btn : _buttons)
+    {
+      if (btn._group_id == activeGroup)
+      {
+        btn.setAlpha(1.0f);
+        btn.setSelected(true);
+      }
+      else
+      {
+        btn.setAlpha(0.5f);
+        btn.setSelected(false);
+      }
+    }
+  }
+
   void add_group(int id, String symbol)
   {
-    addView(this.new EmojiGroupButton(getContext(), id, symbol),
-        new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT, 1.f));
+    EmojiGroupButton btn = this.new EmojiGroupButton(getContext(), id, symbol);
+    _buttons.add(btn);
+    addView(btn, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT, 1.f));
   }
 
   EmojiGridView get_emoji_grid()
   {
-    if (_emoji_grid == null)
+    if (_emoji_grid == null && getParent() instanceof ViewGroup)
       _emoji_grid = (EmojiGridView)((ViewGroup)(getParent())).findViewById(R.id.emoji_grid);
     return _emoji_grid;
   }
@@ -56,6 +102,7 @@ public class EmojiGroupButtonsBar extends LinearLayout
       if (event.getAction() != MotionEvent.ACTION_DOWN)
         return false;
       get_emoji_grid().setEmojiGroup(_group_id);
+      updateSelectedButton(_group_id);
       return true;
     }
   }

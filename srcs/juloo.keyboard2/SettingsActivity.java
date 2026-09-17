@@ -31,6 +31,27 @@ public class SettingsActivity extends PreferenceActivity
     findPreference("horizontal_margin_landscape_unfolded").setEnabled(foldableDevice);
     findPreference("keyboard_height_unfolded").setEnabled(foldableDevice);
     findPreference("keyboard_height_landscape_unfolded").setEnabled(foldableDevice);
+
+    android.preference.Preference frostkeysPref = findPreference("pref_dictionaries_frostkeys");
+    if (frostkeysPref != null)
+    {
+      frostkeysPref.setOnPreferenceClickListener(new android.preference.Preference.OnPreferenceClickListener()
+      {
+        @Override
+        public boolean onPreferenceClick(android.preference.Preference preference)
+        {
+          try
+          {
+            startActivity(new android.content.Intent(SettingsActivity.this, juloo.keyboard2.dict.DictionariesActivity.class));
+          }
+          catch (Exception e)
+          {
+            android.widget.Toast.makeText(SettingsActivity.this, "Cannot open dictionaries: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+          }
+          return true;
+        }
+      });
+    }
   }
 
   void fallbackEncrypted()
