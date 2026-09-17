@@ -287,6 +287,11 @@ public class Keyboard2View extends View
     setMeasuredDimension(width, height);
   }
 
+  public int getBottomMargin()
+  {
+    return (int)_marginBottom;
+  }
+
   Rect _cached_exclusion_rect = new Rect();
   List<Rect> _cached_exclusion_rects = Arrays.asList(_cached_exclusion_rect);
   @Override

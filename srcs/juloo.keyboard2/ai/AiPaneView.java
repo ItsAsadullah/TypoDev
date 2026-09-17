@@ -3,15 +3,20 @@ package juloo.keyboard2.ai;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.text.InputType;
+import android.graphics.drawable.RippleDrawable;
+import android.graphics.drawable.StateListDrawable;
+import android.os.Build;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.view.inputmethod.InputConnection;
 import android.widget.Button;
 import android.widget.EditText;
@@ -28,12 +33,13 @@ import juloo.keyboard2.R;
 /**
  * In-Keyboard embedded view for AI Actions.
  * Swaps out Keyboard2View directly within the keyboard container layout
- * (like Gboard / Ridmik Keyboard) and matches the keyboard theme.
+ * (Gboard / Ridmik Keyboard style) and matches the keyboard theme.
  */
 public class AiPaneView extends LinearLayout
 {
   private Keyboard2 _keyboard;
   private float _density;
+  private int _bottomSafety = 0;
 
   // Theme colors
   private int _colorKeyboard;
@@ -104,13 +110,12 @@ public class AiPaneView extends LinearLayout
 
   private void initThemeColors(Context context)
   {
-    _colorKeyboard = resolveColor(context, R.attr.colorKeyboard, Color.parseColor("#202020"));
-    _colorKey = resolveColor(context, R.attr.colorKey, Color.parseColor("#333333"));
+    _colorKeyboard = resolveColor(context, R.attr.colorKeyboard, Color.parseColor("#1B1B1B"));
+    _colorKey = resolveColor(context, R.attr.colorKey, Color.parseColor("#2C2C2C"));
     _colorKeyActivated = resolveColor(context, R.attr.colorKeyActivated, Color.parseColor("#2196F3"));
     _colorLabel = resolveColor(context, R.attr.colorLabel, Color.WHITE);
-    _colorSubLabel = resolveColor(context, R.attr.colorSubLabel, Color.LTGRAY);
+    _colorSubLabel = resolveColor(context, R.attr.colorSubLabel, Color.parseColor("#AAAAAA"));
 
-    // Calculate perceived brightness of background to ensure ideal contrast
     double darkness = 1 - (0.299 * Color.red(_colorKeyboard) + 0.587 * Color.green(_colorKeyboard) + 0.114 * Color.blue(_colorKeyboard)) / 255;
     _isDark = darkness >= 0.5;
   }
@@ -137,6 +142,25 @@ public class AiPaneView extends LinearLayout
     return (int)(dp * _density + 0.5f);
   }
 
+  @Override
+  public WindowInsets onApplyWindowInsets(WindowInsets insets)
+  {
+    if (Build.VERSION.SDK_INT >= 30)
+    {
+      android.graphics.Insets sb = insets.getInsets(
+          WindowInsets.Type.systemBars() | WindowInsets.Type.navigationBars() | WindowInsets.Type.displayCutout());
+      if (sb.bottom > 0)
+      {
+        _bottomSafety = Math.max(_bottomSafety, sb.bottom);
+        if (_rowActionButtons != null)
+        {
+          _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
+        }
+      }
+    }
+    return super.onApplyWindowInsets(insets);
+  }
+
   private void initLayout(final Context context)
   {
     _density = context.getResources().getDisplayMetrics().density;
@@ -146,19 +170,19 @@ public class AiPaneView extends LinearLayout
     setBackgroundColor(_colorKeyboard);
 
     // ==========================================
-    // 1. Fixed Header Bar (Compact & Sleek)
+    // 1. Sleek Top Header Bar (Single Line, Gboard Style)
     // ==========================================
     LinearLayout headerBar = new LinearLayout(context);
     headerBar.setOrientation(HORIZONTAL);
     headerBar.setGravity(Gravity.CENTER_VERTICAL);
-    headerBar.setPadding(dp(8), dp(4), dp(8), dp(4));
+    headerBar.setPadding(dp(8), dp(2), dp(8), dp(2));
 
-    // Back arrow to return to keyboard
+    // Single back arrow to return directly to keyboard keys
     Button btnBack = new Button(context);
     btnBack.setText("←");
-    btnBack.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+    btnBack.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19);
     btnBack.setTextColor(_colorLabel);
-    btnBack.setBackground(null);
+    btnBack.setBackground(createPillBackground(Color.TRANSPARENT, dp(18), adjustAlpha(_colorLabel, 0.15f)));
     btnBack.setPadding(0, 0, 0, 0);
     btnBack.setOnClickListener(new OnClickListener()
     {
@@ -175,18 +199,18 @@ public class AiPaneView extends LinearLayout
     tvTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
     tvTitle.setTypeface(null, Typeface.BOLD);
     tvTitle.setTextColor(_colorLabel);
-    tvTitle.setPadding(dp(4), 0, dp(6), 0);
+    tvTitle.setPadding(dp(6), 0, dp(6), 0);
     headerBar.addView(tvTitle);
 
     _tvProviderBadge = new TextView(context);
     _tvProviderBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
     _tvProviderBadge.setTextColor(_colorLabel);
-    _tvProviderBadge.setPadding(dp(6), dp(2), dp(6), dp(2));
-    GradientDrawable badgeBg = new GradientDrawable();
-    badgeBg.setCornerRadius(dp(10));
-    badgeBg.setColor(_colorKeyActivated != 0 ? adjustAlpha(_colorKeyActivated, 0.25f) : Color.parseColor("#332196F3"));
-    badgeBg.setStroke(1, adjustAlpha(_colorLabel, 0.2f));
-    _tvProviderBadge.setBackground(badgeBg);
+    _tvProviderBadge.setTypeface(null, Typeface.BOLD);
+    _tvProviderBadge.setPadding(dp(8), dp(3), dp(8), dp(3));
+    _tvProviderBadge.setBackground(createPillBackground(
+        adjustAlpha(_colorKeyActivated != 0 ? _colorKeyActivated : Color.parseColor("#2196F3"), 0.25f),
+        dp(12),
+        adjustAlpha(_colorKeyActivated != 0 ? _colorKeyActivated : Color.parseColor("#2196F3"), 0.6f)));
     _tvProviderBadge.setOnClickListener(new OnClickListener()
     {
       @Override
@@ -203,9 +227,9 @@ public class AiPaneView extends LinearLayout
     // Settings icon
     Button btnSettings = new Button(context);
     btnSettings.setText("⚙️");
-    btnSettings.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+    btnSettings.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
     btnSettings.setTextColor(_colorLabel);
-    btnSettings.setBackground(null);
+    btnSettings.setBackground(createPillBackground(Color.TRANSPARENT, dp(18), adjustAlpha(_colorLabel, 0.15f)));
     btnSettings.setPadding(0, 0, 0, 0);
     btnSettings.setOnClickListener(new OnClickListener()
     {
@@ -217,27 +241,10 @@ public class AiPaneView extends LinearLayout
     });
     headerBar.addView(btnSettings, new LinearLayout.LayoutParams(dp(36), dp(36)));
 
-    // Close icon
-    Button btnClose = new Button(context);
-    btnClose.setText("✕");
-    btnClose.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-    btnClose.setTextColor(_colorLabel);
-    btnClose.setBackground(null);
-    btnClose.setPadding(0, 0, 0, 0);
-    btnClose.setOnClickListener(new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        if (_keyboard != null) _keyboard.closeAiPane();
-      }
-    });
-    headerBar.addView(btnClose, new LinearLayout.LayoutParams(dp(36), dp(36)));
-
     addView(headerBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
 
     // ==========================================
-    // 2. Middle Scrollable Body (Takes Remaining Space)
+    // 2. Middle Scrollable Body
     // ==========================================
     ScrollView scrollBody = new ScrollView(context);
     scrollBody.setFillViewport(true);
@@ -245,18 +252,14 @@ public class AiPaneView extends LinearLayout
 
     LinearLayout bodyContent = new LinearLayout(context);
     bodyContent.setOrientation(VERTICAL);
-    bodyContent.setPadding(dp(8), dp(4), dp(8), dp(4));
+    bodyContent.setPadding(dp(8), dp(2), dp(8), dp(4));
 
     // 2.1 API Key Setup Notice (shown if not configured)
     _cardSetupNotice = new LinearLayout(context);
     _cardSetupNotice.setOrientation(HORIZONTAL);
     _cardSetupNotice.setGravity(Gravity.CENTER_VERTICAL);
-    _cardSetupNotice.setPadding(dp(10), dp(8), dp(10), dp(8));
-    GradientDrawable noticeBg = new GradientDrawable();
-    noticeBg.setCornerRadius(dp(8));
-    noticeBg.setColor(adjustAlpha(Color.parseColor("#FF9800"), 0.2f));
-    noticeBg.setStroke(1, Color.parseColor("#FF9800"));
-    _cardSetupNotice.setBackground(noticeBg);
+    _cardSetupNotice.setPadding(dp(10), dp(6), dp(10), dp(6));
+    _cardSetupNotice.setBackground(createPillBackground(adjustAlpha(Color.parseColor("#FF9800"), 0.18f), dp(8), Color.parseColor("#FF9800")));
 
     TextView tvNotice = new TextView(context);
     tvNotice.setText("⚠️ API key needed for Gemini or OpenAI");
@@ -269,10 +272,7 @@ public class AiPaneView extends LinearLayout
     btnSetup.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
     btnSetup.setTextColor(Color.WHITE);
     btnSetup.setPadding(dp(8), 0, dp(8), 0);
-    GradientDrawable setupBtnBg = new GradientDrawable();
-    setupBtnBg.setCornerRadius(dp(6));
-    setupBtnBg.setColor(Color.parseColor("#E65100"));
-    btnSetup.setBackground(setupBtnBg);
+    btnSetup.setBackground(createPillBackground(Color.parseColor("#E65100"), dp(6), Color.TRANSPARENT));
     btnSetup.setOnClickListener(new OnClickListener()
     {
       @Override
@@ -281,22 +281,18 @@ public class AiPaneView extends LinearLayout
         openSettingsDialog();
       }
     });
-    _cardSetupNotice.addView(btnSetup, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(30)));
+    _cardSetupNotice.addView(btnSetup, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(28)));
     _cardSetupNotice.setVisibility(GONE);
     bodyContent.addView(_cardSetupNotice);
 
     // 2.2 Context Inspector Card
     LinearLayout cardContext = new LinearLayout(context);
     cardContext.setOrientation(VERTICAL);
-    cardContext.setPadding(dp(8), dp(6), dp(8), dp(6));
-    GradientDrawable cardBg = new GradientDrawable();
-    cardBg.setCornerRadius(dp(8));
-    cardBg.setColor(adjustAlpha(_colorKey, 0.45f));
-    cardBg.setStroke(1, adjustAlpha(_colorLabel, 0.12f));
-    cardContext.setBackground(cardBg);
+    cardContext.setPadding(dp(8), dp(5), dp(8), dp(5));
+    cardContext.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.45f), dp(8), adjustAlpha(_colorLabel, 0.12f)));
     LinearLayout.LayoutParams lpCard = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpCard.setMargins(0, dp(4), 0, dp(4));
+    lpCard.setMargins(0, dp(3), 0, dp(3));
     cardContext.setLayoutParams(lpCard);
 
     LinearLayout rowContextTop = new LinearLayout(context);
@@ -316,11 +312,7 @@ public class AiPaneView extends LinearLayout
     _btnToggleSource.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
     _btnToggleSource.setTextColor(_colorLabel);
     _btnToggleSource.setPadding(dp(8), dp(2), dp(8), dp(2));
-    GradientDrawable toggleBg = new GradientDrawable();
-    toggleBg.setCornerRadius(dp(10));
-    toggleBg.setColor(adjustAlpha(_colorKey, 0.6f));
-    toggleBg.setStroke(1, adjustAlpha(_colorLabel, 0.2f));
-    _btnToggleSource.setBackground(toggleBg);
+    _btnToggleSource.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.7f), dp(10), adjustAlpha(_colorLabel, 0.2f)));
     _btnToggleSource.setOnClickListener(new OnClickListener()
     {
       @Override
@@ -332,13 +324,14 @@ public class AiPaneView extends LinearLayout
         rebuildQuickSuggestions();
       }
     });
-    rowContextTop.addView(_btnToggleSource, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(26)));
+    rowContextTop.addView(_btnToggleSource, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(24)));
     cardContext.addView(rowContextTop);
 
     _tvInputSnippet = new TextView(context);
     _tvInputSnippet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
     _tvInputSnippet.setMaxLines(2);
-    _tvInputSnippet.setPadding(0, dp(4), 0, 0);
+    _tvInputSnippet.setEllipsize(TextUtils.TruncateAt.END);
+    _tvInputSnippet.setPadding(0, dp(3), 0, 0);
     _tvInputSnippet.setTextColor(adjustAlpha(_colorLabel, 0.85f));
     cardContext.addView(_tvInputSnippet);
     bodyContent.addView(cardContext);
@@ -352,7 +345,7 @@ public class AiPaneView extends LinearLayout
     _scrollQuick.addView(_rowQuickSuggestions);
     LinearLayout.LayoutParams lpQuick = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpQuick.setMargins(0, dp(2), 0, dp(2));
+    lpQuick.setMargins(0, dp(1), 0, dp(2));
     _scrollQuick.setLayoutParams(lpQuick);
     bodyContent.addView(_scrollQuick);
 
@@ -380,19 +373,15 @@ public class AiPaneView extends LinearLayout
     _llCustomPrompt = new LinearLayout(context);
     _llCustomPrompt.setOrientation(HORIZONTAL);
     _llCustomPrompt.setGravity(Gravity.CENTER_VERTICAL);
-    _llCustomPrompt.setPadding(0, dp(4), 0, dp(4));
+    _llCustomPrompt.setPadding(0, dp(3), 0, dp(3));
 
     _etCustomAsk = new EditText(context);
     _etCustomAsk.setHint("Ask anything or enter custom instruction...");
     _etCustomAsk.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
     _etCustomAsk.setTextColor(_colorLabel);
     _etCustomAsk.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
-    GradientDrawable customInputBg = new GradientDrawable();
-    customInputBg.setCornerRadius(dp(6));
-    customInputBg.setColor(adjustAlpha(_colorKey, 0.5f));
-    customInputBg.setStroke(1, adjustAlpha(_colorLabel, 0.25f));
-    _etCustomAsk.setBackground(customInputBg);
-    _etCustomAsk.setPadding(dp(8), dp(6), dp(8), dp(6));
+    _etCustomAsk.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.5f), dp(6), adjustAlpha(_colorLabel, 0.25f)));
+    _etCustomAsk.setPadding(dp(8), dp(5), dp(8), dp(5));
     _llCustomPrompt.addView(_etCustomAsk, new LinearLayout.LayoutParams(0, dp(34), 1.0f));
 
     _btnCustomSend = new Button(context);
@@ -400,10 +389,7 @@ public class AiPaneView extends LinearLayout
     _btnCustomSend.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
     _btnCustomSend.setTextColor(Color.WHITE);
     _btnCustomSend.setPadding(dp(8), 0, dp(8), 0);
-    GradientDrawable sendBg = new GradientDrawable();
-    sendBg.setCornerRadius(dp(6));
-    sendBg.setColor(Color.parseColor("#1976D2"));
-    _btnCustomSend.setBackground(sendBg);
+    _btnCustomSend.setBackground(createPillBackground(Color.parseColor("#1976D2"), dp(6), Color.TRANSPARENT));
     _btnCustomSend.setOnClickListener(new OnClickListener()
     {
       @Override
@@ -427,7 +413,7 @@ public class AiPaneView extends LinearLayout
     scrollTone.addView(_rowToneChips);
     LinearLayout.LayoutParams lpTone = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpTone.setMargins(0, dp(2), 0, dp(4));
+    lpTone.setMargins(0, dp(2), 0, dp(3));
     scrollTone.setLayoutParams(lpTone);
     bodyContent.addView(scrollTone);
 
@@ -456,17 +442,13 @@ public class AiPaneView extends LinearLayout
     _etResultPreview.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
     _etResultPreview.setHint("Generated result appears here. You can edit before replacing.");
     _etResultPreview.setMinLines(2);
-    _etResultPreview.setMaxLines(6);
+    _etResultPreview.setMaxLines(5);
     _etResultPreview.setGravity(Gravity.TOP);
-    GradientDrawable resultBg = new GradientDrawable();
-    resultBg.setCornerRadius(dp(8));
-    resultBg.setStroke(1, adjustAlpha(_colorLabel, 0.25f));
-    resultBg.setColor(adjustAlpha(_colorKey, 0.35f));
-    _etResultPreview.setBackground(resultBg);
+    _etResultPreview.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.35f), dp(8), adjustAlpha(_colorLabel, 0.25f)));
     _etResultPreview.setPadding(dp(10), dp(8), dp(10), dp(8));
     LinearLayout.LayoutParams lpResult = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpResult.setMargins(0, dp(4), 0, dp(6));
+    lpResult.setMargins(0, dp(3), 0, dp(4));
     _etResultPreview.setLayoutParams(lpResult);
     bodyContent.addView(_etResultPreview);
 
@@ -474,15 +456,16 @@ public class AiPaneView extends LinearLayout
     addView(scrollBody, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
     // ==========================================
-    // 3. Fixed Bottom Action Dock
+    // 3. Fixed Bottom Action Dock (Elevated above Safety Space)
     // ==========================================
     _rowActionButtons = new LinearLayout(context);
     _rowActionButtons.setOrientation(HORIZONTAL);
     _rowActionButtons.setGravity(Gravity.CENTER_VERTICAL);
-    _rowActionButtons.setPadding(dp(6), dp(4), dp(6), dp(6));
-    _rowActionButtons.setBackgroundColor(adjustAlpha(_colorKeyboard, 0.95f));
+    _rowActionButtons.setBackgroundColor(adjustAlpha(_colorKeyboard, 0.98f));
+    _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + dp(18));
 
-    Button btnReplace = createActionButton("✅ Replace", Color.parseColor("#2E7D32"), new OnClickListener()
+    // 3.1 Replace Button (Vibrant Emerald Pill)
+    Button btnReplace = createPremiumButton("✓  Replace", Color.parseColor("#059669"), Color.parseColor("#34D399"), new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -490,9 +473,12 @@ public class AiPaneView extends LinearLayout
         applyResultToField(true);
       }
     });
-    _rowActionButtons.addView(btnReplace, new LinearLayout.LayoutParams(0, dp(36), 1.2f));
+    LinearLayout.LayoutParams lpReplace = new LinearLayout.LayoutParams(0, dp(38), 1.3f);
+    lpReplace.setMargins(dp(3), 0, dp(3), 0);
+    _rowActionButtons.addView(btnReplace, lpReplace);
 
-    Button btnInsert = createActionButton("➕ Insert", Color.parseColor("#1565C0"), new OnClickListener()
+    // 3.2 Insert Button (Royal Blue Pill)
+    Button btnInsert = createPremiumButton("＋  Insert", Color.parseColor("#1D4ED8"), Color.parseColor("#60A5FA"), new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -500,9 +486,12 @@ public class AiPaneView extends LinearLayout
         applyResultToField(false);
       }
     });
-    _rowActionButtons.addView(btnInsert, new LinearLayout.LayoutParams(0, dp(36), 1.0f));
+    LinearLayout.LayoutParams lpInsert = new LinearLayout.LayoutParams(0, dp(38), 1.1f);
+    lpInsert.setMargins(dp(3), 0, dp(3), 0);
+    _rowActionButtons.addView(btnInsert, lpInsert);
 
-    Button btnCopy = createActionButton("📋 Copy", Color.parseColor("#424242"), new OnClickListener()
+    // 3.3 Copy Button (Sleek Slate Pill)
+    Button btnCopy = createPremiumButton("📋  Copy", Color.parseColor("#374151"), Color.parseColor("#6B7280"), new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -517,9 +506,12 @@ public class AiPaneView extends LinearLayout
         }
       }
     });
-    _rowActionButtons.addView(btnCopy, new LinearLayout.LayoutParams(0, dp(36), 0.9f));
+    LinearLayout.LayoutParams lpCopy = new LinearLayout.LayoutParams(0, dp(38), 1.0f);
+    lpCopy.setMargins(dp(3), 0, dp(3), 0);
+    _rowActionButtons.addView(btnCopy, lpCopy);
 
-    Button btnRegen = createActionButton("🔄", Color.parseColor("#555555"), new OnClickListener()
+    // 3.4 Regenerate Icon Button (Circular Slate Pill)
+    Button btnRegen = createIconActionButton("↻", Color.parseColor("#374151"), Color.parseColor("#6B7280"), new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -527,16 +519,25 @@ public class AiPaneView extends LinearLayout
         triggerExecution();
       }
     });
-    _rowActionButtons.addView(btnRegen, new LinearLayout.LayoutParams(dp(36), dp(36)));
+    LinearLayout.LayoutParams lpRegen = new LinearLayout.LayoutParams(dp(38), dp(38));
+    lpRegen.setMargins(dp(3), 0, dp(3), 0);
+    _rowActionButtons.addView(btnRegen, lpRegen);
 
-    addView(_rowActionButtons, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46)));
+    addView(_rowActionButtons, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
   }
 
-  public void open(int targetHeight)
+  public void open(int targetHeight, int bottomSafety)
   {
     Context context = getContext();
     initThemeColors(context);
     setBackgroundColor(_colorKeyboard);
+
+    // Calculate safety space for system gesture bar / navigation bar
+    _bottomSafety = Math.max(bottomSafety, dp(18));
+    if (_rowActionButtons != null)
+    {
+      _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
+    }
 
     if (targetHeight > 0)
     {
@@ -550,7 +551,7 @@ public class AiPaneView extends LinearLayout
 
     // Refresh provider badge
     AiProvider provider = AiProvider.Manager.getActiveProvider(context);
-    _tvProviderBadge.setText(" " + provider.getName() + " (" + provider.getActiveModel(context) + ") ");
+    _tvProviderBadge.setText(" ⚡ " + provider.getName() + " ");
 
     // Check if API key is present
     boolean hasKey = AiProvider.Manager.hasConfiguredApiKey(context);
@@ -625,7 +626,7 @@ public class AiPaneView extends LinearLayout
       {
         Context ctx = getContext();
         AiProvider provider = AiProvider.Manager.getActiveProvider(ctx);
-        _tvProviderBadge.setText(" " + provider.getName() + " (" + provider.getActiveModel(ctx) + ") ");
+        _tvProviderBadge.setText(" ⚡ " + provider.getName() + " ");
         _cardSetupNotice.setVisibility(AiProvider.Manager.hasConfiguredApiKey(ctx) ? GONE : VISIBLE);
       }
     });
@@ -686,11 +687,10 @@ public class AiPaneView extends LinearLayout
       chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
       chip.setTextColor(_colorLabel);
       chip.setPadding(dp(8), 0, dp(8), 0);
-      GradientDrawable bg = new GradientDrawable();
-      bg.setCornerRadius(dp(12));
-      bg.setColor(adjustAlpha(_colorKeyActivated != 0 ? _colorKeyActivated : Color.parseColor("#2196F3"), 0.2f));
-      bg.setStroke(1, adjustAlpha(_colorKeyActivated != 0 ? _colorKeyActivated : Color.parseColor("#2196F3"), 0.5f));
-      chip.setBackground(bg);
+      chip.setBackground(createPillBackground(
+          adjustAlpha(_colorKeyActivated != 0 ? _colorKeyActivated : Color.parseColor("#2196F3"), 0.2f),
+          dp(12),
+          adjustAlpha(_colorKeyActivated != 0 ? _colorKeyActivated : Color.parseColor("#2196F3"), 0.5f)));
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
           ViewGroup.LayoutParams.WRAP_CONTENT, dp(26));
       lp.setMargins(dp(2), 0, dp(4), 0);
@@ -724,21 +724,17 @@ public class AiPaneView extends LinearLayout
       chip.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
       chip.setPadding(dp(8), 0, dp(8), 0);
 
-      GradientDrawable bg = new GradientDrawable();
-      bg.setCornerRadius(dp(12));
       if (isSelected)
       {
         int activeBg = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
-        bg.setColor(activeBg);
+        chip.setBackground(createPillBackground(activeBg, dp(12), Color.TRANSPARENT));
         chip.setTextColor(Color.WHITE);
       }
       else
       {
-        bg.setColor(adjustAlpha(_colorKey, 0.45f));
-        bg.setStroke(1, adjustAlpha(_colorLabel, 0.15f));
+        chip.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.5f), dp(12), adjustAlpha(_colorLabel, 0.15f)));
         chip.setTextColor(adjustAlpha(_colorLabel, 0.8f));
       }
-      chip.setBackground(bg);
 
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
           ViewGroup.LayoutParams.WRAP_CONTENT, dp(28));
@@ -791,23 +787,18 @@ public class AiPaneView extends LinearLayout
       chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
       chip.setPadding(dp(7), 0, dp(7), 0);
 
-      GradientDrawable bg = new GradientDrawable();
-      bg.setCornerRadius(dp(10));
       if (isSelected)
       {
         int accent = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
-        bg.setColor(adjustAlpha(accent, 0.3f));
-        bg.setStroke(1, accent);
+        chip.setBackground(createPillBackground(adjustAlpha(accent, 0.3f), dp(10), accent));
         chip.setTextColor(_colorLabel);
         chip.setTypeface(null, Typeface.BOLD);
       }
       else
       {
-        bg.setColor(adjustAlpha(_colorKey, 0.35f));
-        bg.setStroke(1, adjustAlpha(_colorLabel, 0.12f));
+        chip.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.35f), dp(10), adjustAlpha(_colorLabel, 0.12f)));
         chip.setTextColor(adjustAlpha(_colorLabel, 0.7f));
       }
-      chip.setBackground(bg);
 
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
           ViewGroup.LayoutParams.WRAP_CONTENT, dp(26));
@@ -846,23 +837,19 @@ public class AiPaneView extends LinearLayout
       Button chip = new Button(getContext());
       chip.setText(tone);
       chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
-      chip.setPadding(dp(5), 0, dp(5), 0);
+      chip.setPadding(dp(6), 0, dp(6), 0);
 
-      GradientDrawable bg = new GradientDrawable();
-      bg.setCornerRadius(dp(8));
       if (isSelected)
       {
-        bg.setColor(adjustAlpha(Color.parseColor("#4CAF50"), 0.3f));
-        bg.setStroke(1, Color.parseColor("#4CAF50"));
-        chip.setTextColor(Color.parseColor("#81C784"));
+        chip.setBackground(createPillBackground(adjustAlpha(Color.parseColor("#10B981"), 0.3f), dp(8), Color.parseColor("#10B981")));
+        chip.setTextColor(Color.parseColor("#6EE7B7"));
+        chip.setTypeface(null, Typeface.BOLD);
       }
       else
       {
-        bg.setColor(adjustAlpha(_colorKey, 0.25f));
-        bg.setStroke(1, adjustAlpha(_colorLabel, 0.1f));
+        chip.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.25f), dp(8), adjustAlpha(_colorLabel, 0.1f)));
         chip.setTextColor(adjustAlpha(_colorLabel, 0.6f));
       }
-      chip.setBackground(bg);
 
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
           ViewGroup.LayoutParams.WRAP_CONTENT, dp(22));
@@ -985,23 +972,61 @@ public class AiPaneView extends LinearLayout
     _keyboard.closeAiPane();
   }
 
-  private Button createActionButton(String label, int bgColor, OnClickListener listener)
+  private Button createPremiumButton(String label, int bgColor, int strokeColor, OnClickListener listener)
   {
     Button b = new Button(getContext());
     b.setText(label);
     b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    b.setTypeface(null, Typeface.BOLD);
+    b.setTextColor(Color.WHITE);
+    b.setSingleLine(true);
+    b.setEllipsize(TextUtils.TruncateAt.END);
+    b.setPadding(dp(4), 0, dp(4), 0);
+    b.setIncludeFontPadding(false);
+
+    GradientDrawable normalBg = createPillBackground(bgColor, dp(19), strokeColor);
+    GradientDrawable pressedBg = createPillBackground(adjustAlpha(bgColor, 0.75f), dp(19), strokeColor);
+
+    StateListDrawable sld = new StateListDrawable();
+    sld.addState(new int[]{android.R.attr.state_pressed}, pressedBg);
+    sld.addState(new int[]{}, normalBg);
+    b.setBackground(sld);
+
+    b.setOnClickListener(listener);
+    return b;
+  }
+
+  private Button createIconActionButton(String iconText, int bgColor, int strokeColor, OnClickListener listener)
+  {
+    Button b = new Button(getContext());
+    b.setText(iconText);
+    b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+    b.setTypeface(null, Typeface.BOLD);
     b.setTextColor(Color.WHITE);
     b.setPadding(0, 0, 0, 0);
-    GradientDrawable bg = new GradientDrawable();
-    bg.setCornerRadius(dp(6));
-    bg.setColor(bgColor);
-    b.setBackground(bg);
+
+    GradientDrawable normalBg = createPillBackground(bgColor, dp(19), strokeColor);
+    GradientDrawable pressedBg = createPillBackground(adjustAlpha(bgColor, 0.75f), dp(19), strokeColor);
+
+    StateListDrawable sld = new StateListDrawable();
+    sld.addState(new int[]{android.R.attr.state_pressed}, pressedBg);
+    sld.addState(new int[]{}, normalBg);
+    b.setBackground(sld);
+
     b.setOnClickListener(listener);
-    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.WRAP_CONTENT, dp(36));
-    lp.setMargins(dp(2), 0, dp(2), 0);
-    b.setLayoutParams(lp);
     return b;
+  }
+
+  private GradientDrawable createPillBackground(int color, float radiusDp, int strokeColor)
+  {
+    GradientDrawable gd = new GradientDrawable();
+    gd.setCornerRadius(radiusDp * _density);
+    gd.setColor(color);
+    if (strokeColor != Color.TRANSPARENT)
+    {
+      gd.setStroke(dp(1), strokeColor);
+    }
+    return gd;
   }
 
   private int adjustAlpha(int color, float factor)

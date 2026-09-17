@@ -179,12 +179,29 @@ public class Keyboard2 extends InputMethodService
   public void showAiPane()
   {
     if (_ai_pane_view == null) return;
-    int h = _keyboard_layout_view != null ? _keyboard_layout_view.getHeight() : 0;
-    if (h <= 0 && _keyboard_layout_view != null)
-      h = _keyboard_layout_view.getMeasuredHeight();
-    _ai_pane_view.open(h);
+    int h = (_keyboard_container_view != null && _keyboard_container_view.getHeight() > 0)
+        ? _keyboard_container_view.getHeight() : 0;
+    if (h <= 0)
+    {
+      int kh = _keyboard_layout_view != null ? _keyboard_layout_view.getHeight() : 0;
+      if (kh <= 0 && _keyboard_layout_view != null)
+        kh = _keyboard_layout_view.getMeasuredHeight();
+      int ch = (_candidates_view != null && _candidates_view.getVisibility() == View.VISIBLE)
+          ? _candidates_view.getHeight() : 0;
+      if (ch <= 0 && _candidates_view != null && _candidates_view.getVisibility() == View.VISIBLE)
+        ch = _candidates_view.getMeasuredHeight();
+      h = kh + ch;
+    }
+    int bottomSafety = (_keyboard_layout_view != null) ? _keyboard_layout_view.getBottomMargin() : 0;
+    if (bottomSafety <= 0 && _config != null)
+      bottomSafety = (int)_config.margin_bottom;
+
+    if (_candidates_view != null)
+      _candidates_view.setVisibility(View.GONE);
     if (_keyboard_layout_view != null)
       _keyboard_layout_view.setVisibility(View.GONE);
+
+    _ai_pane_view.open(h, bottomSafety);
     _ai_pane_view.setVisibility(View.VISIBLE);
   }
 
@@ -194,6 +211,7 @@ public class Keyboard2 extends InputMethodService
       _ai_pane_view.setVisibility(View.GONE);
     if (_keyboard_layout_view != null)
       _keyboard_layout_view.setVisibility(View.VISIBLE);
+    refresh_candidates_view();
   }
 
   InputMethodManager get_imm()
