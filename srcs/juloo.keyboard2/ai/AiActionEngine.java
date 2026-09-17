@@ -10,12 +10,13 @@ public class AiActionEngine
 {
   public enum Category
   {
+    GRAMMAR("🔍 Grammar", "Fix spelling, punctuation & grammar"),
+    TRANSLATE("🔄 Translate", "Translate naturally into any language"),
     REWRITE("✍️ Rewrite", "Rephrase, polish, or change writing style"),
+    ISLAMIC("🕌 Islamic", "Islamic tone, blessings, Salam & authentic Arabic"),
     REPLY("💬 Reply", "Generate contextual chat & comment replies"),
     EMAIL("📧 Email", "Generate professional & formal emails"),
     SOCIAL("📱 Social", "Create posts for Facebook, LinkedIn, X, Insta"),
-    GRAMMAR("🔍 Grammar", "Fix spelling, punctuation & grammar"),
-    TRANSLATE("🔄 Translate", "Translate naturally into any language"),
     SUMMARIZE("📝 Summarize", "Summarize into bullets, key points or short text"),
     EXPLAIN("💡 Explain", "Explain concepts, ideas or programming code"),
     NATURALIZE("✨ Naturalize", "Humanize AI text to sound authentic"),
@@ -57,9 +58,31 @@ public class AiActionEngine
     List<ActionOption> list = new ArrayList<>();
     switch (cat)
     {
+      case GRAMMAR:
+        list.add(new ActionOption("grammar_all", "Fix All", "Spelling, punctuation & grammar"));
+        list.add(new ActionOption("grammar_spelling", "Spelling Only", "Fix typos and spelling"));
+        list.add(new ActionOption("grammar_structure", "Sentence Flow", "Improve sentence structure"));
+        break;
+
+      case TRANSLATE:
+        list.add(new ActionOption("tr_banglish", "🔤 Banglish (বাংলিশ)", "Phonetic English letters e.g. Tumi kemon acho?"));
+        list.add(new ActionOption("tr_bn", "বাংলা (Bengali)", "Natural idiomatic Bengali"));
+        list.add(new ActionOption("tr_en", "English", "Fluent modern English"));
+        list.add(new ActionOption("tr_ar", "العربية (Arabic)", "Accurate modern Arabic"));
+        list.add(new ActionOption("tr_hi", "हिन्दी (Hindi)", "Natural Hindi"));
+        list.add(new ActionOption("tr_ur", "اردو (Urdu)", "Polite literary Urdu"));
+        list.add(new ActionOption("tr_es", "Español", "Natural Spanish"));
+        list.add(new ActionOption("tr_fr", "Français", "Natural French"));
+        list.add(new ActionOption("tr_zh", "中文 (Chinese)", "Standard Chinese"));
+        list.add(new ActionOption("tr_ja", "日本語 (Japanese)", "Natural Japanese"));
+        list.add(new ActionOption("tr_de", "Deutsch", "Natural German"));
+        break;
+
       case REWRITE:
         list.add(new ActionOption("rephrase", "Rephrase", "Rewrite with better phrasing"));
         list.add(new ActionOption("prof", "Professional", "Polite and confident"));
+        list.add(new ActionOption("rewrite_islamic", "Islamic Style", "Salam, InshaAllah & Islamic blessings"));
+        list.add(new ActionOption("rewrite_islamic_ar", "Islamic + Arabic", "Salam with authentic Arabic script"));
         list.add(new ActionOption("casual", "Casual", "Warm and easygoing"));
         list.add(new ActionOption("friendly", "Friendly", "Warm and approachable"));
         list.add(new ActionOption("formal", "Formal", "Dignified and elegant"));
@@ -70,8 +93,18 @@ public class AiActionEngine
         list.add(new ActionOption("shorter", "Shorter", "Punchy and concise"));
         break;
 
+      case ISLAMIC:
+        list.add(new ActionOption("islamic_standard", "Islamic Vibe", "Salam, InshaAllah, SubhanAllah, blessings"));
+        list.add(new ActionOption("islamic_arabic", "With Arabic Script", "Salam + Arabic phrases & Duas (السلام عليكم)"));
+        list.add(new ActionOption("islamic_post", "Islamic Social Post", "Heart-touching post with hashtags"));
+        list.add(new ActionOption("islamic_dua", "Dua & Blessings", "Heartfelt Islamic prayers & wishes"));
+        list.add(new ActionOption("islamic_jummah", "Jummah Mubarak", "Jummah Mubarak greeting & reminder"));
+        break;
+
       case REPLY:
         list.add(new ActionOption("reply_friendly", "Friendly", "Warm & kind reply"));
+        list.add(new ActionOption("reply_islamic", "Islamic Reply", "Start with Salam, warm Islamic wishes"));
+        list.add(new ActionOption("reply_islamic_dua", "Dua / Gratitude", "Jazakallah Khair, Barakallah Feek"));
         list.add(new ActionOption("reply_casual", "Casual", "Everyday natural reply"));
         list.add(new ActionOption("reply_prof", "Professional", "Polite & business-ready"));
         list.add(new ActionOption("reply_funny", "Funny", "Humorous & lighthearted"));
@@ -100,33 +133,15 @@ public class AiActionEngine
         break;
 
       case SOCIAL:
-        list.add(new ActionOption("soc_fb", "Facebook", "Engaging post with questions"));
-        list.add(new ActionOption("soc_li", "LinkedIn", "Professional career post"));
-        list.add(new ActionOption("soc_x", "X / Twitter", "Punchy tweet under 280 chars"));
+        list.add(new ActionOption("soc_fb", "Facebook", "Engaging post + hashtags"));
+        list.add(new ActionOption("soc_islamic", "Islamic Status", "Inspiring Islamic post + tags"));
+        list.add(new ActionOption("soc_li", "LinkedIn", "Professional career post + tags"));
+        list.add(new ActionOption("soc_x", "X / Twitter", "Punchy tweet under 280 chars + tags"));
         list.add(new ActionOption("soc_ig", "Instagram", "Aesthetic caption + hashtags"));
         list.add(new ActionOption("soc_yt", "YouTube", "Community tab announcement"));
-        list.add(new ActionOption("soc_viral", "Viral Style", "Catchy hook & high engagement"));
-        list.add(new ActionOption("soc_story", "Storytelling", "Narrative emotional style"));
-        list.add(new ActionOption("soc_promo", "Promotional", "Compelling offer / CTA"));
-        break;
-
-      case GRAMMAR:
-        list.add(new ActionOption("grammar_all", "Fix All", "Spelling, punctuation & grammar"));
-        list.add(new ActionOption("grammar_spelling", "Spelling Only", "Fix typos and spelling"));
-        list.add(new ActionOption("grammar_structure", "Sentence Flow", "Improve sentence structure"));
-        break;
-
-      case TRANSLATE:
-        list.add(new ActionOption("tr_bn", "বাংলা (Bengali)", "Natural idiomatic Bengali"));
-        list.add(new ActionOption("tr_en", "English", "Fluent modern English"));
-        list.add(new ActionOption("tr_ar", "العربية (Arabic)", "Accurate modern Arabic"));
-        list.add(new ActionOption("tr_hi", "हिन्दी (Hindi)", "Natural Hindi"));
-        list.add(new ActionOption("tr_ur", "اردو (Urdu)", "Polite literary Urdu"));
-        list.add(new ActionOption("tr_es", "Español", "Natural Spanish"));
-        list.add(new ActionOption("tr_fr", "Français", "Natural French"));
-        list.add(new ActionOption("tr_zh", "中文 (Chinese)", "Standard Chinese"));
-        list.add(new ActionOption("tr_ja", "日本語 (Japanese)", "Natural Japanese"));
-        list.add(new ActionOption("tr_de", "Deutsch", "Natural German"));
+        list.add(new ActionOption("soc_viral", "Viral Style", "Catchy hook & high engagement + tags"));
+        list.add(new ActionOption("soc_story", "Storytelling", "Narrative emotional style + tags"));
+        list.add(new ActionOption("soc_promo", "Promotional", "Compelling offer / CTA + tags"));
         break;
 
       case SUMMARIZE:
@@ -155,6 +170,8 @@ public class AiActionEngine
 
       case TONE:
         list.add(new ActionOption("tone_prof", "Professional", "Polite and confident"));
+        list.add(new ActionOption("tone_islamic", "Islamic Vibe", "Polite, modest with Salam & blessings"));
+        list.add(new ActionOption("tone_islamic_ar", "Islamic + Arabic", "Polite with authentic Arabic phrases"));
         list.add(new ActionOption("tone_friendly", "Friendly", "Warm and approachable"));
         list.add(new ActionOption("tone_formal", "Formal", "Respectful & diplomatic"));
         list.add(new ActionOption("tone_casual", "Casual", "Everyday informal"));
@@ -314,6 +331,10 @@ public class AiActionEngine
       case REWRITE:
         if ("prof".equals(optionId))
           sb.append("TASK: Rewrite the input in a polished, confident, professional business tone.\n");
+        else if ("rewrite_islamic".equals(optionId))
+          sb.append("TASK: Rewrite the text with an authentic, respectful Islamic tone. Start with Salam ('আসসালামু আলাইকুম'), naturally incorporate polite Islamic expressions (ইনশাআল্লাহ্, মাশাআল্লাহ, আলহামদুলিল্লাহ, জাযাকাল্লাহু খাইরান) where appropriate, and keep the writing warm and courteous.\n");
+        else if ("rewrite_islamic_ar".equals(optionId))
+          sb.append("TASK: Rewrite the text with an authentic Islamic tone and include authentic Arabic script (السلام عليكم ورحمة الله وبركاته, إن شاء الله, الحمد لله) alongside natural Bengali or English.\n");
         else if ("casual".equals(optionId))
           sb.append("TASK: Rewrite in a warm, relaxed, friendly everyday casual style.\n");
         else if ("friendly".equals(optionId))
@@ -334,9 +355,37 @@ public class AiActionEngine
           sb.append("TASK: Rephrase and polish the text for smooth rhythm and natural phrasing.\n");
         break;
 
+      case ISLAMIC:
+        sb.append("TASK: Compose or rewrite in an authentic Islamic style.\n");
+        sb.append("ISLAMIC CORE RULES:\n");
+        sb.append("1. Always begin respectfully with a beautiful Islamic greeting/Salam ('আসসালামু আলাইকুম' or 'আসসালামু আলাইকুম ওয়া রাহমাতুল্লাহি ওয়া বারাকাতুহু').\n");
+        sb.append("2. Seamlessly and naturally integrate authentic Islamic expressions where appropriate (e.g. 'ইনশাআল্লাহ্', 'মাশাআল্লাহ', 'সুবহানাল্লাহ', 'আলহামদুলিল্লাহ', 'জাযাকাল্লাহু খাইরান', 'বারাকাল্লাহু ফিক', 'আল্লাহ হাফেজ').\n");
+        sb.append("3. Maintain high courtesy, modesty, and kindness (আদব ও আন্তরিকতাপূর্ণ ভাব).\n");
+        if ("islamic_arabic".equals(optionId))
+        {
+          sb.append("4. Include authentic Arabic script with accurate diacritics/tashkeel for Salam and Duas (e.g. السلام عليكم ورحمة الله وبركاته, إن شاء الله, ما شاء الله, سبحان الله, الحمد لله, جزاكم الله خيراً).\n");
+        }
+        else if ("islamic_post".equals(optionId))
+        {
+          sb.append("4. Craft as an inspiring Islamic social media post or status. Always end with 3 to 6 relevant Bengali and English hashtags (#IslamicReminder #Bangla #Deen #Alhamdulillah #IslamicStatus).\n");
+        }
+        else if ("islamic_dua".equals(optionId))
+        {
+          sb.append("4. Structure as a heartfelt Islamic Dua (Supplication) and prayer, wishing profound barakah, peace, and goodness.\n");
+        }
+        else if ("islamic_jummah".equals(optionId))
+        {
+          sb.append("4. Craft as a blessed Jummah Mubarak greeting with meaningful spiritual reflections, Durood reminder, and warm Jummah wishes.\n");
+        }
+        break;
+
       case REPLY:
         sb.append("TASK: The user is writing a reply to the provided message or comment.\n");
-        if ("reply_prof".equals(optionId))
+        if ("reply_islamic".equals(optionId))
+          sb.append("Mode: Courteous Islamic reply. Always start with Salam ('আসসালামু আলাইকুম') and naturally use appropriate Islamic expressions (ইনশাআল্লাহ্, আলহামদুলিল্লাহ, জাযাকাল্লাহু খাইরান).\n");
+        else if ("reply_islamic_dua".equals(optionId))
+          sb.append("Mode: Islamic gratitude and heartfelt Dua (Supplication), expressing blessings such as 'জাযাকাল্লাহু খাইরান' (جزاكم الله خيراً) and 'বারাকাল্লাহু ফিক'.\n");
+        else if ("reply_prof".equals(optionId))
           sb.append("Mode: Professional, polite, and constructive business reply.\n");
         else if ("reply_funny".equals(optionId))
           sb.append("Mode: Witty, lighthearted, and humorous reply with fitting emoji.\n");
@@ -389,7 +438,10 @@ public class AiActionEngine
 
       case SOCIAL:
         sb.append("TASK: Generate an engaging social media post based on the user's input.\n");
-        if ("soc_li".equals(optionId))
+        sb.append("HASHTAG REQUIREMENT: Always append 3 to 6 relevant, high-impact hashtags at the bottom of the post (e.g. #Bangla #FacebookPost #Trending or topic-focused tags).\n");
+        if ("soc_islamic".equals(optionId))
+          sb.append("Style: Inspiring Islamic post. Start with Salam, share an uplifting spiritual reflection, naturally include Islamic phrases (ইনশাআল্লাহ্, আলহামদুলিল্লাহ), and end with 4-6 relevant hashtags (#IslamicPost #Deen #Bangla #Alhamdulillah).\n");
+        else if ("soc_li".equals(optionId))
           sb.append("Platform: LinkedIn. Use a strong hook, concise professional insights, bulleted takeaways, and relevant professional hashtags.\n");
         else if ("soc_x".equals(optionId))
           sb.append("Platform: X (Twitter). Keep it under 280 characters with a punchy hook and 1-2 trending hashtags.\n");
@@ -404,7 +456,7 @@ public class AiActionEngine
         else if ("soc_promo".equals(optionId))
           sb.append("Style: Promotional post highlighting benefits, urgency, and a clear Call To Action (CTA).\n");
         else
-          sb.append("Platform: Facebook. Friendly, engaging post with natural emojis and an invitation to comment.\n");
+          sb.append("Platform: Facebook. Friendly, engaging post with natural emojis, an invitation to comment, and relevant hashtags.\n");
         break;
 
       case GRAMMAR:
@@ -413,18 +465,25 @@ public class AiActionEngine
         break;
 
       case TRANSLATE:
-        String targetLang = "English";
-        if ("tr_bn".equals(optionId)) targetLang = "Bengali (বাংলা)";
-        else if ("tr_ar".equals(optionId)) targetLang = "Arabic (العربية)";
-        else if ("tr_hi".equals(optionId)) targetLang = "Hindi (हिन्दी)";
-        else if ("tr_ur".equals(optionId)) targetLang = "Urdu (اردو)";
-        else if ("tr_es".equals(optionId)) targetLang = "Spanish (Español)";
-        else if ("tr_fr".equals(optionId)) targetLang = "French (Français)";
-        else if ("tr_zh".equals(optionId)) targetLang = "Chinese (中文)";
-        else if ("tr_ja".equals(optionId)) targetLang = "Japanese (日本語)";
-        else if ("tr_de".equals(optionId)) targetLang = "German (Deutsch)";
-        sb.append("TASK: Translate the text accurately and idiomatically into ").append(targetLang).append(".\n");
-        sb.append("Ensure natural phrasing that native speakers actually use. Output ONLY the translated text.\n");
+        if ("tr_banglish".equals(optionId))
+        {
+          sb.append("TASK: Transliterate/translate the text into natural Banglish (Bengali written using Latin/English letters, such as 'Ami tomake bhalobashi', 'Kemon acho?', 'Kalke dekha hobe'). Make it sound completely natural as commonly used in chat and social messaging. Output ONLY the Banglish text.\n");
+        }
+        else
+        {
+          String targetLang = "English";
+          if ("tr_bn".equals(optionId)) targetLang = "Bengali (বাংলা)";
+          else if ("tr_ar".equals(optionId)) targetLang = "Arabic (العربية)";
+          else if ("tr_hi".equals(optionId)) targetLang = "Hindi (हिन्दी)";
+          else if ("tr_ur".equals(optionId)) targetLang = "Urdu (اردو)";
+          else if ("tr_es".equals(optionId)) targetLang = "Spanish (Español)";
+          else if ("tr_fr".equals(optionId)) targetLang = "French (Français)";
+          else if ("tr_zh".equals(optionId)) targetLang = "Chinese (中文)";
+          else if ("tr_ja".equals(optionId)) targetLang = "Japanese (日本語)";
+          else if ("tr_de".equals(optionId)) targetLang = "German (Deutsch)";
+          sb.append("TASK: Translate the text accurately and idiomatically into ").append(targetLang).append(".\n");
+          sb.append("Ensure natural phrasing that native speakers actually use. Output ONLY the translated text.\n");
+        }
         break;
 
       case SUMMARIZE:
@@ -461,7 +520,11 @@ public class AiActionEngine
         break;
 
       case TONE:
-        if ("tone_formal".equals(optionId))
+        if ("tone_islamic".equals(optionId))
+          sb.append("TASK: Rewrite the text with an authentic, polite, and modest Islamic tone. Begin with Salam ('আসসালামু আলাইকুম') and include appropriate Islamic phrases ('ইনশাআল্লাহ্', 'মাশাআল্লাহ', 'আলহামদুলিল্লাহ') fitting the context.\n");
+        else if ("tone_islamic_ar".equals(optionId))
+          sb.append("TASK: Rewrite with an Islamic tone featuring authentic Arabic script phrases (السلام عليكم ورحمة الله وبركاته, إن شاء الله, الحمد لله) with great courtesy and modesty.\n");
+        else if ("tone_formal".equals(optionId))
           sb.append("TASK: Rewrite the text in a formal, respectful, and diplomatic tone.\n");
         else if ("tone_casual".equals(optionId))
           sb.append("TASK: Rewrite in a relaxed, casual, everyday tone.\n");
@@ -539,7 +602,14 @@ public class AiActionEngine
     // Apply global tone modifier if present
     if (globalTone != null && !globalTone.trim().isEmpty() && !"default".equalsIgnoreCase(globalTone))
     {
-      sb.append("\nGLOBAL TONE MODIFIER: Ensure the entire output reflects a '").append(globalTone).append("' tone.\n");
+      if ("islamic".equalsIgnoreCase(globalTone) || "islamic vibe".equalsIgnoreCase(globalTone))
+      {
+        sb.append("\nGLOBAL TONE MODIFIER: Maintain an authentic Islamic tone. Start with Salam ('আসসালামু আলাইকুম') and naturally weave in Islamic expressions (ইনশাআল্লাহ্, মাশাআল্লাহ, আলহামদুলিল্লাহ) with modesty and respect.\n");
+      }
+      else
+      {
+        sb.append("\nGLOBAL TONE MODIFIER: Ensure the entire output reflects a '").append(globalTone).append("' tone.\n");
+      }
     }
 
     return sb.toString();
@@ -557,15 +627,25 @@ public class AiActionEngine
       String customPrompt,
       final AiProvider.Callback callback)
   {
-    if (userText == null || userText.trim().isEmpty())
+    String input = (userText != null) ? userText.trim() : "";
+    String prompt = (customPrompt != null) ? customPrompt.trim() : "";
+
+    if (input.isEmpty() && prompt.isEmpty())
     {
-      if (callback != null) callback.onError("No text provided.");
+      if (callback != null) callback.onError("No text or prompt provided.");
       return;
+    }
+
+    // If no user text was selected but a custom prompt was entered (e.g. in Ask AI),
+    // treat the custom prompt as the subject/request
+    if (input.isEmpty())
+    {
+      input = prompt;
     }
 
     String systemPrompt = buildSystemPrompt(category, optionId, globalTone, customPrompt);
     AiProvider provider = AiProvider.Manager.getActiveProvider(context);
-    provider.generate(context, systemPrompt, userText.trim(), new AiProvider.Callback()
+    provider.generate(context, systemPrompt, input, new AiProvider.Callback()
     {
       @Override
       public void onSuccess(String resultText)

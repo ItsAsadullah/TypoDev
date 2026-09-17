@@ -47,20 +47,52 @@ public class AiActionEngineTest
         AiActionEngine.Category.REPLY, "reply_funny", "default", null);
     assertTrue(replyPrompt.contains("humorous reply"));
 
-    // Test Social Media Prompt
+    // Test Social Media Prompt with Hashtag rule
     String socialPrompt = AiActionEngine.buildSystemPrompt(
         AiActionEngine.Category.SOCIAL, "soc_li", "default", null);
     assertTrue(socialPrompt.contains("LinkedIn"));
+    assertTrue(socialPrompt.contains("HASHTAG"));
 
-    // Test Translate Prompt
+    // Test Translate Prompt (Bengali)
     String trPrompt = AiActionEngine.buildSystemPrompt(
         AiActionEngine.Category.TRANSLATE, "tr_bn", "default", null);
     assertTrue(trPrompt.contains("Bengali"));
+
+    // Test Translate Prompt (Banglish)
+    String banglishPrompt = AiActionEngine.buildSystemPrompt(
+        AiActionEngine.Category.TRANSLATE, "tr_banglish", "default", null);
+    assertTrue(banglishPrompt.contains("Banglish"));
+    assertTrue(banglishPrompt.contains("Latin/English letters"));
+
+    // Test Islamic Category Prompts
+    String islamicPrompt = AiActionEngine.buildSystemPrompt(
+        AiActionEngine.Category.ISLAMIC, "islamic_standard", "default", null);
+    assertTrue(islamicPrompt.contains("Salam"));
+    assertTrue(islamicPrompt.contains("আসসালামু আলাইকুম"));
+
+    String islamicArabicPrompt = AiActionEngine.buildSystemPrompt(
+        AiActionEngine.Category.ISLAMIC, "islamic_arabic", "default", null);
+    assertTrue(islamicArabicPrompt.contains("Arabic script"));
+    assertTrue(islamicArabicPrompt.contains("السلام عليكم"));
+
+    String islamicPostPrompt = AiActionEngine.buildSystemPrompt(
+        AiActionEngine.Category.ISLAMIC, "islamic_post", "default", null);
+    assertTrue(islamicPostPrompt.contains("hashtags"));
 
     // Test Naturalize Prompt
     String natPrompt = AiActionEngine.buildSystemPrompt(
         AiActionEngine.Category.NATURALIZE, "nat_human", "default", null);
     assertTrue(natPrompt.contains("Humanize and naturalize"));
+  }
+
+  @Test
+  public void testCategoryPriorityOrder()
+  {
+    AiActionEngine.Category[] cats = AiActionEngine.Category.values();
+    assertEquals("First category must be GRAMMAR", AiActionEngine.Category.GRAMMAR, cats[0]);
+    assertEquals("Second category must be TRANSLATE", AiActionEngine.Category.TRANSLATE, cats[1]);
+    assertEquals("Third category must be REWRITE", AiActionEngine.Category.REWRITE, cats[2]);
+    assertEquals("Fourth category must be ISLAMIC", AiActionEngine.Category.ISLAMIC, cats[3]);
   }
 
   @Test

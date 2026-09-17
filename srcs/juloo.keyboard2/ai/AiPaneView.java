@@ -157,14 +157,21 @@ public class AiPaneView extends LinearLayout
           WindowInsets.Type.systemBars() | WindowInsets.Type.navigationBars() | WindowInsets.Type.displayCutout());
       if (sb.bottom > 0)
       {
-        _bottomSafety = Math.max(_bottomSafety, sb.bottom);
-        if (_rowActionButtons != null)
-        {
-          _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
-        }
+        updateBottomPadding(sb.bottom);
       }
     }
     return super.onApplyWindowInsets(insets);
+  }
+
+  private void updateBottomPadding(int rawBottomSafety)
+  {
+    // Cap bottom padding to a clean 8-16dp so buttons sit perfectly above Android's
+    // navigation/gesture pill without any oversized black void below them
+    _bottomSafety = Math.min(Math.max(rawBottomSafety, 0), dp(16));
+    if (_rowActionButtons != null)
+    {
+      _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
+    }
   }
 
   private void initLayout(final Context context)
@@ -383,12 +390,22 @@ public class AiPaneView extends LinearLayout
     _llCustomPrompt.setPadding(0, dp(3), 0, dp(3));
 
     _etCustomAsk = new EditText(context);
-    _etCustomAsk.setHint("Ask anything or enter custom instruction...");
+    _etCustomAsk.setHint("এখানে প্রম্পট লিখুন... / Enter prompt or question");
     _etCustomAsk.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
     _etCustomAsk.setTextColor(_colorLabel);
     _etCustomAsk.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
     _etCustomAsk.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.5f), dp(6), adjustAlpha(_colorLabel, 0.25f)));
     _etCustomAsk.setPadding(dp(8), dp(5), dp(8), dp(5));
+    _etCustomAsk.setSingleLine(true);
+    _etCustomAsk.setOnEditorActionListener(new TextView.OnEditorActionListener()
+    {
+      @Override
+      public boolean onEditorAction(TextView v, int actionId, android.view.KeyEvent event)
+      {
+        triggerExecution();
+        return true;
+      }
+    });
     _llCustomPrompt.addView(_etCustomAsk, new LinearLayout.LayoutParams(0, dp(34), 1.0f));
 
     _btnCustomSend = new Button(context);
@@ -470,7 +487,7 @@ public class AiPaneView extends LinearLayout
     _rowActionButtons.setOrientation(HORIZONTAL);
     _rowActionButtons.setGravity(Gravity.CENTER_VERTICAL);
     _rowActionButtons.setBackgroundColor(adjustAlpha(_colorKeyboard, 0.98f));
-    _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + dp(18));
+    _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + dp(6));
 
     // 3.1 Replace Button (Vibrant Emerald Pill)
     Button btnReplace = createPremiumButton("✓  Replace", Color.parseColor("#059669"), Color.parseColor("#34D399"), new OnClickListener()
@@ -549,12 +566,8 @@ public class AiPaneView extends LinearLayout
     _llCustomPrompt.setVisibility(GONE);
     _tvStatus.setText("Select an action above to start");
 
-    // Calculate safety space for system gesture bar / navigation bar
-    _bottomSafety = Math.max(bottomSafety, dp(18));
-    if (_rowActionButtons != null)
-    {
-      _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
-    }
+    // Calculate safety space for system gesture bar / navigation bar cleanly
+    updateBottomPadding(bottomSafety);
 
     if (targetHeight > 0)
     {
@@ -716,14 +729,42 @@ public class AiPaneView extends LinearLayout
         @Override
         public void onClick(View v)
         {
-          // Quick suggestions are intentional 1-tap shortcuts
-          _activeCategory = AiActionEngine.Category.ASK_AI;
-          _activeOptionId = "quick";
-          buildCategoryChips();
+          // Direct 1-tap execution of the intended action without hijacking Ask AI
+          String lower = sugg.toLowerCase(java.util.Locale.ROOT);
+          if (lower.contains("professional"))
+          {
+            _activeCategory = AiActionEngine.Category.REWRITE;
+            _activeOptionId = "prof";
+          }
+          else if (lower.contains("natural") || lower.contains("human"))
+          {
+            _activeCategory = AiActionEngine.Category.NATURALIZE;
+            _activeOptionId = "nat_human";
+          }
+          else if (lower.contains("grammar") || lower.contains("spelling"))
+          {
+            _activeCategory = AiActionEngine.Category.GRAMMAR;
+            _activeOptionId = "grammar_all";
+          }
+          else if (lower.contains("bullet") || lower.contains("summary"))
+          {
+            _activeCategory = AiActionEngine.Category.SUMMARIZE;
+            _activeOptionId = "sum_bullets";
+          }
+          else if (lower.contains("code"))
+          {
+            _activeCategory = AiActionEngine.Category.EXPLAIN;
+            _activeOptionId = "exp_code";
+          }
+          else
+          {
+            _activeCategory = analysis.recommendedCategory;
+            _activeOptionId = analysis.recommendedOptionId;
+          }
           _scrollSubOptions.setVisibility(GONE);
           _scrollTone.setVisibility(GONE);
-          _llCustomPrompt.setVisibility(VISIBLE);
-          _etCustomAsk.setText(sugg);
+          _llCustomPrompt.setVisibility(GONE);
+          buildCategoryChips();
           triggerExecution();
         }
       });
@@ -782,7 +823,8 @@ public class AiPaneView extends LinearLayout
             _scrollSubOptions.setVisibility(GONE);
             _scrollTone.setVisibility(GONE);
             _llCustomPrompt.setVisibility(VISIBLE);
-            _tvStatus.setText("Type your prompt and tap Generate 🚀");
+            _etCustomAsk.requestFocus();
+            _tvStatus.setText("আপনার প্রশ্ন বা কাস্টম প্রম্পট লিখে Generate চাপুন 🚀");
           }
           else
           {
@@ -884,7 +926,7 @@ public class AiPaneView extends LinearLayout
     lbl.setGravity(Gravity.CENTER_VERTICAL);
     _rowToneChips.addView(lbl);
 
-    String[] tones = {"Professional", "Friendly", "Casual", "Formal", "Confident", "Funny", "Empathetic", "Persuasive"};
+    String[] tones = {"Islamic", "Professional", "Friendly", "Casual", "Formal", "Confident", "Funny", "Empathetic", "Persuasive"};
     for (final String tone : tones)
     {
       final boolean isSelected = tone.equalsIgnoreCase(_activeTone);
@@ -929,9 +971,14 @@ public class AiPaneView extends LinearLayout
   private void triggerExecution()
   {
     if (_isGenerating) return;
-    if (_currentWorkingText == null || _currentWorkingText.trim().isEmpty())
+
+    String custom = (_etCustomAsk != null) ? _etCustomAsk.getText().toString().trim() : "";
+    boolean hasWorkingText = (_currentWorkingText != null && !_currentWorkingText.trim().isEmpty());
+    boolean hasCustomPrompt = !custom.isEmpty();
+
+    if (!hasWorkingText && !hasCustomPrompt)
     {
-      Toast.makeText(getContext(), "No text to process. Please type or copy text first.", Toast.LENGTH_SHORT).show();
+      Toast.makeText(getContext(), "Please enter text or a custom prompt.", Toast.LENGTH_SHORT).show();
       return;
     }
 
@@ -943,19 +990,18 @@ public class AiPaneView extends LinearLayout
 
     if (_activeCategory == null)
     {
-      _activeCategory = AiActionEngine.Category.REWRITE;
+      _activeCategory = hasCustomPrompt ? AiActionEngine.Category.ASK_AI : AiActionEngine.Category.REWRITE;
     }
 
     _isGenerating = true;
     _progressBar.setVisibility(VISIBLE);
     _tvStatus.setText("Generating with " + AiProvider.Manager.getActiveProvider(getContext()).getName() + "...");
 
-    String custom = (_activeCategory == AiActionEngine.Category.ASK_AI && _etCustomAsk != null)
-        ? _etCustomAsk.getText().toString().trim() : "";
+    String textToProcess = hasWorkingText ? _currentWorkingText : custom;
 
     AiActionEngine.executeAction(
         getContext(),
-        _currentWorkingText,
+        textToProcess,
         _activeCategory,
         _activeOptionId,
         _activeTone,
