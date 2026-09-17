@@ -81,8 +81,10 @@ public class AiPaneView extends LinearLayout
   private HorizontalScrollView _scrollSubOptions;
   private LinearLayout _rowSubOptions;
   private LinearLayout _llCustomPrompt;
-  private EditText _etCustomAsk;
+  private TextView _tvCustomPromptDisplay;
+  private Button _btnTypePrompt;
   private Button _btnCustomSend;
+  private String _currentCustomPrompt = "";
   private HorizontalScrollView _scrollTone;
   private LinearLayout _rowToneChips;
 
@@ -125,6 +127,11 @@ public class AiPaneView extends LinearLayout
     double darkness = 1 - (0.299 * Color.red(_colorKeyboard) + 0.587 * Color.green(_colorKeyboard) + 0.114 * Color.blue(_colorKeyboard)) / 255;
     _isDark = darkness >= 0.5;
   }
+
+  public int getColorKeyboard() { return _colorKeyboard; }
+  public int getColorKey() { return _colorKey; }
+  public int getColorLabel() { return _colorLabel; }
+  public int getColorKeyActivated() { return _colorKeyActivated; }
 
   private int resolveColor(Context context, int attrId, int defaultVal)
   {
@@ -383,30 +390,47 @@ public class AiPaneView extends LinearLayout
     _scrollSubOptions.setVisibility(GONE); // Initially hidden for clean look
     bodyContent.addView(_scrollSubOptions);
 
-    // 2.5.1 Custom Ask AI Input Box (Shown only for ASK_AI)
+    // 2.5.1 Custom Ask AI Input Display (Tapping opens keyboard typing mode)
     _llCustomPrompt = new LinearLayout(context);
     _llCustomPrompt.setOrientation(HORIZONTAL);
     _llCustomPrompt.setGravity(Gravity.CENTER_VERTICAL);
     _llCustomPrompt.setPadding(0, dp(3), 0, dp(3));
 
-    _etCustomAsk = new EditText(context);
-    _etCustomAsk.setHint("এখানে প্রম্পট লিখুন... / Enter prompt or question");
-    _etCustomAsk.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-    _etCustomAsk.setTextColor(_colorLabel);
-    _etCustomAsk.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
-    _etCustomAsk.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.5f), dp(6), adjustAlpha(_colorLabel, 0.25f)));
-    _etCustomAsk.setPadding(dp(8), dp(5), dp(8), dp(5));
-    _etCustomAsk.setSingleLine(true);
-    _etCustomAsk.setOnEditorActionListener(new TextView.OnEditorActionListener()
+    _tvCustomPromptDisplay = new TextView(context);
+    _tvCustomPromptDisplay.setText("✏️ ক্লিক করে প্রম্পট লিখুন (কিবোর্ড ওপেন হবে)...");
+    _tvCustomPromptDisplay.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    _tvCustomPromptDisplay.setTextColor(adjustAlpha(_colorLabel, 0.5f));
+    _tvCustomPromptDisplay.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.5f), dp(6), adjustAlpha(_colorLabel, 0.25f)));
+    _tvCustomPromptDisplay.setPadding(dp(8), dp(6), dp(8), dp(6));
+    _tvCustomPromptDisplay.setSingleLine(true);
+    _tvCustomPromptDisplay.setEllipsize(TextUtils.TruncateAt.END);
+    _tvCustomPromptDisplay.setOnClickListener(new OnClickListener()
     {
       @Override
-      public boolean onEditorAction(TextView v, int actionId, android.view.KeyEvent event)
+      public void onClick(View v)
       {
-        triggerExecution();
-        return true;
+        openKeyboardForPrompt();
       }
     });
-    _llCustomPrompt.addView(_etCustomAsk, new LinearLayout.LayoutParams(0, dp(34), 1.0f));
+    _llCustomPrompt.addView(_tvCustomPromptDisplay, new LinearLayout.LayoutParams(0, dp(34), 1.0f));
+
+    _btnTypePrompt = new Button(context);
+    _btnTypePrompt.setText("✏️ লিখুন");
+    _btnTypePrompt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+    _btnTypePrompt.setTextColor(_colorLabel);
+    _btnTypePrompt.setPadding(dp(8), 0, dp(8), 0);
+    _btnTypePrompt.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.7f), dp(6), adjustAlpha(_colorLabel, 0.2f)));
+    _btnTypePrompt.setOnClickListener(new OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        openKeyboardForPrompt();
+      }
+    });
+    LinearLayout.LayoutParams lpType = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
+    lpType.setMargins(dp(4), 0, 0, 0);
+    _llCustomPrompt.addView(_btnTypePrompt, lpType);
 
     _btnCustomSend = new Button(context);
     _btnCustomSend.setText("Generate 🚀");
@@ -419,11 +443,18 @@ public class AiPaneView extends LinearLayout
       @Override
       public void onClick(View v)
       {
-        triggerExecution();
+        if (_currentCustomPrompt.isEmpty())
+        {
+          openKeyboardForPrompt();
+        }
+        else
+        {
+          triggerExecution();
+        }
       }
     });
     LinearLayout.LayoutParams lpSend = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
-    lpSend.setMargins(dp(6), 0, 0, 0);
+    lpSend.setMargins(dp(4), 0, 0, 0);
     _llCustomPrompt.addView(_btnCustomSend, lpSend);
     _llCustomPrompt.setVisibility(GONE);
     bodyContent.addView(_llCustomPrompt);
@@ -561,6 +592,8 @@ public class AiPaneView extends LinearLayout
     _activeCategory = null;
     _activeOptionId = "";
     _activeTone = "default";
+    _currentCustomPrompt = "";
+    updatePromptDisplay();
     _scrollSubOptions.setVisibility(GONE);
     _scrollTone.setVisibility(GONE);
     _llCustomPrompt.setVisibility(GONE);
@@ -823,8 +856,12 @@ public class AiPaneView extends LinearLayout
             _scrollSubOptions.setVisibility(GONE);
             _scrollTone.setVisibility(GONE);
             _llCustomPrompt.setVisibility(VISIBLE);
-            _etCustomAsk.requestFocus();
-            _tvStatus.setText("আপনার প্রশ্ন বা কাস্টম প্রম্পট লিখে Generate চাপুন 🚀");
+            updatePromptDisplay();
+            _tvStatus.setText("নিচের বক্সে ক্লিক করে প্রম্পট লিখুন (কিবোর্ড ওপেন হবে) 🚀");
+            if (_currentCustomPrompt.isEmpty())
+            {
+              openKeyboardForPrompt();
+            }
           }
           else
           {
@@ -968,17 +1005,53 @@ public class AiPaneView extends LinearLayout
     }
   }
 
+  public void openKeyboardForPrompt()
+  {
+    if (_keyboard != null)
+    {
+      _keyboard.showAiPromptTypingMode(_currentCustomPrompt);
+    }
+  }
+
+  public void onPromptTypedFromKeyboard(String promptText)
+  {
+    _currentCustomPrompt = (promptText != null) ? promptText.trim() : "";
+    updatePromptDisplay();
+    if (!_currentCustomPrompt.isEmpty())
+    {
+      _activeCategory = AiActionEngine.Category.ASK_AI;
+      _activeOptionId = "custom";
+      buildCategoryChips();
+      triggerExecution();
+    }
+  }
+
+  private void updatePromptDisplay()
+  {
+    if (_tvCustomPromptDisplay == null) return;
+    if (_currentCustomPrompt.isEmpty())
+    {
+      _tvCustomPromptDisplay.setText("✏️ ক্লিক করে প্রম্পট লিখুন (কিবোর্ড ওপেন হবে)...");
+      _tvCustomPromptDisplay.setTextColor(adjustAlpha(_colorLabel, 0.45f));
+    }
+    else
+    {
+      _tvCustomPromptDisplay.setText("🎯 " + _currentCustomPrompt);
+      _tvCustomPromptDisplay.setTextColor(_colorLabel);
+    }
+  }
+
   private void triggerExecution()
   {
     if (_isGenerating) return;
 
-    String custom = (_etCustomAsk != null) ? _etCustomAsk.getText().toString().trim() : "";
+    String custom = _currentCustomPrompt;
     boolean hasWorkingText = (_currentWorkingText != null && !_currentWorkingText.trim().isEmpty());
     boolean hasCustomPrompt = !custom.isEmpty();
 
     if (!hasWorkingText && !hasCustomPrompt)
     {
-      Toast.makeText(getContext(), "Please enter text or a custom prompt.", Toast.LENGTH_SHORT).show();
+      openKeyboardForPrompt();
       return;
     }
 

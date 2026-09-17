@@ -312,6 +312,33 @@ public class AiActionEngine
     return new ContextDetectionResult("Message / Text", genSugg, Category.REWRITE, "rephrase");
   }
 
+  public static final String ISLAMIC_CONTEXT_RULES =
+      "CRITICAL ISLAMIC VOCABULARY APPLICATION & ETIQUETTE RULES (ইসলামিক শব্দের সঠিক প্রয়োগবিধি):\n"
+      + "Strictly adhere to the following situational and theological rules. NEVER insert Islamic words randomly or blindly:\n"
+      + "1. GREETINGS (সালাম): Always begin respectfully with 'আসসালামু আলাইকুম' or 'আসসালামু আলাইকুম ওয়া রাহমাতুল্লাহি ওয়া বারাকাতুহু' (Arabic: السلام عليكم ورحمة الله وبركاته).\n"
+      + "2. GOOD NEWS, SUCCESS, COMPLETION & BLESSINGS (খুশির সংবাদ, সফলতা, সুস্থতা, নিয়ামত ও স্বপ্ন পূরণ):\n"
+      + "   - Use 'আলহামদুলিল্লাহ' (الحمد لله) for any joyful news, recovery from illness, achievement, graduation, job, dream fulfilled, relief, or gratitude to Allah.\n"
+      + "   - Use 'সুবহানাল্লাহ' (سبحان الله) when witnessing miraculous, astonishing, or awe-inspiring blessings or natural wonder.\n"
+      + "3. PRAISE, APPRECIATION & WARDING OFF EVIL EYE (বাহবা, প্রশংসা ও নজর থেকে সুরক্ষা):\n"
+      + "   - Use 'মাশাআল্লাহ' / 'মা শা আল্লাহ' (ما شاء الله) or 'তাবারাকাল্লাহ' (تبارك الله) when praising someone's skill, beauty, child, good character, or achievement, acknowledging that all excellence is by Allah's will and protecting from evil eye (নজর).\n"
+      + "4. FUTURE PLANS, HOPES & COMMITMENTS (ভবিষ্যতের ইচ্ছা, পরিকল্পনা ও প্রতিশ্রুতি):\n"
+      + "   - Use 'ইনশাআল্লাহ্' (إن شاء الله) STRICTLY for future actions, promises, or hopes (e.g. 'কাল দেখা হবে ইনশাআল্লাহ', 'আমরা সফল হব ইনশাআল্লাহ').\n"
+      + "   - RULE: NEVER use 'ইনশাআল্লাহ্' for events that have already happened or are currently happening in the past/present!\n"
+      + "5. BEREAVEMENT, HARDSHIP, SADNESS & CONDOLENCES (শোক, মৃত্যু, বিপদ, ক্ষতি ও সান্ত্বনা):\n"
+      + "   - Use 'ইন্না লিল্লাহি ওয়া ইন্না ইলাইহি রাজিউন' (إنا لله وإنا إليه راجعون) or 'ইন্না লিল্লাহ' upon hearing of someone's death, an accident, illness, tragic news, or financial loss.\n"
+      + "   - Include comforting prayers for patience: 'আল্লাহ আপনাকে ধৈর্য/সবর দান করুন' and prayers for the deceased: 'আল্লাহ তাকে জান্নাতুল ফিরদাউস নসিব করুন'.\n"
+      + "6. GRATITUDE TOWARDS PEOPLE (মানুষের প্রতি কৃতজ্ঞতা ও দোয়া):\n"
+      + "   - Use 'জাযাকাল্লাহু খাইরান' (جزاكم الله خيراً - May Allah reward you with goodness) when thanking someone for their help, kindness, or advice.\n"
+      + "   - Use 'বারাকাল্লাহু ফিক' (بارك الله فيك - May Allah bless you) to invoke blessings on someone, their family, or their work.\n"
+      + "7. SINS, ERRORS & SEEKING PARDON (ভুলত্রুটি, অনুশোচনা ও ক্ষমা প্রার্থনা):\n"
+      + "   - Use 'আস্তাগফিরুল্লাহ' (أستغفر الله) when admitting a flaw, feeling regret, or seeking Allah's forgiveness.\n"
+      + "8. COURAGE & RELIANCE ON ALLAH (ভরসা ও প্রতিকূলতা):\n"
+      + "   - Use 'আল্লাহ ভরসা' or 'হাসবুনাল্লাহু ওয়া নি'মাল ওয়াকিল' (حسبনা الله ونعم الوكيل) when facing challenges or needing strength.\n"
+      + "9. FAREWELL (বিদায়):\n"
+      + "   - Conclude with 'আল্লাহ হাফেজ' or 'ফি আমানিল্লাহ' (في أمان الله).\n"
+      + "10. NATURAL ADAB & MODERATION (পরিমিতিবোধ ও আদব):\n"
+      + "   - Do NOT spam Islamic words unnaturally into every single sentence. Integrate the appropriate phrases smoothly and elegantly only where contextually suitable, maintaining dignified, warm, and authentic Bengali or English prose.\n";
+
   /**
    * Builds the comprehensive, tailored system prompt for the chosen Category, Option, and optional global Tone.
    */
@@ -332,9 +359,13 @@ public class AiActionEngine
         if ("prof".equals(optionId))
           sb.append("TASK: Rewrite the input in a polished, confident, professional business tone.\n");
         else if ("rewrite_islamic".equals(optionId))
-          sb.append("TASK: Rewrite the text with an authentic, respectful Islamic tone. Start with Salam ('আসসালামু আলাইকুম'), naturally incorporate polite Islamic expressions (ইনশাআল্লাহ্, মাশাআল্লাহ, আলহামদুলিল্লাহ, জাযাকাল্লাহু খাইরান) where appropriate, and keep the writing warm and courteous.\n");
+        {
+          sb.append("TASK: Rewrite the text with an authentic, respectful Islamic tone.\n").append(ISLAMIC_CONTEXT_RULES);
+        }
         else if ("rewrite_islamic_ar".equals(optionId))
-          sb.append("TASK: Rewrite the text with an authentic Islamic tone and include authentic Arabic script (السلام عليكم ورحمة الله وبركاته, إن شاء الله, الحمد لله) alongside natural Bengali or English.\n");
+        {
+          sb.append("TASK: Rewrite the text with an authentic Islamic tone and include authentic Arabic script (السلام عليكم ورحمة الله وبركاته, إن شاء الله, الحمد لله, ما شاء الله) alongside natural Bengali or English.\n").append(ISLAMIC_CONTEXT_RULES);
+        }
         else if ("casual".equals(optionId))
           sb.append("TASK: Rewrite in a warm, relaxed, friendly everyday casual style.\n");
         else if ("friendly".equals(optionId))
@@ -356,35 +387,36 @@ public class AiActionEngine
         break;
 
       case ISLAMIC:
-        sb.append("TASK: Compose or rewrite in an authentic Islamic style.\n");
-        sb.append("ISLAMIC CORE RULES:\n");
-        sb.append("1. Always begin respectfully with a beautiful Islamic greeting/Salam ('আসসালামু আলাইকুম' or 'আসসালামু আলাইকুম ওয়া রাহমাতুল্লাহি ওয়া বারাকাতুহু').\n");
-        sb.append("2. Seamlessly and naturally integrate authentic Islamic expressions where appropriate (e.g. 'ইনশাআল্লাহ্', 'মাশাআল্লাহ', 'সুবহানাল্লাহ', 'আলহামদুলিল্লাহ', 'জাযাকাল্লাহু খাইরান', 'বারাকাল্লাহু ফিক', 'আল্লাহ হাফেজ').\n");
-        sb.append("3. Maintain high courtesy, modesty, and kindness (আদব ও আন্তরিকতাপূর্ণ ভাব).\n");
+        sb.append("TASK: Compose, rewrite, or polish the text with authentic Islamic etiquette, vocabulary, and adab.\n");
+        sb.append(ISLAMIC_CONTEXT_RULES);
         if ("islamic_arabic".equals(optionId))
         {
-          sb.append("4. Include authentic Arabic script with accurate diacritics/tashkeel for Salam and Duas (e.g. السلام عليكم ورحمة الله وبركاته, إن شاء الله, ما شاء الله, سبحان الله, الحمد لله, جزاكم الله خيراً).\n");
+          sb.append("ADDITIONAL RULE: Include authentic Arabic script with accurate diacritics/tashkeel for Salam, Quranic phrasing, or Duas (e.g. السلام عليكم ورحمة الله وبركاته, إن شاء الله, ما شاء الله, سبحان الله, الحمد لله, جزاكم الله خيراً).\n");
         }
         else if ("islamic_post".equals(optionId))
         {
-          sb.append("4. Craft as an inspiring Islamic social media post or status. Always end with 3 to 6 relevant Bengali and English hashtags (#IslamicReminder #Bangla #Deen #Alhamdulillah #IslamicStatus).\n");
+          sb.append("ADDITIONAL RULE: Craft as an inspiring Islamic social media post or status. Always end with 3 to 6 relevant Bengali and English hashtags (#IslamicReminder #Bangla #Deen #Alhamdulillah #IslamicStatus #DreamFulfilled).\n");
         }
         else if ("islamic_dua".equals(optionId))
         {
-          sb.append("4. Structure as a heartfelt Islamic Dua (Supplication) and prayer, wishing profound barakah, peace, and goodness.\n");
+          sb.append("ADDITIONAL RULE: Structure as a heartfelt Islamic Dua (Supplication) and prayer, wishing profound barakah, peace, and goodness.\n");
         }
         else if ("islamic_jummah".equals(optionId))
         {
-          sb.append("4. Craft as a blessed Jummah Mubarak greeting with meaningful spiritual reflections, Durood reminder, and warm Jummah wishes.\n");
+          sb.append("ADDITIONAL RULE: Craft as a blessed Jummah Mubarak greeting with meaningful spiritual reflections, Durood reminder, and warm Jummah wishes.\n");
         }
         break;
 
       case REPLY:
         sb.append("TASK: The user is writing a reply to the provided message or comment.\n");
         if ("reply_islamic".equals(optionId))
-          sb.append("Mode: Courteous Islamic reply. Always start with Salam ('আসসালামু আলাইকুম') and naturally use appropriate Islamic expressions (ইনশাআল্লাহ্, আলহামদুলিল্লাহ, জাযাকাল্লাহু খাইরান).\n");
+        {
+          sb.append("Mode: Courteous Islamic reply.\n").append(ISLAMIC_CONTEXT_RULES);
+        }
         else if ("reply_islamic_dua".equals(optionId))
-          sb.append("Mode: Islamic gratitude and heartfelt Dua (Supplication), expressing blessings such as 'জাযাকাল্লাহু খাইরান' (جزاكم الله خيراً) and 'বারাকাল্লাহু ফিক'.\n");
+        {
+          sb.append("Mode: Islamic gratitude and heartfelt Dua (Supplication), expressing blessings such as 'জাযাকাল্লাহু খাইরান' (جزاكم الله خيراً) and 'বারাকাল্লাহু ফিক'.\n").append(ISLAMIC_CONTEXT_RULES);
+        }
         else if ("reply_prof".equals(optionId))
           sb.append("Mode: Professional, polite, and constructive business reply.\n");
         else if ("reply_funny".equals(optionId))
@@ -440,7 +472,9 @@ public class AiActionEngine
         sb.append("TASK: Generate an engaging social media post based on the user's input.\n");
         sb.append("HASHTAG REQUIREMENT: Always append 3 to 6 relevant, high-impact hashtags at the bottom of the post (e.g. #Bangla #FacebookPost #Trending or topic-focused tags).\n");
         if ("soc_islamic".equals(optionId))
-          sb.append("Style: Inspiring Islamic post. Start with Salam, share an uplifting spiritual reflection, naturally include Islamic phrases (ইনশাআল্লাহ্, আলহামদুলিল্লাহ), and end with 4-6 relevant hashtags (#IslamicPost #Deen #Bangla #Alhamdulillah).\n");
+        {
+          sb.append("Style: Inspiring Islamic post.\n").append(ISLAMIC_CONTEXT_RULES);
+        }
         else if ("soc_li".equals(optionId))
           sb.append("Platform: LinkedIn. Use a strong hook, concise professional insights, bulleted takeaways, and relevant professional hashtags.\n");
         else if ("soc_x".equals(optionId))
@@ -521,9 +555,13 @@ public class AiActionEngine
 
       case TONE:
         if ("tone_islamic".equals(optionId))
-          sb.append("TASK: Rewrite the text with an authentic, polite, and modest Islamic tone. Begin with Salam ('আসসালামু আলাইকুম') and include appropriate Islamic phrases ('ইনশাআল্লাহ্', 'মাশাআল্লাহ', 'আলহামদুলিল্লাহ') fitting the context.\n");
+        {
+          sb.append("TASK: Rewrite the text with an authentic, polite, and modest Islamic tone.\n").append(ISLAMIC_CONTEXT_RULES);
+        }
         else if ("tone_islamic_ar".equals(optionId))
-          sb.append("TASK: Rewrite with an Islamic tone featuring authentic Arabic script phrases (السلام عليكم ورحمة الله وبركاته, إن شاء الله, الحمد لله) with great courtesy and modesty.\n");
+        {
+          sb.append("TASK: Rewrite with an Islamic tone featuring authentic Arabic script phrases (السلام عليكم ورحمة الله وبركاته, إن شاء الله, الحمد لله, ما شاء الله) with great courtesy and modesty.\n").append(ISLAMIC_CONTEXT_RULES);
+        }
         else if ("tone_formal".equals(optionId))
           sb.append("TASK: Rewrite the text in a formal, respectful, and diplomatic tone.\n");
         else if ("tone_casual".equals(optionId))
@@ -604,7 +642,7 @@ public class AiActionEngine
     {
       if ("islamic".equalsIgnoreCase(globalTone) || "islamic vibe".equalsIgnoreCase(globalTone))
       {
-        sb.append("\nGLOBAL TONE MODIFIER: Maintain an authentic Islamic tone. Start with Salam ('আসসালামু আলাইকুম') and naturally weave in Islamic expressions (ইনশাআল্লাহ্, মাশাআল্লাহ, আলহামদুলিল্লাহ) with modesty and respect.\n");
+        sb.append("\nGLOBAL TONE MODIFIER: Maintain an authentic Islamic tone.\n").append(ISLAMIC_CONTEXT_RULES);
       }
       else
       {

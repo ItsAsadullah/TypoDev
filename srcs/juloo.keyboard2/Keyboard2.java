@@ -52,6 +52,9 @@ public class Keyboard2 extends InputMethodService
   private ViewGroup _emojiPane = null;
   private ViewGroup _clipboard_pane = null;
   private juloo.keyboard2.ai.AiPaneView _ai_pane_view = null;
+  private juloo.keyboard2.ai.AiPromptBarView _ai_prompt_bar = null;
+  private boolean _isAiPromptInputMode = false;
+  private InputConnection _aiPromptInputConnection = null;
   private Handler _handler;
 
   private Config _config;
@@ -169,11 +172,80 @@ public class Keyboard2 extends InputMethodService
     _ai_pane_view = (juloo.keyboard2.ai.AiPaneView)_keyboard_container_view.findViewById(R.id.ai_pane_view);
     if (_ai_pane_view != null)
       _ai_pane_view.init(this);
+    _ai_prompt_bar = (juloo.keyboard2.ai.AiPromptBarView)_keyboard_container_view.findViewById(R.id.ai_prompt_bar);
+    if (_ai_prompt_bar != null)
+    {
+      _ai_prompt_bar.setOnPromptActionListener(new juloo.keyboard2.ai.AiPromptBarView.OnPromptActionListener()
+      {
+        @Override
+        public void onConfirm(String promptText)
+        {
+          exitAiPromptTypingMode(promptText, true);
+        }
+
+        @Override
+        public void onCancel()
+        {
+          exitAiPromptTypingMode(null, false);
+        }
+      });
+    }
   }
 
   public boolean isAiPaneVisible()
   {
-    return _ai_pane_view != null && _ai_pane_view.getVisibility() == View.VISIBLE;
+    return (_ai_pane_view != null && _ai_pane_view.getVisibility() == View.VISIBLE)
+        || _isAiPromptInputMode;
+  }
+
+  public boolean isAiPromptInputMode()
+  {
+    return _isAiPromptInputMode;
+  }
+
+  public void showAiPromptTypingMode(String initialText)
+  {
+    if (_ai_prompt_bar == null || _keyboard_layout_view == null) return;
+
+    _isAiPromptInputMode = true;
+
+    if (_ai_pane_view != null)
+      _ai_pane_view.setVisibility(View.GONE);
+    if (_candidates_view != null)
+      _candidates_view.setVisibility(View.GONE);
+
+    int colorKeyboard = (_ai_pane_view != null) ? _ai_pane_view.getColorKeyboard() : 0;
+    int colorKey = (_ai_pane_view != null) ? _ai_pane_view.getColorKey() : 0;
+    int colorLabel = (_ai_pane_view != null) ? _ai_pane_view.getColorLabel() : 0;
+    int colorKeyActivated = (_ai_pane_view != null) ? _ai_pane_view.getColorKeyActivated() : 0;
+    _ai_prompt_bar.applyTheme(colorKeyboard, colorKey, colorLabel, colorKeyActivated);
+
+    _ai_prompt_bar.setPromptText(initialText);
+    _aiPromptInputConnection = _ai_prompt_bar.createInputConnection();
+
+    _ai_prompt_bar.setVisibility(View.VISIBLE);
+    _keyboard_layout_view.setVisibility(View.VISIBLE);
+    _keyboard_layout_view.setKeyboard(current_layout());
+  }
+
+  public void exitAiPromptTypingMode(String promptText, boolean applyAndGenerate)
+  {
+    _isAiPromptInputMode = false;
+    _aiPromptInputConnection = null;
+
+    if (_ai_prompt_bar != null)
+      _ai_prompt_bar.setVisibility(View.GONE);
+    if (_keyboard_layout_view != null)
+      _keyboard_layout_view.setVisibility(View.GONE);
+
+    if (_ai_pane_view != null)
+    {
+      _ai_pane_view.setVisibility(View.VISIBLE);
+      if (applyAndGenerate && promptText != null)
+      {
+        _ai_pane_view.onPromptTypedFromKeyboard(promptText);
+      }
+    }
   }
 
   public void showAiPane()
@@ -207,6 +279,11 @@ public class Keyboard2 extends InputMethodService
 
   public void closeAiPane()
   {
+    if (_isAiPromptInputMode)
+    {
+      exitAiPromptTypingMode(null, false);
+      return;
+    }
     if (_ai_pane_view != null)
       _ai_pane_view.setVisibility(View.GONE);
     if (_keyboard_layout_view != null)
@@ -600,6 +677,10 @@ public class Keyboard2 extends InputMethodService
 
     public InputConnection getCurrentInputConnection()
     {
+      if (_isAiPromptInputMode && _aiPromptInputConnection != null)
+      {
+        return _aiPromptInputConnection;
+      }
       return Keyboard2.this.getCurrentInputConnection();
     }
 

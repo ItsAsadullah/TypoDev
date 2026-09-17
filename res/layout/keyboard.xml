@@ -86,6 +86,12 @@
     <Button android:id="@+id/dictionary_switch" style="@style/change_dictionary"/>
   </juloo.keyboard2.suggestions.CandidatesView>
 
+  <juloo.keyboard2.ai.AiPromptBarView
+      android:id="@+id/ai_prompt_bar"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:visibility="gone"/>
+
   <juloo.keyboard2.Keyboard2View
       android:id="@+id/keyboard_view"
       android:layout_width="match_parent"

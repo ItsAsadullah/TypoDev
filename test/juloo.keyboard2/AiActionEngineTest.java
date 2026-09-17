@@ -67,8 +67,15 @@ public class AiActionEngineTest
     // Test Islamic Category Prompts
     String islamicPrompt = AiActionEngine.buildSystemPrompt(
         AiActionEngine.Category.ISLAMIC, "islamic_standard", "default", null);
-    assertTrue(islamicPrompt.contains("Salam"));
+    assertTrue(islamicPrompt.contains("সালাম"));
     assertTrue(islamicPrompt.contains("আসসালামু আলাইকুম"));
+    assertTrue(islamicPrompt.contains("আলহামদুলিল্লাহ"));
+    assertTrue(islamicPrompt.contains("মাশাআল্লাহ"));
+    assertTrue(islamicPrompt.contains("ইনশাআল্লাহ্"));
+    assertTrue(islamicPrompt.contains("ইন্না লিল্লাহ"));
+    assertTrue(islamicPrompt.contains("জাযাকাল্লাহু খাইরান"));
+    assertTrue(islamicPrompt.contains("খুশির সংবাদ"));
+    assertTrue(islamicPrompt.contains("ভবিষ্যতের ইচ্ছা"));
 
     String islamicArabicPrompt = AiActionEngine.buildSystemPrompt(
         AiActionEngine.Category.ISLAMIC, "islamic_arabic", "default", null);
