@@ -3,11 +3,9 @@ package juloo.keyboard2.ai;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.Build;
 import android.text.TextUtils;
@@ -34,6 +32,12 @@ import juloo.keyboard2.R;
  * In-Keyboard embedded view for AI Actions.
  * Swaps out Keyboard2View directly within the keyboard container layout
  * (Gboard / Ridmik Keyboard style) and matches the keyboard theme.
+ *
+ * Implements Progressive Disclosure:
+ * - Line 1: Main Category Selection.
+ * - Line 2: Contextual Options for the chosen category (revealed after Line 1 is tapped).
+ * - Line 3: Tone Selection (ONLY revealed if needed/requested).
+ * - Full user control: No automatic generation until the user confirms their specific option!
  */
 public class AiPaneView extends LinearLayout
 {
@@ -56,9 +60,9 @@ public class AiPaneView extends LinearLayout
   private String _currentWorkingText = "";
   private boolean _usingClipboard = false;
 
-  // AI execution state
-  private AiActionEngine.Category _activeCategory = AiActionEngine.Category.REWRITE;
-  private String _activeOptionId = "rephrase";
+  // Progressive AI execution state
+  private AiActionEngine.Category _activeCategory = null; // Unselected by default for clean start
+  private String _activeOptionId = "";
   private String _activeTone = "default";
   private String _lastGeneratedResult = "";
   private boolean _isGenerating = false;
@@ -72,12 +76,14 @@ public class AiPaneView extends LinearLayout
 
   private HorizontalScrollView _scrollQuick;
   private LinearLayout _rowQuickSuggestions;
+  private HorizontalScrollView _scrollCat;
   private LinearLayout _rowCategories;
   private HorizontalScrollView _scrollSubOptions;
   private LinearLayout _rowSubOptions;
   private LinearLayout _llCustomPrompt;
   private EditText _etCustomAsk;
   private Button _btnCustomSend;
+  private HorizontalScrollView _scrollTone;
   private LinearLayout _rowToneChips;
 
   private ProgressBar _progressBar;
@@ -170,7 +176,7 @@ public class AiPaneView extends LinearLayout
     setBackgroundColor(_colorKeyboard);
 
     // ==========================================
-    // 1. Sleek Top Header Bar (Single Line, Gboard Style)
+    // 1. Sleek Top Header Bar (Single Line)
     // ==========================================
     LinearLayout headerBar = new LinearLayout(context);
     headerBar.setOrientation(HORIZONTAL);
@@ -292,7 +298,7 @@ public class AiPaneView extends LinearLayout
     cardContext.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.45f), dp(8), adjustAlpha(_colorLabel, 0.12f)));
     LinearLayout.LayoutParams lpCard = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpCard.setMargins(0, dp(3), 0, dp(3));
+    lpCard.setMargins(0, dp(2), 0, dp(3));
     cardContext.setLayoutParams(lpCard);
 
     LinearLayout rowContextTop = new LinearLayout(context);
@@ -349,27 +355,28 @@ public class AiPaneView extends LinearLayout
     _scrollQuick.setLayoutParams(lpQuick);
     bodyContent.addView(_scrollQuick);
 
-    // 2.4 Category Tabs (Horizontal Scroll)
-    HorizontalScrollView scrollCat = new HorizontalScrollView(context);
-    scrollCat.setHorizontalScrollBarEnabled(false);
+    // 2.4 [LINE 1] Main Category Tabs (Always Shown First)
+    _scrollCat = new HorizontalScrollView(context);
+    _scrollCat.setHorizontalScrollBarEnabled(false);
     _rowCategories = new LinearLayout(context);
     _rowCategories.setOrientation(HORIZONTAL);
-    scrollCat.addView(_rowCategories);
+    _scrollCat.addView(_rowCategories);
     LinearLayout.LayoutParams lpScrollCat = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     lpScrollCat.setMargins(0, dp(2), 0, dp(2));
-    scrollCat.setLayoutParams(lpScrollCat);
-    bodyContent.addView(scrollCat);
+    _scrollCat.setLayoutParams(lpScrollCat);
+    bodyContent.addView(_scrollCat);
 
-    // 2.5 Dynamic Sub-Options Strip
+    // 2.5 [LINE 2] Dynamic Sub-Options Strip (Revealed ONLY after Category is chosen)
     _scrollSubOptions = new HorizontalScrollView(context);
     _scrollSubOptions.setHorizontalScrollBarEnabled(false);
     _rowSubOptions = new LinearLayout(context);
     _rowSubOptions.setOrientation(HORIZONTAL);
     _scrollSubOptions.addView(_rowSubOptions);
+    _scrollSubOptions.setVisibility(GONE); // Initially hidden for clean look
     bodyContent.addView(_scrollSubOptions);
 
-    // 2.5.1 Custom Ask AI Input Box (Shown for ASK_AI)
+    // 2.5.1 Custom Ask AI Input Box (Shown only for ASK_AI)
     _llCustomPrompt = new LinearLayout(context);
     _llCustomPrompt.setOrientation(HORIZONTAL);
     _llCustomPrompt.setGravity(Gravity.CENTER_VERTICAL);
@@ -404,18 +411,19 @@ public class AiPaneView extends LinearLayout
     _llCustomPrompt.setVisibility(GONE);
     bodyContent.addView(_llCustomPrompt);
 
-    // 2.6 Universal Tone Modifier Strip
-    HorizontalScrollView scrollTone = new HorizontalScrollView(context);
-    scrollTone.setHorizontalScrollBarEnabled(false);
+    // 2.6 [LINE 3] Tone Selector Strip (Revealed ONLY if user chooses Tone or requests it)
+    _scrollTone = new HorizontalScrollView(context);
+    _scrollTone.setHorizontalScrollBarEnabled(false);
     _rowToneChips = new LinearLayout(context);
     _rowToneChips.setOrientation(HORIZONTAL);
     _rowToneChips.setGravity(Gravity.CENTER_VERTICAL);
-    scrollTone.addView(_rowToneChips);
+    _scrollTone.addView(_rowToneChips);
     LinearLayout.LayoutParams lpTone = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     lpTone.setMargins(0, dp(2), 0, dp(3));
-    scrollTone.setLayoutParams(lpTone);
-    bodyContent.addView(scrollTone);
+    _scrollTone.setLayoutParams(lpTone);
+    _scrollTone.setVisibility(GONE); // Initially hidden for clean look
+    bodyContent.addView(_scrollTone);
 
     // 2.7 Status & Progress Indicator
     LinearLayout rowStatus = new LinearLayout(context);
@@ -431,7 +439,7 @@ public class AiPaneView extends LinearLayout
     _tvStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
     _tvStatus.setTextColor(adjustAlpha(_colorLabel, 0.85f));
     _tvStatus.setPadding(dp(6), 0, 0, 0);
-    _tvStatus.setText("Tap an action above to generate");
+    _tvStatus.setText("Choose an action above to start");
     rowStatus.addView(_tvStatus);
     bodyContent.addView(rowStatus);
 
@@ -532,6 +540,15 @@ public class AiPaneView extends LinearLayout
     initThemeColors(context);
     setBackgroundColor(_colorKeyboard);
 
+    // Reset progressive disclosure state so the screen is completely clean
+    _activeCategory = null;
+    _activeOptionId = "";
+    _activeTone = "default";
+    _scrollSubOptions.setVisibility(GONE);
+    _scrollTone.setVisibility(GONE);
+    _llCustomPrompt.setVisibility(GONE);
+    _tvStatus.setText("Select an action above to start");
+
     // Calculate safety space for system gesture bar / navigation bar
     _bottomSafety = Math.max(bottomSafety, dp(18));
     if (_rowActionButtons != null)
@@ -612,8 +629,6 @@ public class AiPaneView extends LinearLayout
     updateContextDisplay();
     rebuildQuickSuggestions();
     buildCategoryChips();
-    buildSubOptionChips();
-    buildToneChips();
   }
 
   private void openSettingsDialog()
@@ -701,8 +716,13 @@ public class AiPaneView extends LinearLayout
         @Override
         public void onClick(View v)
         {
+          // Quick suggestions are intentional 1-tap shortcuts
           _activeCategory = AiActionEngine.Category.ASK_AI;
+          _activeOptionId = "quick";
           buildCategoryChips();
+          _scrollSubOptions.setVisibility(GONE);
+          _scrollTone.setVisibility(GONE);
+          _llCustomPrompt.setVisibility(VISIBLE);
           _etCustomAsk.setText(sugg);
           triggerExecution();
         }
@@ -712,6 +732,11 @@ public class AiPaneView extends LinearLayout
     }
   }
 
+  /**
+   * Builds [LINE 1] Category Chips.
+   * Clicking a category highlights it and reveals [LINE 2] Sub-Options.
+   * It DOES NOT automatically generate!
+   */
   private void buildCategoryChips()
   {
     _rowCategories.removeAllViews();
@@ -747,17 +772,27 @@ public class AiPaneView extends LinearLayout
         public void onClick(View v)
         {
           _activeCategory = cat;
-          List<AiActionEngine.ActionOption> opts = AiActionEngine.getOptionsForCategory(cat);
-          if (!opts.isEmpty())
-          {
-            _activeOptionId = opts.get(0).id;
-          }
+          _activeOptionId = "";
+          _activeTone = "default";
           buildCategoryChips();
-          buildSubOptionChips();
-          if (_activeCategory != AiActionEngine.Category.ASK_AI)
+
+          // Progressive disclosure: Show Line 2 according to category
+          if (_activeCategory == AiActionEngine.Category.ASK_AI)
           {
-            triggerExecution();
+            _scrollSubOptions.setVisibility(GONE);
+            _scrollTone.setVisibility(GONE);
+            _llCustomPrompt.setVisibility(VISIBLE);
+            _tvStatus.setText("Type your prompt and tap Generate 🚀");
           }
+          else
+          {
+            _llCustomPrompt.setVisibility(GONE);
+            _scrollTone.setVisibility(GONE);
+            buildSubOptionChips();
+            _scrollSubOptions.setVisibility(VISIBLE);
+            _tvStatus.setText("Choose an option above to generate");
+          }
+          // Note: NO automatic generation on selecting Category!
         }
       });
 
@@ -765,18 +800,20 @@ public class AiPaneView extends LinearLayout
     }
   }
 
+  /**
+   * Builds [LINE 2] Sub-Option Chips.
+   * If an option is self-contained (like Translate, Grammar, Summarize, Reply, etc.),
+   * tapping it directly triggers generation!
+   * If user taps "🎨 Select Tone...", [LINE 3] Tone Strip is revealed.
+   */
   private void buildSubOptionChips()
   {
     _rowSubOptions.removeAllViews();
-    if (_activeCategory == AiActionEngine.Category.ASK_AI)
+    if (_activeCategory == null || _activeCategory == AiActionEngine.Category.ASK_AI)
     {
       _scrollSubOptions.setVisibility(GONE);
-      _llCustomPrompt.setVisibility(VISIBLE);
       return;
     }
-
-    _scrollSubOptions.setVisibility(VISIBLE);
-    _llCustomPrompt.setVisibility(GONE);
 
     List<AiActionEngine.ActionOption> options = AiActionEngine.getOptionsForCategory(_activeCategory);
     for (final AiActionEngine.ActionOption opt : options)
@@ -785,19 +822,19 @@ public class AiPaneView extends LinearLayout
       Button chip = new Button(getContext());
       chip.setText(opt.label);
       chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-      chip.setPadding(dp(7), 0, dp(7), 0);
+      chip.setPadding(dp(8), 0, dp(8), 0);
 
       if (isSelected)
       {
         int accent = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
-        chip.setBackground(createPillBackground(adjustAlpha(accent, 0.3f), dp(10), accent));
+        chip.setBackground(createPillBackground(adjustAlpha(accent, 0.35f), dp(10), accent));
         chip.setTextColor(_colorLabel);
         chip.setTypeface(null, Typeface.BOLD);
       }
       else
       {
         chip.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.35f), dp(10), adjustAlpha(_colorLabel, 0.12f)));
-        chip.setTextColor(adjustAlpha(_colorLabel, 0.7f));
+        chip.setTextColor(adjustAlpha(_colorLabel, 0.75f));
       }
 
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -812,6 +849,18 @@ public class AiPaneView extends LinearLayout
         {
           _activeOptionId = opt.id;
           buildSubOptionChips();
+
+          // If user specifically requested to pick a tone under Rewrite:
+          if ("select_tone".equals(opt.id))
+          {
+            buildToneChips();
+            _scrollTone.setVisibility(VISIBLE);
+            _tvStatus.setText("Choose a tone below to generate");
+            return; // Wait for user to pick tone from Line 3
+          }
+
+          // Otherwise, Line 2 choice is final: Generate immediately!
+          _scrollTone.setVisibility(GONE);
           triggerExecution();
         }
       });
@@ -820,17 +869,22 @@ public class AiPaneView extends LinearLayout
     }
   }
 
+  /**
+   * Builds [LINE 3] Tone Selector Chips.
+   * Only shown when explicitly requested (e.g. "Select Tone...").
+   * Tapping a tone sets the tone and immediately triggers generation!
+   */
   private void buildToneChips()
   {
     _rowToneChips.removeAllViews();
     TextView lbl = new TextView(getContext());
-    lbl.setText("Tone: ");
+    lbl.setText("🎭 Tone: ");
     lbl.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
-    lbl.setTextColor(adjustAlpha(_colorLabel, 0.55f));
+    lbl.setTextColor(adjustAlpha(_colorLabel, 0.65f));
     lbl.setGravity(Gravity.CENTER_VERTICAL);
     _rowToneChips.addView(lbl);
 
-    String[] tones = {"Default", "Professional", "Friendly", "Casual", "Formal", "Confident", "Funny"};
+    String[] tones = {"Professional", "Friendly", "Casual", "Formal", "Confident", "Funny", "Empathetic", "Persuasive"};
     for (final String tone : tones)
     {
       final boolean isSelected = tone.equalsIgnoreCase(_activeTone);
@@ -841,14 +895,14 @@ public class AiPaneView extends LinearLayout
 
       if (isSelected)
       {
-        chip.setBackground(createPillBackground(adjustAlpha(Color.parseColor("#10B981"), 0.3f), dp(8), Color.parseColor("#10B981")));
+        chip.setBackground(createPillBackground(adjustAlpha(Color.parseColor("#10B981"), 0.35f), dp(8), Color.parseColor("#10B981")));
         chip.setTextColor(Color.parseColor("#6EE7B7"));
         chip.setTypeface(null, Typeface.BOLD);
       }
       else
       {
         chip.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.25f), dp(8), adjustAlpha(_colorLabel, 0.1f)));
-        chip.setTextColor(adjustAlpha(_colorLabel, 0.6f));
+        chip.setTextColor(adjustAlpha(_colorLabel, 0.65f));
       }
 
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -863,6 +917,7 @@ public class AiPaneView extends LinearLayout
         {
           _activeTone = tone;
           buildToneChips();
+          // Now that tone is chosen, trigger generation!
           triggerExecution();
         }
       });
@@ -884,6 +939,11 @@ public class AiPaneView extends LinearLayout
     {
       openSettingsDialog();
       return;
+    }
+
+    if (_activeCategory == null)
+    {
+      _activeCategory = AiActionEngine.Category.REWRITE;
     }
 
     _isGenerating = true;

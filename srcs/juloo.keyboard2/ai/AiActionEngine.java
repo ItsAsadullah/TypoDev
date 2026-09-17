@@ -305,7 +305,8 @@ public class AiActionEngine
     sb.append("CRITICAL RULES:\n");
     sb.append("1. Output ONLY the resulting text. Do NOT include any explanations, conversational remarks, preamble ('Here is...'), quotation marks, or meta-commentary.\n");
     sb.append("2. Preserve the target language (if the input is in Bengali, output in natural Bengali; if English, output in English), unless specifically instructed to translate.\n");
-    sb.append("3. Make the writing sound authentic, human, and modern. Avoid robotic clichés like 'delighted to inform', 'in conclusion', 'furthermore', or unnecessary jargon.\n\n");
+    sb.append("3. Make the writing sound authentic, human, and modern. Avoid robotic clichés like 'delighted to inform', 'in conclusion', 'furthermore', or unnecessary jargon.\n");
+    sb.append("4. BENGALI SCRIPT & ORTHOGRAPHY RULE: When generating Bengali (বাংলা), strictly follow modern standard Bengali orthography. Form proper conjuncts (ক্ষ, জ্ঞ, ঙ্ক, ঙ্গ, ঞ্চ, ঞ্জ, ষ্ণ, ষ্ঠ, ণ্ড, ণ্ট, ন্ধ, ম্প, ক্ত, ত্র, প্র ইত্যাদি) without broken spaces. Correctly attach all vowel matras (া, ি, ী, ু, ূ, ৃ, ে, ৈ, ো, ৌ). NEVER output disjointed or broken characters (যেমন ভুলভাবে 'ক ্ ষ' বা কার আলাদা করে ভাঙা শব্দ লেখা সম্পূর্ণ নিষেধ)।\n\n");
 
     // Specific category instructions
     switch (category)
@@ -564,6 +565,45 @@ public class AiActionEngine
 
     String systemPrompt = buildSystemPrompt(category, optionId, globalTone, customPrompt);
     AiProvider provider = AiProvider.Manager.getActiveProvider(context);
-    provider.generate(context, systemPrompt, userText.trim(), callback);
+    provider.generate(context, systemPrompt, userText.trim(), new AiProvider.Callback()
+    {
+      @Override
+      public void onSuccess(String resultText)
+      {
+        String clean = sanitizeBengaliAndUnicode(resultText);
+        if (callback != null) callback.onSuccess(clean);
+      }
+
+      @Override
+      public void onError(String errorMessage)
+      {
+        if (callback != null) callback.onError(errorMessage);
+      }
+    });
+  }
+
+  /**
+   * Cleans up broken Unicode characters, normalizes Bengali conjuncts,
+   * fixes separated hasant / vowel signs, and strips rogue zero-width chars.
+   */
+  public static String sanitizeBengaliAndUnicode(String text)
+  {
+    if (text == null || text.isEmpty()) return "";
+
+    // 1. Unicode NFC Canonical Composition
+    String normalized = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFC);
+
+    // 2. Fix broken Bengali conjuncts where spaces were erroneously inserted around hasant (\u09CD)
+    // e.g. "ক ্ ষ" -> "ক্ষ"
+    normalized = normalized.replaceAll("([\\u0980-\\u09FF])\\s+\\u09CD", "$1\u09CD");
+    normalized = normalized.replaceAll("\\u09CD\\s+([\\u0980-\\u09FF])", "\u09CD$1");
+
+    // 3. Fix broken vowel signs separated by spaces e.g. "ক া" -> "কা"
+    normalized = normalized.replaceAll("([\\u0980-\\u09FF])\\s+([\\u09BE-\\u09CD\\u09D7])", "$1$2");
+
+    // 4. Remove stray zero-width spaces/formatters that cause glyph separation
+    normalized = normalized.replaceAll("[\\u200B\\u200E\\u200F]", "");
+
+    return normalized.trim();
   }
 }

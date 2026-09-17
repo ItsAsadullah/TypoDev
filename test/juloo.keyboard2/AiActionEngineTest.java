@@ -73,4 +73,18 @@ public class AiActionEngineTest
       assertFalse("Options for " + cat.name() + " should not be empty", opts.isEmpty());
     }
   }
+
+  @Test
+  public void testBengaliSanitization()
+  {
+    // Test broken conjunct with space around hasant: "ক ্ ষ" -> "ক্ষ"
+    String brokenConjunct = "ক ্ ষ";
+    String cleanConjunct = AiActionEngine.sanitizeBengaliAndUnicode(brokenConjunct);
+    assertEquals("ক্ষ", cleanConjunct);
+
+    // Test broken vowel sign with space: "ক া" -> "কা"
+    String brokenVowel = "ক া";
+    String cleanVowel = AiActionEngine.sanitizeBengaliAndUnicode(brokenVowel);
+    assertEquals("কা", cleanVowel);
+  }
 }
