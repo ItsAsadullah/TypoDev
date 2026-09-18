@@ -169,11 +169,11 @@ public class SettingsActivity extends PreferenceActivity
         {
           new AlertDialog.Builder(SettingsActivity.this)
               .setTitle("TypoDev")
-              .setMessage("type faster, write smarter\n\nVersion 2.1.0 (with Gemini AI & Bengali Suggestions)\n\n• Privacy-focused, lightweight virtual keyboard\n• Smart Gemini AI Assistant\n• 43,000+ Bengali & Multi-language wordlists\n\nOpen Source on GitHub:\nhttps://github.com/Julow/Unexpected-Keyboard")
+              .setMessage("type faster, write smarter\n\nVersion 2.1.0 (with Gemini AI & Bengali Suggestions)\n\n• Privacy-focused, lightweight virtual keyboard\n• Smart Gemini AI Assistant\n• 43,000+ Bengali & Multi-language wordlists\n\nOpen Source on GitHub:\nhttps://github.com/ItsAsadullah/TypoDev")
               .setPositiveButton("OK", null)
               .setNeutralButton("GitHub", (dialog, which) -> {
                 try {
-                  startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Julow/Unexpected-Keyboard")));
+                  startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/ItsAsadullah/TypoDev")));
                 } catch (Exception ignored) {}
               })
               .show();
