@@ -69,6 +69,7 @@ public class AiPaneView extends LinearLayout
 
   // Views
   private TextView _tvProviderBadge;
+  private Button _btnEmojifyToggle;
   private TextView _tvSourceBadge;
   private Button _btnToggleSource;
   private TextView _tvInputSnippet;
@@ -243,6 +244,27 @@ public class AiPaneView extends LinearLayout
 
     View spacerHeader = new View(context);
     headerBar.addView(spacerHeader, new LinearLayout.LayoutParams(0, 1, 1.0f));
+
+    // Emojify Toggle Button (Matching Telegram style toggle)
+    _btnEmojifyToggle = new Button(context);
+    _btnEmojifyToggle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+    _btnEmojifyToggle.setPadding(dp(8), 0, dp(8), 0);
+    updateEmojifyButtonState();
+    _btnEmojifyToggle.setOnClickListener(new OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        boolean cur = GeminiAiService.isEmojifyEnabled(getContext());
+        GeminiAiService.setEmojifyEnabled(getContext(), !cur);
+        updateEmojifyButtonState();
+        Toast.makeText(getContext(), !cur ? "😀 Emojify Enabled" : "⚪ No Emojis (Plain Text)", Toast.LENGTH_SHORT).show();
+      }
+    });
+    LinearLayout.LayoutParams lpEmo = new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.WRAP_CONTENT, dp(28));
+    lpEmo.setMargins(dp(2), 0, dp(4), 0);
+    headerBar.addView(_btnEmojifyToggle, lpEmo);
 
     // Settings icon
     Button btnSettings = new Button(context);
@@ -615,6 +637,7 @@ public class AiPaneView extends LinearLayout
     // Refresh provider badge
     AiProvider provider = AiProvider.Manager.getActiveProvider(context);
     _tvProviderBadge.setText(" ⚡ " + provider.getName() + " ");
+    updateEmojifyButtonState();
 
     // Check if API key is present
     boolean hasKey = AiProvider.Manager.hasConfiguredApiKey(context);
@@ -720,6 +743,25 @@ public class AiPaneView extends LinearLayout
     {
       _tvInputSnippet.setText("\"" + _currentWorkingText.trim() + "\"");
       _tvInputSnippet.setTextColor(adjustAlpha(_colorLabel, 0.85f));
+    }
+  }
+
+  private void updateEmojifyButtonState()
+  {
+    if (_btnEmojifyToggle == null) return;
+    boolean enabled = GeminiAiService.isEmojifyEnabled(getContext());
+    if (enabled)
+    {
+      _btnEmojifyToggle.setText("😀 emojify");
+      int activeBg = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
+      _btnEmojifyToggle.setBackground(createPillBackground(activeBg, dp(12), Color.TRANSPARENT));
+      _btnEmojifyToggle.setTextColor(Color.WHITE);
+    }
+    else
+    {
+      _btnEmojifyToggle.setText("⚪ plain text");
+      _btnEmojifyToggle.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.5f), dp(12), adjustAlpha(_colorLabel, 0.2f)));
+      _btnEmojifyToggle.setTextColor(adjustAlpha(_colorLabel, 0.7f));
     }
   }
 
@@ -1071,6 +1113,7 @@ public class AiPaneView extends LinearLayout
     _tvStatus.setText("Generating with " + AiProvider.Manager.getActiveProvider(getContext()).getName() + "...");
 
     String textToProcess = hasWorkingText ? _currentWorkingText : custom;
+    boolean emojify = GeminiAiService.isEmojifyEnabled(getContext());
 
     AiActionEngine.executeAction(
         getContext(),
@@ -1079,6 +1122,7 @@ public class AiPaneView extends LinearLayout
         _activeOptionId,
         _activeTone,
         custom,
+        emojify,
         new AiProvider.Callback()
         {
           @Override

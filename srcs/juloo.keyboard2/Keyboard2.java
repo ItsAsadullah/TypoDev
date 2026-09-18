@@ -4,8 +4,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.inputmethodservice.InputMethodService;
+import java.util.Collections;
 import android.os.Build.VERSION;
 import android.os.Handler;
 import android.os.IBinder;
@@ -55,6 +57,9 @@ public class Keyboard2 extends InputMethodService
   private juloo.keyboard2.ai.AiPromptBarView _ai_prompt_bar = null;
   private boolean _isAiPromptInputMode = false;
   private InputConnection _aiPromptInputConnection = null;
+  private EmojiSearchBarView _emoji_search_bar = null;
+  private boolean _isEmojiSearchMode = false;
+  private InputConnection _emojiSearchInputConnection = null;
   private Handler _handler;
 
   private Config _config;
@@ -190,6 +195,25 @@ public class Keyboard2 extends InputMethodService
         }
       });
     }
+
+    _emoji_search_bar = (EmojiSearchBarView)_keyboard_container_view.findViewById(R.id.emoji_search_bar_view);
+    if (_emoji_search_bar != null)
+    {
+      _emoji_search_bar.setOnEmojiSearchActionListener(new EmojiSearchBarView.OnEmojiSearchActionListener()
+      {
+        @Override
+        public void onEmojiSelected(Emoji emoji)
+        {
+          onEmojiSelectedFromSearch(emoji);
+        }
+
+        @Override
+        public void onCloseSearch()
+        {
+          exitEmojiSearchMode();
+        }
+      });
+    }
   }
 
   public boolean isAiPaneVisible()
@@ -289,6 +313,119 @@ public class Keyboard2 extends InputMethodService
     if (_keyboard_layout_view != null)
       _keyboard_layout_view.setVisibility(View.VISIBLE);
     refresh_candidates_view();
+  }
+
+  public void showEmojiPane()
+  {
+    if (_isEmojiSearchMode)
+    {
+      _isEmojiSearchMode = false;
+      _emojiSearchInputConnection = null;
+      if (_emoji_search_bar != null) _emoji_search_bar.setVisibility(View.GONE);
+    }
+    if (_emojiPane == null)
+    {
+      _emojiPane = (ViewGroup)inflate_view(R.layout.emoji_pane);
+      wireEmojiPaneSearch();
+    }
+    setInputView(_emojiPane);
+    EmojiGridView grid = (EmojiGridView)_emojiPane.findViewById(R.id.emoji_grid);
+    if (grid != null)
+    {
+      grid.setEmojiGroup(EmojiGridView.GROUP_LAST_USE);
+    }
+  }
+
+  public void showEmojiPaneFromToolbar()
+  {
+    showEmojiPane();
+  }
+
+  private void wireEmojiPaneSearch()
+  {
+    if (_emojiPane == null) return;
+    View btnSearch = _emojiPane.findViewById(R.id.btn_open_emoji_search);
+    if (btnSearch != null)
+    {
+      btnSearch.setOnClickListener(new View.OnClickListener()
+      {
+        @Override
+        public void onClick(View v)
+        {
+          showEmojiSearchMode("");
+        }
+      });
+    }
+  }
+
+  public void showEmojiSearchMode(String query)
+  {
+    _isEmojiSearchMode = true;
+    if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
+    if (_ai_pane_view != null) _ai_pane_view.setVisibility(View.GONE);
+    if (_ai_prompt_bar != null) _ai_prompt_bar.setVisibility(View.GONE);
+
+    if (_emoji_search_bar != null)
+    {
+      int colorKeyboard = (_ai_pane_view != null) ? _ai_pane_view.getColorKeyboard() : Color.parseColor("#151A23");
+      int colorKey = (_ai_pane_view != null) ? _ai_pane_view.getColorKey() : Color.parseColor("#212836");
+      int colorLabel = (_ai_pane_view != null) ? _ai_pane_view.getColorLabel() : Color.WHITE;
+      int colorKeyActivated = (_ai_pane_view != null) ? _ai_pane_view.getColorKeyActivated() : Color.parseColor("#2AABEE");
+      _emoji_search_bar.applyTheme(colorKeyboard, colorKey, colorLabel, colorKeyActivated);
+      _emoji_search_bar.setQuery(query);
+      _emojiSearchInputConnection = _emoji_search_bar.createInputConnection();
+      _emoji_search_bar.setVisibility(View.VISIBLE);
+    }
+    if (_keyboard_layout_view != null)
+    {
+      _keyboard_layout_view.setVisibility(View.VISIBLE);
+      _keyboard_layout_view.setKeyboard(current_layout());
+    }
+    setInputView(_keyboard_container_view);
+  }
+
+  public void exitEmojiSearchMode()
+  {
+    _isEmojiSearchMode = false;
+    _emojiSearchInputConnection = null;
+    if (_emoji_search_bar != null)
+    {
+      _emoji_search_bar.setVisibility(View.GONE);
+    }
+    showEmojiPane();
+  }
+
+  public void onEmojiSelectedFromSearch(Emoji emoji)
+  {
+    if (emoji == null) return;
+    InputConnection ic = getCurrentInputConnection();
+    if (ic != null)
+    {
+      ic.commitText(emoji.kv().getString(), 1);
+    }
+    recordEmojiUsed(emoji);
+  }
+
+  public void recordEmojiUsed(Emoji emoji)
+  {
+    if (emoji == null) return;
+    if (_emojiPane != null)
+    {
+      EmojiGridView grid = (EmojiGridView)_emojiPane.findViewById(R.id.emoji_grid);
+      if (grid != null)
+      {
+        grid.recordEmojiUsed(emoji);
+        return;
+      }
+    }
+    try
+    {
+      SharedPreferences prefs = getSharedPreferences("emoji_last_use", Context.MODE_PRIVATE);
+      Set<String> set = new HashSet<>(prefs.getStringSet("emoji_last_use", Collections.<String>emptySet()));
+      set.add("1-" + emoji.kv().getString());
+      prefs.edit().putStringSet("emoji_last_use", set).apply();
+    }
+    catch (Throwable ignored) {}
   }
 
   InputMethodManager get_imm()
@@ -497,6 +634,12 @@ public class Keyboard2 extends InputMethodService
   public void onFinishInputView(boolean finishingInput)
   {
     super.onFinishInputView(finishingInput);
+    if (_isEmojiSearchMode)
+    {
+      _isEmojiSearchMode = false;
+      _emojiSearchInputConnection = null;
+      if (_emoji_search_bar != null) _emoji_search_bar.setVisibility(View.GONE);
+    }
     if (isAiPaneVisible())
       closeAiPane();
     _keyboard_layout_view.reset();
@@ -505,10 +648,18 @@ public class Keyboard2 extends InputMethodService
   @Override
   public boolean onKeyDown(int keyCode, KeyEvent event)
   {
-    if (keyCode == KeyEvent.KEYCODE_BACK && isAiPaneVisible())
+    if (keyCode == KeyEvent.KEYCODE_BACK)
     {
-      closeAiPane();
-      return true;
+      if (_isEmojiSearchMode)
+      {
+        exitEmojiSearchMode();
+        return true;
+      }
+      if (isAiPaneVisible())
+      {
+        closeAiPane();
+        return true;
+      }
     }
     return super.onKeyDown(keyCode, event);
   }
@@ -583,9 +734,7 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case SWITCH_EMOJI:
-          if (_emojiPane == null)
-            _emojiPane = (ViewGroup)inflate_view(R.layout.emoji_pane);
-          setInputView(_emojiPane);
+          showEmojiPane();
           break;
 
         case SWITCH_CLIPBOARD:
@@ -596,6 +745,12 @@ public class Keyboard2 extends InputMethodService
 
         case SWITCH_BACK_EMOJI:
         case SWITCH_BACK_CLIPBOARD:
+          if (_isEmojiSearchMode)
+          {
+            _isEmojiSearchMode = false;
+            _emojiSearchInputConnection = null;
+            if (_emoji_search_bar != null) _emoji_search_bar.setVisibility(View.GONE);
+          }
           setInputView(_keyboard_container_view);
           break;
 
@@ -680,6 +835,10 @@ public class Keyboard2 extends InputMethodService
       if (_isAiPromptInputMode && _aiPromptInputConnection != null)
       {
         return _aiPromptInputConnection;
+      }
+      if (_isEmojiSearchMode && _emojiSearchInputConnection != null)
+      {
+        return _emojiSearchInputConnection;
       }
       return Keyboard2.this.getCurrentInputConnection();
     }

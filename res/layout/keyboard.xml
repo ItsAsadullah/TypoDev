@@ -76,6 +76,10 @@
             style="@style/toolbar_button"
             android:text="🎙️" />
         <Button
+            android:id="@+id/toolbar_btn_emoji"
+            style="@style/toolbar_button"
+            android:text="😊" />
+        <Button
             android:id="@+id/toolbar_btn_settings"
             style="@style/toolbar_button"
             android:text="⚙️" />
@@ -88,6 +92,12 @@
 
   <juloo.keyboard2.ai.AiPromptBarView
       android:id="@+id/ai_prompt_bar"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:visibility="gone"/>
+
+  <juloo.keyboard2.EmojiSearchBarView
+      android:id="@+id/emoji_search_bar_view"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:visibility="gone"/>

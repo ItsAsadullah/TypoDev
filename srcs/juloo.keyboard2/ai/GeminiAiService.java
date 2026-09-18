@@ -24,6 +24,7 @@ public class GeminiAiService
   public static final String PREF_GEMINI_WORKING_MODEL = "gemini_working_model";
   public static final String PREF_CACHED_GEMINI_MODELS = "pref_cached_gemini_models";
   public static final String PREF_GEMINI_MODELS_LAST_FETCH = "pref_gemini_models_last_fetch";
+  public static final String PREF_AI_EMOJIFY = "pref_ai_emojify";
 
   public static final String DEFAULT_MODEL = "gemini-2.0-flash";
 
@@ -149,6 +150,27 @@ public class GeminiAiService
     prefs.edit().putString(PREF_GEMINI_WORKING_MODEL, model.trim()).apply();
   }
 
+  public static boolean isEmojifyEnabled(Context context)
+  {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+    return prefs.getBoolean(PREF_AI_EMOJIFY, true);
+  }
+
+  public static void setEmojifyEnabled(Context context, boolean enabled)
+  {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+    prefs.edit().putBoolean(PREF_AI_EMOJIFY, enabled).apply();
+  }
+
+  public static String stripEmojis(String text)
+  {
+    if (text == null) return "";
+    return text.replaceAll("[\\p{So}\\p{Cn}\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+", "")
+               .replaceAll("[\\u2600-\\u27BF\\uE000-\\uF8FF]", "")
+               .replaceAll("\\s{2,}", " ")
+               .trim();
+  }
+
   public static void processText(final Context context, final String text, final Action action, final AiCallback callback)
   {
     if (text == null || text.trim().isEmpty())
@@ -156,8 +178,32 @@ public class GeminiAiService
       callback.onError("No text to process");
       return;
     }
-    String prompt = action.getPrompt() + "\n\nText:\n\"\"\"" + text + "\"\"\"";
-    processPrompt(context, prompt, callback);
+    boolean emojify = isEmojifyEnabled(context);
+    StringBuilder sb = new StringBuilder();
+    sb.append(action.getPrompt()).append("\n");
+    if (emojify)
+    {
+      sb.append("EMOJI DIRECTIVE: Naturally enhance the message with fitting, expressive, and lively emojis.\n");
+    }
+    else
+    {
+      sb.append("STRICT EMOJI BAN: Do NOT include ANY emojis, emoticons, pictograms, or symbols under any circumstances. Output 100% plain text.\n");
+    }
+    sb.append("\nText:\n\"\"\"").append(text).append("\"\"\"");
+    processPrompt(context, sb.toString(), new AiCallback()
+    {
+      @Override
+      public void onSuccess(String resultText)
+      {
+        callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
+      }
+
+      @Override
+      public void onError(String errorMessage)
+      {
+        callback.onError(errorMessage);
+      }
+    });
   }
 
   public static void processStyle(
@@ -177,15 +223,28 @@ public class GeminiAiService
     sb.append("Rewrite instruction: ").append(instruction).append("\n");
     if (emojify)
     {
-      sb.append("Emoji requirement: Add fitting, expressive emojis naturally into the text.\n");
+      sb.append("EMOJI DIRECTIVE: Add fitting, expressive, and natural emojis into the text.\n");
     }
     else
     {
-      sb.append("Emoji requirement: Do NOT include any emojis at all.\n");
+      sb.append("STRICT EMOJI BAN: Do NOT include ANY emojis, emoticons, pictograms, or symbols under any circumstances. Output 100% pure plain text.\n");
     }
     sb.append("Rules: Preserve the original language and meaning. Output ONLY the rewritten text, without explanations, quotes, or preamble.\n\n");
     sb.append("Text:\n\"\"\"").append(text).append("\"\"\"");
-    processPrompt(context, sb.toString(), callback);
+    processPrompt(context, sb.toString(), new AiCallback()
+    {
+      @Override
+      public void onSuccess(String resultText)
+      {
+        callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
+      }
+
+      @Override
+      public void onError(String errorMessage)
+      {
+        callback.onError(errorMessage);
+      }
+    });
   }
 
   public static void processFix(
@@ -203,15 +262,28 @@ public class GeminiAiService
     sb.append("Fix all spelling, punctuation, grammar, and typos in the following text. Preserve the original language and intended meaning.\n");
     if (emojify)
     {
-      sb.append("Keep or enhance fitting emojis.\n");
+      sb.append("EMOJI DIRECTIVE: Keep or enhance fitting expressive emojis.\n");
     }
     else
     {
-      sb.append("Do NOT include emojis.\n");
+      sb.append("STRICT EMOJI BAN: Do NOT include ANY emojis, emoticons, or symbols. Output pure text only.\n");
     }
     sb.append("Output ONLY the corrected text, with no explanations, notes, or preamble.\n\n");
     sb.append("Text:\n\"\"\"").append(text).append("\"\"\"");
-    processPrompt(context, sb.toString(), callback);
+    processPrompt(context, sb.toString(), new AiCallback()
+    {
+      @Override
+      public void onSuccess(String resultText)
+      {
+        callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
+      }
+
+      @Override
+      public void onError(String errorMessage)
+      {
+        callback.onError(errorMessage);
+      }
+    });
   }
 
   public static void processGrammarDiff(
@@ -230,11 +302,11 @@ public class GeminiAiService
     sb.append("Task: Fix all grammatical mistakes, spelling errors, punctuation, and awkward phrasing in the given text.\n");
     if (emojify)
     {
-      sb.append("Emoji requirement: Preserve or add fitting expressive emojis.\n");
+      sb.append("EMOJI DIRECTIVE: Preserve or add fitting expressive emojis.\n");
     }
     else
     {
-      sb.append("Emoji requirement: Do NOT include any emojis.\n");
+      sb.append("STRICT EMOJI BAN: Do NOT include ANY emojis or emoticons under any circumstances.\n");
     }
     sb.append("Output Format: Return ONLY a valid JSON object with no markdown code fences or preamble, matching this exact schema:\n");
     sb.append("{\n");
@@ -260,6 +332,10 @@ public class GeminiAiService
 
           JSONObject obj = new JSONObject(clean);
           String fixed = obj.optString("fixed_text", resultText);
+          if (!emojify)
+          {
+            fixed = stripEmojis(fixed);
+          }
           List<GrammarChange> changeList = new ArrayList<>();
           JSONArray arr = obj.optJSONArray("changes");
           if (arr != null)
@@ -278,7 +354,7 @@ public class GeminiAiService
         }
         catch (Exception e)
         {
-          callback.onSuccess(new GrammarDiffResult(text, resultText, new ArrayList<GrammarChange>()));
+          callback.onSuccess(new GrammarDiffResult(text, emojify ? resultText : stripEmojis(resultText), new ArrayList<GrammarChange>()));
         }
       }
 
@@ -306,15 +382,28 @@ public class GeminiAiService
     sb.append("Translate the following text accurately into ").append(targetLanguage).append(".\n");
     if (emojify)
     {
-      sb.append("Preserve or add expressive emojis.\n");
+      sb.append("EMOJI DIRECTIVE: Naturally enhance the translation with fitting, expressive emojis.\n");
     }
     else
     {
-      sb.append("Do NOT add emojis.\n");
+      sb.append("STRICT EMOJI BAN: Do NOT add ANY emojis, pictograms, or emoticons. Output pure plain text only.\n");
     }
     sb.append("Output ONLY the translated text, without pronunciation guides, explanations, or preamble.\n\n");
     sb.append("Text:\n\"\"\"").append(text).append("\"\"\"");
-    processPrompt(context, sb.toString(), callback);
+    processPrompt(context, sb.toString(), new AiCallback()
+    {
+      @Override
+      public void onSuccess(String resultText)
+      {
+        callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
+      }
+
+      @Override
+      public void onError(String errorMessage)
+      {
+        callback.onError(errorMessage);
+      }
+    });
   }
 
   public static void fetchAndCacheModels(final Context context, final String apiKey, final boolean forceRefresh)

@@ -339,10 +339,15 @@ public class AiActionEngine
       + "10. NATURAL ADAB & MODERATION (পরিমিতিবোধ ও আদব):\n"
       + "   - Do NOT spam Islamic words unnaturally into every single sentence. Integrate the appropriate phrases smoothly and elegantly only where contextually suitable, maintaining dignified, warm, and authentic Bengali or English prose.\n";
 
+  public static String buildSystemPrompt(Category category, String optionId, String globalTone, String customPrompt)
+  {
+    return buildSystemPrompt(category, optionId, globalTone, customPrompt, true);
+  }
+
   /**
    * Builds the comprehensive, tailored system prompt for the chosen Category, Option, and optional global Tone.
    */
-  public static String buildSystemPrompt(Category category, String optionId, String globalTone, String customPrompt)
+  public static String buildSystemPrompt(Category category, String optionId, String globalTone, String customPrompt, boolean emojify)
   {
     StringBuilder sb = new StringBuilder();
     sb.append("You are an expert, world-class AI writing assistant integrated into a mobile keyboard.\n");
@@ -350,7 +355,15 @@ public class AiActionEngine
     sb.append("1. Output ONLY the resulting text. Do NOT include any explanations, conversational remarks, preamble ('Here is...'), quotation marks, or meta-commentary.\n");
     sb.append("2. Preserve the target language (if the input is in Bengali, output in natural Bengali; if English, output in English), unless specifically instructed to translate.\n");
     sb.append("3. Make the writing sound authentic, human, and modern. Avoid robotic clichés like 'delighted to inform', 'in conclusion', 'furthermore', or unnecessary jargon.\n");
-    sb.append("4. BENGALI SCRIPT & ORTHOGRAPHY RULE: When generating Bengali (বাংলা), strictly follow modern standard Bengali orthography. Form proper conjuncts (ক্ষ, জ্ঞ, ঙ্ক, ঙ্গ, ঞ্চ, ঞ্জ, ষ্ণ, ষ্ঠ, ণ্ড, ণ্ট, ন্ধ, ম্প, ক্ত, ত্র, প্র ইত্যাদি) without broken spaces. Correctly attach all vowel matras (া, ি, ী, ু, ূ, ৃ, ে, ৈ, ো, ৌ). NEVER output disjointed or broken characters (যেমন ভুলভাবে 'ক ্ ষ' বা কার আলাদা করে ভাঙা শব্দ লেখা সম্পূর্ণ নিষেধ)।\n\n");
+    sb.append("4. BENGALI SCRIPT & ORTHOGRAPHY RULE: When generating Bengali (বাংলা), strictly follow modern standard Bengali orthography. Form proper conjuncts (ক্ষ, জ্ঞ, ঙ্ক, ঙ্গ, ঞ্চ, ঞ্জ, ষ্ণ, ষ্ঠ, ণ্ড, ণ্ট, ন্ধ, ম্প, ক্ত, ত্র, প্র ইত্যাদি) without broken spaces. Correctly attach all vowel matras (া, ি, ী, ু, ূ, ৃ, ে, ৈ, ো, ৌ). NEVER output disjointed or broken characters (যেমন ভুলভাবে 'ক ্ ষ' বা কার আলাদা করে ভাঙা শব্দ লেখা সম্পূর্ণ নিষেধ)।\n");
+    if (emojify)
+    {
+      sb.append("5. EMOJI DIRECTIVE: Naturally enhance the message with fitting, expressive, and lively emojis.\n\n");
+    }
+    else
+    {
+      sb.append("5. STRICT EMOJI BAN: Do NOT include ANY emojis, emoticons, pictograms, or symbols under any circumstances. Output 100% plain text only.\n\n");
+    }
 
     // Specific category instructions
     switch (category)
@@ -665,6 +678,20 @@ public class AiActionEngine
       String customPrompt,
       final AiProvider.Callback callback)
   {
+    boolean emojify = GeminiAiService.isEmojifyEnabled(context);
+    executeAction(context, userText, category, optionId, globalTone, customPrompt, emojify, callback);
+  }
+
+  public static void executeAction(
+      Context context,
+      String userText,
+      Category category,
+      String optionId,
+      String globalTone,
+      String customPrompt,
+      final boolean emojify,
+      final AiProvider.Callback callback)
+  {
     String input = (userText != null) ? userText.trim() : "";
     String prompt = (customPrompt != null) ? customPrompt.trim() : "";
 
@@ -681,7 +708,7 @@ public class AiActionEngine
       input = prompt;
     }
 
-    String systemPrompt = buildSystemPrompt(category, optionId, globalTone, customPrompt);
+    String systemPrompt = buildSystemPrompt(category, optionId, globalTone, customPrompt, emojify);
     AiProvider provider = AiProvider.Manager.getActiveProvider(context);
     provider.generate(context, systemPrompt, input, new AiProvider.Callback()
     {
@@ -689,6 +716,10 @@ public class AiActionEngine
       public void onSuccess(String resultText)
       {
         String clean = sanitizeBengaliAndUnicode(resultText);
+        if (!emojify)
+        {
+          clean = GeminiAiService.stripEmojis(clean);
+        }
         if (callback != null) callback.onSuccess(clean);
       }
 

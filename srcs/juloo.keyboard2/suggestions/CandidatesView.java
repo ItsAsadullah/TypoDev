@@ -203,6 +203,22 @@ public class CandidatesView extends LinearLayout
       });
     }
 
+    View btnEmoji = findViewById(R.id.toolbar_btn_emoji);
+    if (btnEmoji != null)
+    {
+      btnEmoji.setOnClickListener(new View.OnClickListener()
+      {
+        @Override
+        public void onClick(View v)
+        {
+          if (_keyboard2 != null)
+          {
+            _keyboard2.showEmojiPaneFromToolbar();
+          }
+        }
+      });
+    }
+
     View btnSettings = findViewById(R.id.toolbar_btn_settings);
     if (btnSettings != null)
     {

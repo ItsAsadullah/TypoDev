@@ -282,6 +282,18 @@ public class AiSettingsDialog
       }
     });
 
+    // Emoji Preference Switch / Checkbox
+    TextView tvEmojiLabel = new TextView(context);
+    tvEmojiLabel.setText("Emoji Generation:");
+    tvEmojiLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+    tvEmojiLabel.setPadding(0, pad12, 0, (int)(4 * density));
+    root.addView(tvEmojiLabel);
+
+    final android.widget.CheckBox cbGlobalEmojify = new android.widget.CheckBox(context);
+    cbGlobalEmojify.setText("Generate responses with emojis (ইমুজি ব্যবহার)");
+    cbGlobalEmojify.setChecked(GeminiAiService.isEmojifyEnabled(context));
+    root.addView(cbGlobalEmojify);
+
     final AlertDialog dialog = new AlertDialog.Builder(context)
         .setView(scrollView)
         .setPositiveButton("Save Settings", null)
@@ -310,6 +322,9 @@ public class AiSettingsDialog
             OpenAiCompatibleProvider.setBaseUrl(context, etBaseUrl.getText().toString().trim());
             OpenAiCompatibleProvider.setApiKey(context, etOpenAiKey.getText().toString().trim());
             OpenAiCompatibleProvider.setModel(context, etOpenAiModel.getText().toString().trim());
+
+            // Save Emojify preference
+            GeminiAiService.setEmojifyEnabled(context, cbGlobalEmojify.isChecked());
 
             Toast.makeText(context, "✅ AI settings saved successfully", Toast.LENGTH_SHORT).show();
             dialog.dismiss();

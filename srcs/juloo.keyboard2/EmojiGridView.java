@@ -56,7 +56,7 @@ public class EmojiGridView extends GridView
     setOnItemClickListener(this);
     loadLastUsed();
     initGestureDetector(context);
-    setEmojiGroup((_lastUsed.size() == 0) ? 0 : GROUP_LAST_USE);
+    setEmojiGroup(GROUP_LAST_USE);
   }
 
   private void initGestureDetector(Context context)
@@ -197,7 +197,38 @@ public class EmojiGridView extends GridView
             return _lastUsed.get(b) - _lastUsed.get(a);
           }
         });
+    if (list.size() < 24)
+    {
+      List<Emoji> popular = EmojiSearchIndex.getPopularEmojis();
+      for (Emoji e : popular)
+      {
+        if (!list.contains(e))
+        {
+          list.add(e);
+        }
+      }
+    }
     return list;
+  }
+
+  public void recordEmojiUsed(Emoji emoji)
+  {
+    if (emoji == null) return;
+    Integer used = _lastUsed.get(emoji);
+    _lastUsed.put(emoji, (used == null) ? 1 : used.intValue() + 1);
+    saveLastUsed();
+  }
+
+  public void filterSearch(String query)
+  {
+    if (query == null || query.trim().isEmpty())
+    {
+      setEmojiGroup(_currentGroup);
+      return;
+    }
+    _emojiArray = EmojiSearchIndex.search(query, 80);
+    setAdapter(new EmojiViewAdpater(getContext(), _emojiArray));
+    setSelection(0);
   }
 
   private void saveLastUsed()

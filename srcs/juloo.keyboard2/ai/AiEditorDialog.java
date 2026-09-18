@@ -6,6 +6,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
@@ -114,6 +115,7 @@ public class AiEditorDialog
       this.originalText = text;
       this.hasSelection = hasSelection;
       this.currentResult = text;
+      this.emojify = GeminiAiService.isEmojifyEnabled(context);
 
       List<AiStyle> styles = AiStyle.getAllStyles(context);
       this.activeStyle = styles.isEmpty() ? null : styles.get(0);
@@ -261,15 +263,30 @@ public class AiEditorDialog
 
       cbEmojify = new CheckBox(context);
       cbEmojify.setText("emojify");
-      cbEmojify.setTextColor(Color.parseColor("#8E99A8"));
       cbEmojify.setTextSize(14);
+      int[][] states = new int[][] {
+          new int[] { android.R.attr.state_checked },
+          new int[] { -android.R.attr.state_checked }
+      };
+      int[] colors = new int[] {
+          Color.parseColor("#2AABEE"),
+          Color.parseColor("#8E99A8")
+      };
+      ColorStateList csl = new ColorStateList(states, colors);
+      if (android.os.Build.VERSION.SDK_INT >= 21)
+      {
+        cbEmojify.setButtonTintList(csl);
+      }
       cbEmojify.setChecked(emojify);
+      cbEmojify.setTextColor(emojify ? Color.parseColor("#2AABEE") : Color.parseColor("#8E99A8"));
       cbEmojify.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
       {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
         {
           emojify = isChecked;
+          cbEmojify.setTextColor(isChecked ? Color.parseColor("#2AABEE") : Color.parseColor("#8E99A8"));
+          GeminiAiService.setEmojifyEnabled(context, isChecked);
           triggerActiveTab();
         }
       });
