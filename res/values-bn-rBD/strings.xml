@@ -6,7 +6,7 @@
     <string name="store_description">এর প্রধান বৈশিষ্ট্য হলো, কি-গুলোর কোণার দিকে সোয়াইপ করে আপনি আরও বেশি অক্ষর টাইপ করতে পারবেন।\n\nএই অ্যাপ্লিকেশনটি মূলত টার্মাক্স (Termux) ব্যবহারকারী প্রোগ্রামারদের জন্য ডিজাইন করা হয়েছিল।\nএখন এটি দৈনন্দিন ব্যবহারের জন্য উপযুক্ত।</string>
     <string name="pref_portrait">পোর্ট্রেড বিন্যাসে</string>
     <string name="pref_landscape">ল্যান্ডস্কেপ বিন্যাসে</string>
-    <string name="pref_category_layout">বিন্যাস</string>
+    <string name="pref_category_layout">⌨️ কীবোর্ড লেআউট ও কী</string>
     <string name="pref_label_brightness">লেবেলের উজ্জ্বলতা নির্ধারণ করুন</string>
     <string name="pref_keyboard_opacity">কিবোর্ডের পৃষ্ঠভূমির গাঢ়ত্ব নির্ধারণ করুন</string>
     <string name="pref_key_opacity">কি-এর গাঢ়ত্ব নির্ধারণ করুন</string>
@@ -28,7 +28,7 @@
     <string name="pref_extra_keys_title">কিবোর্ডে কী যোগ করুন</string>
     <string name="pref_extra_keys_custom">কাস্টম কী যোগ করুন</string>
     <string name="pref_extra_keys_internal">কিবোর্ডে যোগ করার জন্য কী-গুলো নির্বাচন করুন</string>
-    <string name="pref_category_typing">টাইপিং</string>
+    <string name="pref_category_typing">✍️ টাইপিং ও জেসচার</string>
     <string name="pref_swipe_dist_title">সোয়াইপিং দূরত্ব</string>
     <string name="pref_swipe_dist_summary">কী-গুলোর কোণায় থাকা অক্ষরগুলোর দূরত্ব (%s)</string>
     <string name="pref_long_timeout_title">দীর্ঘক্ষণ চাপ দিয়ে টাইমআউট</string>
@@ -36,12 +36,12 @@
     <string name="pref_keyrepeat_enabled">দীর্ঘক্ষণ চাপলে কী-টি পুনরাবৃত্তি হয়</string>
     <string name="pref_lock_double_tap_title">ক্যাপস লক করার জন্য শিফট-এ ডাবল ট্যাপ করুন</string>
     <string name="pref_lock_double_tap_summary">আপনি যেকোনো মডিফায়ার চেপে ধরে লক করতে পারেন</string>
-    <string name="pref_category_behavior">আচরণ</string>
+    <string name="pref_category_behavior">⚙️ কিবোর্ড আচরণ ও ভাইব্রেশন</string>
     <string name="pref_autocapitalisation_title">স্বয়ংক্রিয় মূলধনীকরণ</string>
     <string name="pref_autocapitalisation_summary">বাক্যের শুরুতে Shift চাপুন</string>
     <string name="pref_vibrate_custom">কাস্টম কম্পন</string>
     <string name="pref_vibrate_duration_title">কম্পন তীব্রতা</string>
-    <string name="pref_category_style">স্টাইল</string>
+    <string name="pref_category_style">🎨 থিম ও ডিজাইন</string>
     <string name="pref_margin_bottom_title">নিচের মার্জিন</string>
     <string name="pref_keyboard_height_title">কিবোর্ড এর উচ্চতা</string>
     <string name="pref_horizontal_margin_title">অনুভূমিক মার্জিন</string>
@@ -119,4 +119,18 @@
     <string name="clipboard_pin_heading">পিন করা</string>
     <string name="clipboard_remove_confirm">এই ক্লিপবোর্ডটি সরাবেন?</string>
     <string name="clipboard_remove_confirmed">হ্যা</string>
+    <string name="pref_category_suggestions">💡 শব্দ সাজেশন ও ডিকশনারি</string>
+    <string name="pref_category_clipboard">📋 ক্লিপবোর্ড</string>
+    <string name="pref_category_ai">✨ জেমিনি এআই অ্যাসিস্ট্যান্ট</string>
+    <string name="pref_category_about">ℹ️ কিবোর্ড টেস্ট ও তথ্য</string>
+    <string name="pref_get_api_key_title">🌐 ফ্রি জেমিনি এপিআই কি নিন</string>
+    <string name="pref_get_api_key_summary">Google AI Studio থেকে সহজে ফ্রি API Key তৈরি করুন</string>
+    <string name="pref_test_keyboard_title">🧪 কিবোর্ড টেস্ট করুন</string>
+    <string name="pref_test_keyboard_summary">টাইপিং ও অঙ্গভঙ্গি পরীক্ষা করার জন্য টেস্ট এরিয়া ওপেন করুন</string>
+    <string name="pref_about_app_title">Unexpected Keyboard</string>
+    <string name="pref_about_app_summary">ভার্সন ২.১.০ • ওপেন সোর্স • সম্পূর্ণ সুরক্ষিত</string>
+    <string name="pref_extra_keys_summary">অতিরিক্ত কী, প্রতীক ও কোণার সোয়াইপ শর্টকাট কাস্টমাইজ করুন</string>
+    <string name="pref_margin_bottom_summary">পোর্ট্রেট ও ল্যান্ডস্কেপে নিচের ব্যবধান নির্ধারণ করুন</string>
+    <string name="pref_keyboard_height_summary">কিবোর্ডের উচ্চতা নির্ধারণ করুন</string>
+    <string name="pref_horizontal_margin_summary">কিবোর্ডের দুই পাশের ব্যবধান নির্ধারণ করুন</string>
 </resources>

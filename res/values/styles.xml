@@ -193,5 +193,10 @@
     <!-- Setting this in the activity theme so it propagate to nested
          preference screens. -->
     <item name="android:fitsSystemWindows">true</item>
+    <item name="android:colorAccent">#38bdf8</item>
+    <item name="android:preferenceCategoryStyle">@style/CustomPreferenceCategory</item>
+  </style>
+  <style name="CustomPreferenceCategory">
+    <item name="android:layout">@layout/pref_category_header</item>
   </style>
 </resources>

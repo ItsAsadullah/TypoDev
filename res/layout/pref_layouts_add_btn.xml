@@ -1,4 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="fill_parent" android:layout_height="wrap_content" android:gravity="center" android:minHeight="?android:attr/listPreferredItemHeightSmall">
-  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pref_layouts_add" android:textAppearance="?android:attr/textAppearanceListItemSmall"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp">
+
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:gravity="center"
+      android:orientation="horizontal"
+      android:background="@drawable/pref_add_btn_background"
+      android:paddingVertical="11dp"
+      android:paddingHorizontal="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="➕ "
+        android:textSize="14sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/pref_layouts_add"
+        android:textSize="14.5sp"
+        android:textStyle="bold"
+        android:textColor="#38bdf8" />
+  </LinearLayout>
 </LinearLayout>

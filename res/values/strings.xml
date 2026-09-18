@@ -8,7 +8,7 @@
     <string name="pref_portrait_unfolded">In portrait mode unfolded</string>
     <string name="pref_landscape">In landscape mode</string>
     <string name="pref_landscape_unfolded">In landscape mode unfolded</string>
-    <string name="pref_category_layout">Layout</string>
+    <string name="pref_category_layout">⌨️ Keyboard Layout &amp; Keys</string>
     <string name="pref_label_brightness">Adjust label brightness</string>
     <string name="pref_keyboard_opacity">Adjust keyboard background opacity</string>
     <string name="pref_key_opacity">Adjust key opacity</string>
@@ -33,12 +33,12 @@
     <string name="pref_extra_keys_title">Add keys to the keyboard</string>
     <string name="pref_extra_keys_custom">Add custom keys</string>
     <string name="pref_extra_keys_internal">Select keys to add to the keyboard</string>
-    <string name="pref_category_suggestions">Suggestions</string>
+    <string name="pref_category_suggestions">💡 Suggestions &amp; Dictionaries</string>
     <string name="pref_suggestions_title">Suggestions</string>
     <string name="pref_suggestions_summary">Enable word completion and spell checking</string>
     <string name="pref_space_bar_auto_complete_title">Autocomplete with the space bar</string>
     <string name="pref_space_bar_auto_complete_summary">Enter the best suggestion by pressing space</string>
-    <string name="pref_category_typing">Typing</string>
+    <string name="pref_category_typing">✍️ Typing &amp; Gestures</string>
     <string name="pref_swipe_dist_title">Swiping distance</string>
     <string name="pref_swipe_dist_summary">Distance of characters in the corners of the keys (%s)</string>
     <string name="pref_long_timeout_title">Long press timeout</string>
@@ -46,7 +46,7 @@
     <string name="pref_keyrepeat_enabled">Key repeat on long press</string>
     <string name="pref_lock_double_tap_title">Double tap on shift for caps lock</string>
     <string name="pref_lock_double_tap_summary">You can lock any modifier by holding it</string>
-    <string name="pref_category_behavior">Behavior</string>
+    <string name="pref_category_behavior">⚙️ Behavior &amp; Feedback</string>
     <string name="pref_autocapitalisation_title">Automatic capitalisation</string>
     <string name="pref_autocapitalisation_summary">Press Shift at the beginning of a sentence</string>
     <string name="pref_change_method_key_replacement_title">Switching between input methods</string>
@@ -59,7 +59,7 @@
     <string name="pref_number_entry_layout_pin">PIN Entry</string>
     <string name="pref_number_entry_layout_number">Number pane</string>
     <string name="pref_number_entry_layout_normal">Use the main layout</string>
-    <string name="pref_category_style">Style</string>
+    <string name="pref_category_style">🎨 Theme &amp; Appearance</string>
     <string name="pref_margin_bottom_title">Margin bottom</string>
     <string name="pref_keyboard_height_title">Keyboard height</string>
     <string name="pref_horizontal_margin_title">Horizontal margin</string>
@@ -152,7 +152,7 @@
     <string name="clipboard_remove_confirm">Remove this clipboard item?</string>
     <string name="clipboard_remove_confirmed">Yes</string>
     <string name="toast_no_voice_input">No voice typing app installed</string>
-    <string name="pref_category_clipboard">Clipboard</string>
+    <string name="pref_category_clipboard">📋 Clipboard</string>
     <string name="pref_clipboard_history_duration">Clipboard memory duration</string>
     <string name="pref_clipboard_history_duration_1">At most 1 minute</string>
     <string name="pref_clipboard_history_duration_5">At most 5 minutes</string>
@@ -171,4 +171,16 @@
     <string name="pref_split_layout_never">Never</string>
     <string name="pref_split_layout_landscape">In landscape orientation</string>
     <string name="pref_split_layout_wide">On wide screens</string>
+    <string name="pref_category_ai">✨ Gemini AI Assistant</string>
+    <string name="pref_category_about">ℹ️ Quick Actions &amp; About</string>
+    <string name="pref_get_api_key_title">🌐 Get Free Gemini API Key</string>
+    <string name="pref_get_api_key_summary">Open Google AI Studio in browser to generate a free key</string>
+    <string name="pref_test_keyboard_title">🧪 Try &amp; Test Keyboard</string>
+    <string name="pref_test_keyboard_summary">Open the interactive test area to test typing and gestures</string>
+    <string name="pref_about_app_title">Unexpected Keyboard</string>
+    <string name="pref_about_app_summary">Version 2.1.0 • Open Source • Privacy-First</string>
+    <string name="pref_extra_keys_summary">Configure extra keys, symbols, and corner swipes</string>
+    <string name="pref_margin_bottom_summary">Adjust portrait &amp; landscape bottom spacing</string>
+    <string name="pref_keyboard_height_summary">Adjust portrait &amp; landscape keyboard height</string>
+    <string name="pref_horizontal_margin_summary">Adjust left and right side padding</string>
 </resources>
