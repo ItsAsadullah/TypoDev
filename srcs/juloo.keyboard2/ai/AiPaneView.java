@@ -15,6 +15,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.WindowInsets;
 import android.view.inputmethod.InputConnection;
 import android.widget.Button;
@@ -27,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import java.util.List;
 import juloo.keyboard2.Keyboard2;
+import juloo.keyboard2.Logs;
 import juloo.keyboard2.R;
 
 /**
@@ -161,22 +163,29 @@ public class AiPaneView extends LinearLayout
   @Override
   public WindowInsets onApplyWindowInsets(WindowInsets insets)
   {
-    if (Build.VERSION.SDK_INT >= 30)
+    try
     {
-      android.graphics.Insets sb = insets.getInsets(
-          WindowInsets.Type.systemBars() | WindowInsets.Type.navigationBars() | WindowInsets.Type.displayCutout());
-      if (sb.bottom > 0)
+      if (Build.VERSION.SDK_INT >= 35 && insets != null)
       {
-        updateBottomPadding(sb.bottom);
+        android.graphics.Insets sb = insets.getInsets(
+            WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+        if (sb != null && sb.bottom > 0)
+        {
+          updateBottomPadding(sb.bottom);
+        }
+      }
+      else if (Build.VERSION.SDK_INT >= 20 && insets != null)
+      {
+        int b = insets.getSystemWindowInsetBottom();
+        if (b > 0)
+        {
+          updateBottomPadding(b);
+        }
       }
     }
-    else if (Build.VERSION.SDK_INT >= 20)
+    catch (Throwable t)
     {
-      int b = insets.getSystemWindowInsetBottom();
-      if (b > 0)
-      {
-        updateBottomPadding(b);
-      }
+      Logs.print_exception(t);
     }
     return super.onApplyWindowInsets(insets);
   }
@@ -187,10 +196,14 @@ public class AiPaneView extends LinearLayout
     // typically occupy 36dp - 48dp at the bottom of the IME window.
     // We ensure a minimum of 42dp so the action buttons NEVER collide with the system safe area.
     int minSafeBottom = dp(42);
-    _bottomSafety = Math.max(rawBottomSafety, minSafeBottom);
-    if (_rowActionButtons != null)
+    int newBottomSafety = Math.max(rawBottomSafety, minSafeBottom);
+    if (_bottomSafety != newBottomSafety)
     {
-      _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
+      _bottomSafety = newBottomSafety;
+      if (_rowActionButtons != null)
+      {
+        _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
+      }
     }
   }
 
@@ -547,36 +560,42 @@ public class AiPaneView extends LinearLayout
       @Override
       public boolean onTouch(View v, MotionEvent event)
       {
-        boolean canScrollUp = v.canScrollVertically(-1);
-        boolean canScrollDown = v.canScrollVertically(1);
-
-        if (canScrollUp || canScrollDown)
+        try
         {
-          switch (event.getAction() & MotionEvent.ACTION_MASK)
+          if (v == null || event == null) return false;
+          boolean canScrollUp = v.canScrollVertically(-1);
+          boolean canScrollDown = v.canScrollVertically(1);
+
+          if (canScrollUp || canScrollDown)
           {
-            case MotionEvent.ACTION_DOWN:
-              _startY = event.getY();
-              v.getParent().requestDisallowInterceptTouchEvent(true);
-              break;
+            ViewParent parent = v.getParent();
+            switch (event.getAction() & MotionEvent.ACTION_MASK)
+            {
+              case MotionEvent.ACTION_DOWN:
+                _startY = event.getY();
+                if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
+                break;
 
-            case MotionEvent.ACTION_MOVE:
-              float deltaY = _startY - event.getY();
-              if ((deltaY > 0 && canScrollDown) || (deltaY < 0 && canScrollUp))
-              {
-                v.getParent().requestDisallowInterceptTouchEvent(true);
-              }
-              else
-              {
-                v.getParent().requestDisallowInterceptTouchEvent(false);
-              }
-              break;
+              case MotionEvent.ACTION_MOVE:
+                float deltaY = _startY - event.getY();
+                if ((deltaY > 0 && canScrollDown) || (deltaY < 0 && canScrollUp))
+                {
+                  if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
+                }
+                else
+                {
+                  if (parent != null) parent.requestDisallowInterceptTouchEvent(false);
+                }
+                break;
 
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-              v.getParent().requestDisallowInterceptTouchEvent(false);
-              break;
+              case MotionEvent.ACTION_UP:
+              case MotionEvent.ACTION_CANCEL:
+                if (parent != null) parent.requestDisallowInterceptTouchEvent(false);
+                break;
+            }
           }
         }
+        catch (Throwable ignored) {}
         return false;
       }
     });
@@ -664,100 +683,126 @@ public class AiPaneView extends LinearLayout
 
   public void open(int targetHeight, int bottomSafety)
   {
-    Context context = getContext();
-    initThemeColors(context);
-    setBackgroundColor(_colorKeyboard);
-
-    // Reset progressive disclosure state so the screen is completely clean
-    _activeCategory = null;
-    _activeOptionId = "";
-    _activeTone = "default";
-    _currentCustomPrompt = "";
-    updatePromptDisplay();
-    _scrollSubOptions.setVisibility(GONE);
-    _scrollTone.setVisibility(GONE);
-    _llCustomPrompt.setVisibility(GONE);
-    _tvStatus.setText("Select an action above to start");
-
-    // Calculate safety space for system gesture bar / navigation bar cleanly
-    updateBottomPadding(bottomSafety);
-
-    boolean isLandscape = getContext().getResources().getConfiguration().orientation
-        == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-    int minComfortHeight = isLandscape ? dp(220) : dp(360);
-    int finalHeight = Math.max(targetHeight + _bottomSafety, minComfortHeight);
-
-    ViewGroup.LayoutParams lp = getLayoutParams();
-    if (lp != null)
+    try
     {
-      lp.height = finalHeight;
-      setLayoutParams(lp);
-    }
+      Context context = getContext();
+      initThemeColors(context);
+      setBackgroundColor(_colorKeyboard);
 
-    // Refresh provider badge
-    AiProvider provider = AiProvider.Manager.getActiveProvider(context);
-    _tvProviderBadge.setText(" ⚡ " + provider.getName() + " ");
-    updateEmojifyButtonState();
+      // Reset progressive disclosure state so the screen is completely clean
+      _activeCategory = null;
+      _activeOptionId = "";
+      _activeTone = "default";
+      _currentCustomPrompt = "";
+      updatePromptDisplay();
+      if (_scrollSubOptions != null) _scrollSubOptions.setVisibility(GONE);
+      if (_scrollTone != null) _scrollTone.setVisibility(GONE);
+      if (_llCustomPrompt != null) _llCustomPrompt.setVisibility(GONE);
+      if (_tvStatus != null) _tvStatus.setText("Select an action above to start");
 
-    // Check if API key is present
-    boolean hasKey = AiProvider.Manager.hasConfiguredApiKey(context);
-    _cardSetupNotice.setVisibility(hasKey ? GONE : VISIBLE);
+      // Calculate safety space for system gesture bar / navigation bar cleanly
+      updateBottomPadding(bottomSafety);
 
-    // Extract text from InputConnection
-    _inputFieldText = "";
-    _hasSelection = false;
-    if (_keyboard != null)
-    {
-      InputConnection ic = _keyboard.getCurrentInputConnection();
-      if (ic != null)
+      if (targetHeight > 0)
       {
-        CharSequence sel = ic.getSelectedText(0);
-        if (sel != null && sel.length() > 0)
+        ViewGroup.LayoutParams lp = getLayoutParams();
+        if (lp != null && lp.height != targetHeight)
         {
-          _inputFieldText = sel.toString();
-          _hasSelection = true;
+          lp.height = targetHeight;
+          setLayoutParams(lp);
         }
-        else
+      }
+
+      // Refresh provider badge
+      if (_tvProviderBadge != null)
+      {
+        AiProvider provider = AiProvider.Manager.getActiveProvider(context);
+        _tvProviderBadge.setText(" ⚡ " + provider.getName() + " ");
+      }
+      updateEmojifyButtonState();
+
+      // Check if API key is present
+      boolean hasKey = AiProvider.Manager.hasConfiguredApiKey(context);
+      if (_cardSetupNotice != null)
+      {
+        _cardSetupNotice.setVisibility(hasKey ? GONE : VISIBLE);
+      }
+
+      // Extract text from InputConnection
+      _inputFieldText = "";
+      _hasSelection = false;
+      if (_keyboard != null)
+      {
+        try
         {
-          CharSequence before = ic.getTextBeforeCursor(1500, 0);
-          if (before != null && before.length() > 0)
+          InputConnection ic = _keyboard.getCurrentInputConnection();
+          if (ic != null)
           {
-            _inputFieldText = before.toString();
+            CharSequence sel = ic.getSelectedText(0);
+            if (sel != null && sel.length() > 0)
+            {
+              _inputFieldText = sel.toString();
+              _hasSelection = true;
+            }
+            else
+            {
+              CharSequence before = ic.getTextBeforeCursor(1500, 0);
+              if (before != null && before.length() > 0)
+              {
+                _inputFieldText = before.toString();
+              }
+            }
+          }
+        }
+        catch (Throwable t)
+        {
+          Logs.print_exception(t);
+        }
+      }
+
+      // Extract clipboard
+      _clipboardText = "";
+      try
+      {
+        ClipboardManager cm = (ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cm != null && cm.hasPrimaryClip())
+        {
+          ClipData clip = cm.getPrimaryClip();
+          if (clip != null && clip.getItemCount() > 0)
+          {
+            ClipData.Item item = clip.getItemAt(0);
+            if (item != null)
+            {
+              CharSequence text = item.coerceToText(context);
+              if (text != null)
+              {
+                _clipboardText = text.toString().trim();
+              }
+            }
           }
         }
       }
-    }
+      catch (Throwable ignored) {}
 
-    // Extract clipboard
-    _clipboardText = "";
-    try
-    {
-      ClipboardManager cm = (ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
-      if (cm != null && cm.hasPrimaryClip())
+      if (_inputFieldText.trim().isEmpty() && !_clipboardText.isEmpty())
       {
-        ClipData.Item item = cm.getPrimaryClip().getItemAt(0);
-        if (item != null && item.getText() != null)
-        {
-          _clipboardText = item.getText().toString().trim();
-        }
+        _currentWorkingText = _clipboardText;
+        _usingClipboard = true;
       }
-    }
-    catch (Exception ignored) {}
+      else
+      {
+        _currentWorkingText = _inputFieldText;
+        _usingClipboard = false;
+      }
 
-    if (_inputFieldText.trim().isEmpty() && !_clipboardText.isEmpty())
-    {
-      _currentWorkingText = _clipboardText;
-      _usingClipboard = true;
+      updateContextDisplay();
+      rebuildQuickSuggestions();
+      buildCategoryChips();
     }
-    else
+    catch (Throwable t)
     {
-      _currentWorkingText = _inputFieldText;
-      _usingClipboard = false;
+      Logs.print_exception(t);
     }
-
-    updateContextDisplay();
-    rebuildQuickSuggestions();
-    buildCategoryChips();
   }
 
   private void openSettingsDialog()

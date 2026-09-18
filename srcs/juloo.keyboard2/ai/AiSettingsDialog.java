@@ -12,6 +12,8 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
@@ -19,6 +21,7 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import juloo.keyboard2.Keyboard2;
@@ -128,45 +131,33 @@ public class AiSettingsDialog
       "gemini-1.5-pro",
       "gemini-2.0-pro-exp-02-05"
     };
-    final Button btnGeminiModel = new Button(context);
-    btnGeminiModel.setText("Model: " + GeminiAiService.getModel(context));
     final String[] currentSelectedGeminiModel = new String[]{GeminiAiService.getModel(context)};
-    btnGeminiModel.setOnClickListener(new View.OnClickListener()
+    final Spinner spinnerGemini = new Spinner(context);
+    ArrayAdapter<String> geminiAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, geminiModels);
+    geminiAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    spinnerGemini.setAdapter(geminiAdapter);
+    int geminiIndex = 0;
+    for (int i = 0; i < geminiModels.length; i++)
+    {
+      if (geminiModels[i].equalsIgnoreCase(currentSelectedGeminiModel[0]))
+      {
+        geminiIndex = i;
+        break;
+      }
+    }
+    spinnerGemini.setSelection(geminiIndex);
+    spinnerGemini.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener()
     {
       @Override
-      public void onClick(View v)
+      public void onItemSelected(AdapterView<?> parent, View view, int position, long id)
       {
-        int selectedIndex = 0;
-        for (int i = 0; i < geminiModels.length; i++)
-        {
-          if (geminiModels[i].equalsIgnoreCase(currentSelectedGeminiModel[0]))
-          {
-            selectedIndex = i;
-            break;
-          }
-        }
-        AlertDialog modelDialog = new AlertDialog.Builder(context)
-            .setTitle("Select Gemini Model")
-            .setSingleChoiceItems(geminiModels, selectedIndex, new DialogInterface.OnClickListener()
-            {
-              @Override
-              public void onClick(DialogInterface d, int which)
-              {
-                currentSelectedGeminiModel[0] = geminiModels[which];
-                btnGeminiModel.setText("Model: " + currentSelectedGeminiModel[0]);
-                d.dismiss();
-              }
-            })
-            .setNegativeButton(android.R.string.cancel, null)
-            .create();
-
-        if (keyboard != null)
-          Utils.show_dialog_on_ime(modelDialog, keyboard);
-        else
-          modelDialog.show();
+        currentSelectedGeminiModel[0] = geminiModels[position];
       }
+
+      @Override
+      public void onNothingSelected(AdapterView<?> parent) {}
     });
-    llGemini.addView(btnGeminiModel);
+    llGemini.addView(spinnerGemini);
     root.addView(llGemini);
 
     // OpenAI Container
@@ -227,34 +218,29 @@ public class AiSettingsDialog
       "claude-3-5-sonnet-20241022",
       "gemini-2.0-flash"
     };
-    Button btnPickOpenAiModel = new Button(context);
-    btnPickOpenAiModel.setText("📋 Pick Model from List");
-    btnPickOpenAiModel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-    btnPickOpenAiModel.setOnClickListener(new View.OnClickListener()
+    String[] spinnerOptions = new String[popularOpenAiModels.length + 1];
+    spinnerOptions[0] = "-- Choose to autofill popular model --";
+    System.arraycopy(popularOpenAiModels, 0, spinnerOptions, 1, popularOpenAiModels.length);
+
+    final Spinner spinnerOpenAi = new Spinner(context);
+    ArrayAdapter<String> openAiAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, spinnerOptions);
+    openAiAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    spinnerOpenAi.setAdapter(openAiAdapter);
+    spinnerOpenAi.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener()
     {
       @Override
-      public void onClick(View v)
+      public void onItemSelected(AdapterView<?> parent, View view, int position, long id)
       {
-        AlertDialog modelDialog = new AlertDialog.Builder(context)
-            .setTitle("Select Model")
-            .setItems(popularOpenAiModels, new DialogInterface.OnClickListener()
-            {
-              @Override
-              public void onClick(DialogInterface d, int which)
-              {
-                etOpenAiModel.setText(popularOpenAiModels[which]);
-              }
-            })
-            .setNegativeButton(android.R.string.cancel, null)
-            .create();
-
-        if (keyboard != null)
-          Utils.show_dialog_on_ime(modelDialog, keyboard);
-        else
-          modelDialog.show();
+        if (position > 0)
+        {
+          etOpenAiModel.setText(popularOpenAiModels[position - 1]);
+        }
       }
+
+      @Override
+      public void onNothingSelected(AdapterView<?> parent) {}
     });
-    llOpenAi.addView(btnPickOpenAiModel);
+    llOpenAi.addView(spinnerOpenAi);
 
     root.addView(llOpenAi);
 

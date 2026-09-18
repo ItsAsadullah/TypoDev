@@ -274,45 +274,62 @@ public class Keyboard2 extends InputMethodService
 
   public void showAiPane()
   {
-    if (_ai_pane_view == null) return;
-    int h = (_keyboard_container_view != null && _keyboard_container_view.getHeight() > 0)
-        ? _keyboard_container_view.getHeight() : 0;
-    if (h <= 0)
+    try
     {
-      int kh = _keyboard_layout_view != null ? _keyboard_layout_view.getHeight() : 0;
-      if (kh <= 0 && _keyboard_layout_view != null)
-        kh = _keyboard_layout_view.getMeasuredHeight();
-      int ch = (_candidates_view != null && _candidates_view.getVisibility() == View.VISIBLE)
-          ? _candidates_view.getHeight() : 0;
-      if (ch <= 0 && _candidates_view != null && _candidates_view.getVisibility() == View.VISIBLE)
-        ch = _candidates_view.getMeasuredHeight();
-      h = kh + ch;
+      if (_ai_pane_view == null) return;
+      int h = (_keyboard_container_view != null && _keyboard_container_view.getHeight() > 0)
+          ? _keyboard_container_view.getHeight() : 0;
+      if (h <= 0)
+      {
+        int kh = _keyboard_layout_view != null ? _keyboard_layout_view.getHeight() : 0;
+        if (kh <= 0 && _keyboard_layout_view != null)
+          kh = _keyboard_layout_view.getMeasuredHeight();
+        int ch = (_candidates_view != null && _candidates_view.getVisibility() == View.VISIBLE)
+            ? _candidates_view.getHeight() : 0;
+        if (ch <= 0 && _candidates_view != null && _candidates_view.getVisibility() == View.VISIBLE)
+          ch = _candidates_view.getMeasuredHeight();
+        h = kh + ch;
+      }
+      int bottomSafety = (_keyboard_layout_view != null) ? _keyboard_layout_view.getBottomMargin() : 0;
+      if (bottomSafety <= 0 && _config != null)
+        bottomSafety = (int)_config.margin_bottom;
+
+      if (_candidates_view != null)
+        _candidates_view.setVisibility(View.GONE);
+      if (_keyboard_layout_view != null)
+        _keyboard_layout_view.setVisibility(View.GONE);
+
+      _ai_pane_view.open(h, bottomSafety);
+      _ai_pane_view.setVisibility(View.VISIBLE);
     }
-    int bottomSafety = (_keyboard_layout_view != null) ? _keyboard_layout_view.getBottomMargin() : 0;
-    if (bottomSafety <= 0 && _config != null)
-      bottomSafety = (int)_config.margin_bottom;
-
-    if (_candidates_view != null)
-      _candidates_view.setVisibility(View.GONE);
-    if (_keyboard_layout_view != null)
-      _keyboard_layout_view.setVisibility(View.GONE);
-
-    _ai_pane_view.open(h, bottomSafety);
-    _ai_pane_view.setVisibility(View.VISIBLE);
+    catch (Throwable t)
+    {
+      Logs.print_exception(t);
+      if (_keyboard_layout_view != null)
+        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      refresh_candidates_view();
+    }
   }
 
   public void closeAiPane()
   {
-    if (_isAiPromptInputMode)
+    try
     {
-      exitAiPromptTypingMode(null, false);
-      return;
+      if (_isAiPromptInputMode)
+      {
+        exitAiPromptTypingMode(null, false);
+        return;
+      }
+      if (_ai_pane_view != null)
+        _ai_pane_view.setVisibility(View.GONE);
+      if (_keyboard_layout_view != null)
+        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      refresh_candidates_view();
     }
-    if (_ai_pane_view != null)
-      _ai_pane_view.setVisibility(View.GONE);
-    if (_keyboard_layout_view != null)
-      _keyboard_layout_view.setVisibility(View.VISIBLE);
-    refresh_candidates_view();
+    catch (Throwable t)
+    {
+      Logs.print_exception(t);
+    }
   }
 
   public void showEmojiPane()

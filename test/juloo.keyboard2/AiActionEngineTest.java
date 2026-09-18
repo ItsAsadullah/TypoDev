@@ -143,6 +143,29 @@ public class AiActionEngineTest
   }
 
   @Test
+  public void testAllContentSubOptions()
+  {
+    List<AiActionEngine.ActionOption> contentOpts = AiActionEngine.getOptionsForCategory(AiActionEngine.Category.CONTENT);
+    assertEquals(10, contentOpts.size());
+    for (AiActionEngine.ActionOption opt : contentOpts)
+    {
+      String prompt = AiActionEngine.buildSystemPrompt(AiActionEngine.Category.CONTENT, opt.id, "default", null);
+      assertNotNull(prompt);
+      assertFalse(prompt.trim().isEmpty());
+    }
+  }
+
+  @Test
+  public void testTonePromptBuilding()
+  {
+    String profTone = AiActionEngine.buildSystemPrompt(AiActionEngine.Category.REWRITE, "rephrase", "Professional", null);
+    assertTrue(profTone.contains("Professional"));
+
+    String casualTone = AiActionEngine.buildSystemPrompt(AiActionEngine.Category.REWRITE, "rephrase", "Casual", null);
+    assertTrue(casualTone.contains("Casual"));
+  }
+
+  @Test
   public void testBengaliSanitization()
   {
     // Test broken conjunct with space around hasant: "ক ্ ষ" -> "ক্ষ"

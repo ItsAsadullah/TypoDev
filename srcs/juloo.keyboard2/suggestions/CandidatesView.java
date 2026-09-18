@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import juloo.keyboard2.Config;
 import juloo.keyboard2.KeyValue;
+import juloo.keyboard2.Logs;
 import juloo.keyboard2.Pointers;
 import juloo.keyboard2.R;
 
@@ -141,12 +142,19 @@ public class CandidatesView extends LinearLayout
         @Override
         public void onClick(View v)
         {
-          if (_keyboard2 != null)
+          try
           {
-            if (_keyboard2.isAiPaneVisible())
-              _keyboard2.closeAiPane();
-            else
-              _keyboard2.showAiPane();
+            if (_keyboard2 != null)
+            {
+              if (_keyboard2.isAiPaneVisible())
+                _keyboard2.closeAiPane();
+              else
+                _keyboard2.showAiPane();
+            }
+          }
+          catch (Throwable t)
+          {
+            Logs.print_exception(t);
           }
         }
       });

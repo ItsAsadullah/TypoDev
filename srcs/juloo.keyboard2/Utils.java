@@ -39,13 +39,28 @@ public final class Utils
 
   public static void show_dialog_on_ime(AlertDialog dialog, IBinder token)
   {
-    Window win = dialog.getWindow();
-    WindowManager.LayoutParams lp = win.getAttributes();
-    lp.token = token;
-    lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG;
-    win.setAttributes(lp);
-    win.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
-    dialog.show();
+    try
+    {
+      Window win = dialog.getWindow();
+      if (win != null)
+      {
+        WindowManager.LayoutParams lp = win.getAttributes();
+        lp.token = token;
+        lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG;
+        win.setAttributes(lp);
+        win.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+      }
+      dialog.show();
+    }
+    catch (Throwable t)
+    {
+      Logs.print_exception(t);
+      try
+      {
+        dialog.show();
+      }
+      catch (Throwable ignored) {}
+    }
   }
 
   public static String read_all_utf8(InputStream inp) throws Exception
