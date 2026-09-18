@@ -33,7 +33,9 @@ public class AiActionDialog
     final String currentModel = GeminiAiService.getModel(context);
     final String[] actions = {
       "🚀 Telegram-Style AI Editor (লাইভ প্রিভিউ ও কাস্টম স্টাইল)",
-      "📝 Grammar & Spell Fix (ব্যাকরণ ও বানান সংশোধন)",
+      "📰 Catchy Title (টাইটেল জেনারেশন)",
+      "📝 Description (ডেসক্রিপশন তৈরি)",
+      "🔍 Grammar & Spell Fix (ব্যাকরণ ও বানান সংশোধন)",
       "💼 Professional Tone (পেশাদার টোন)",
       "😊 Casual & Friendly (বন্ধুসুলভ টোন)",
       "✍️ Rewrite & Polish (মার্জিতভাবে নতুন করে লেখা)",
@@ -55,12 +57,12 @@ public class AiActionDialog
             AiEditorDialog.show(context, keyboard);
             return;
           }
-          if (which == 7)
+          if (which == 9)
           {
             showModelSelectDialog(context, keyboard);
             return;
           }
-          if (which == 8)
+          if (which == 10)
           {
             showApiKeyDialog(context, keyboard);
             return;
@@ -69,12 +71,14 @@ public class AiActionDialog
           GeminiAiService.Action action = null;
           switch (which)
           {
-            case 1: action = GeminiAiService.Action.GRAMMAR_FIX; break;
-            case 2: action = GeminiAiService.Action.TONE_PROFESSIONAL; break;
-            case 3: action = GeminiAiService.Action.TONE_CASUAL; break;
-            case 4: action = GeminiAiService.Action.REWRITE_POLISH; break;
-            case 5: action = GeminiAiService.Action.MOOD_FORMAL; break;
-            case 6: action = GeminiAiService.Action.MOOD_ENTHUSIASTIC; break;
+            case 1: action = GeminiAiService.Action.CONTENT_TITLE; break;
+            case 2: action = GeminiAiService.Action.CONTENT_DESCRIPTION; break;
+            case 3: action = GeminiAiService.Action.GRAMMAR_FIX; break;
+            case 4: action = GeminiAiService.Action.TONE_PROFESSIONAL; break;
+            case 5: action = GeminiAiService.Action.TONE_CASUAL; break;
+            case 6: action = GeminiAiService.Action.REWRITE_POLISH; break;
+            case 7: action = GeminiAiService.Action.MOOD_FORMAL; break;
+            case 8: action = GeminiAiService.Action.MOOD_ENTHUSIASTIC; break;
           }
 
           if (action != null)

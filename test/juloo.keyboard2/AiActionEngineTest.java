@@ -30,6 +30,16 @@ public class AiActionEngineTest
     AiActionEngine.ContextDetectionResult bnRes = AiActionEngine.analyzeContext("তুমি কি কালকে আসতে পারবে?");
     assertTrue(bnRes.detectedType.contains("Question"));
     assertFalse(bnRes.quickSuggestions.isEmpty());
+
+    // 5. Content detection
+    AiActionEngine.ContextDetectionResult contentRes = AiActionEngine.analyzeContext("Write a catchy YouTube title for my video");
+    assertEquals("Content Writing", contentRes.detectedType);
+    assertEquals(AiActionEngine.Category.CONTENT, contentRes.recommendedCategory);
+    assertFalse(contentRes.quickSuggestions.isEmpty());
+
+    AiActionEngine.ContextDetectionResult bnContentRes = AiActionEngine.analyzeContext("এই প্রোডাক্ট এর জন্য একটি সুন্দর ডেসক্রিপশন লিখে দাও");
+    assertEquals("Content Writing", bnContentRes.detectedType);
+    assertEquals(AiActionEngine.Category.CONTENT, bnContentRes.recommendedCategory);
   }
 
   @Test
@@ -90,6 +100,24 @@ public class AiActionEngineTest
     String natPrompt = AiActionEngine.buildSystemPrompt(
         AiActionEngine.Category.NATURALIZE, "nat_human", "default", null);
     assertTrue(natPrompt.contains("Humanize and naturalize"));
+
+    // Test Content Prompts
+    String titlePrompt = AiActionEngine.buildSystemPrompt(
+        AiActionEngine.Category.CONTENT, "content_title", "default", null);
+    assertTrue(titlePrompt.contains("titles") || titlePrompt.contains("headlines"));
+
+    String ytTitlePrompt = AiActionEngine.buildSystemPrompt(
+        AiActionEngine.Category.CONTENT, "content_yt_title", "default", null);
+    assertTrue(ytTitlePrompt.contains("YouTube"));
+
+    String ytDescPrompt = AiActionEngine.buildSystemPrompt(
+        AiActionEngine.Category.CONTENT, "content_yt_desc", "default", null);
+    assertTrue(ytDescPrompt.contains("YouTube"));
+    assertTrue(ytDescPrompt.contains("hashtags"));
+
+    String prodDescPrompt = AiActionEngine.buildSystemPrompt(
+        AiActionEngine.Category.CONTENT, "content_prod_desc", "default", null);
+    assertTrue(prodDescPrompt.contains("product description"));
   }
 
   @Test
@@ -100,6 +128,7 @@ public class AiActionEngineTest
     assertEquals("Second category must be TRANSLATE", AiActionEngine.Category.TRANSLATE, cats[1]);
     assertEquals("Third category must be REWRITE", AiActionEngine.Category.REWRITE, cats[2]);
     assertEquals("Fourth category must be ISLAMIC", AiActionEngine.Category.ISLAMIC, cats[3]);
+    assertEquals("Fifth category must be CONTENT", AiActionEngine.Category.CONTENT, cats[4]);
   }
 
   @Test

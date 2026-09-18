@@ -48,7 +48,9 @@ public class GeminiAiService
     TONE_CASUAL("Rewrite the following text in a casual, warm, and friendly tone. Preserve the original language. Output ONLY the rewritten text."),
     REWRITE_POLISH("Polish and improve the clarity, flow, and elegance of the following text. Preserve the original language. Output ONLY the polished text."),
     MOOD_FORMAL("Rewrite the following text with formal, elegant, and respectful phrasing. Output ONLY the result."),
-    MOOD_ENTHUSIASTIC("Rewrite the following text with an upbeat, enthusiastic, and positive tone. Output ONLY the result.");
+    MOOD_ENTHUSIASTIC("Rewrite the following text with an upbeat, enthusiastic, and positive tone. Output ONLY the result."),
+    CONTENT_TITLE("Generate 5 catchy, high-CTR, click-worthy titles or headlines based on the following text. Output ONLY the numbered list (1 to 5) of titles."),
+    CONTENT_DESCRIPTION("Write a comprehensive, engaging, and clear description based on the following text. Preserve the target language. Output ONLY the description text.");
 
     private final String systemPrompt;
 

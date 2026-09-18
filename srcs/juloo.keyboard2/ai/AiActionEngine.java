@@ -14,6 +14,7 @@ public class AiActionEngine
     TRANSLATE("🔄 Translate", "Translate naturally into any language"),
     REWRITE("✍️ Rewrite", "Rephrase, polish, or change writing style"),
     ISLAMIC("🕌 Islamic", "Islamic tone, blessings, Salam & authentic Arabic"),
+    CONTENT("📰 Content", "Titles, descriptions, hooks, captions & outlines"),
     REPLY("💬 Reply", "Generate contextual chat & comment replies"),
     EMAIL("📧 Email", "Generate professional & formal emails"),
     SOCIAL("📱 Social", "Create posts for Facebook, LinkedIn, X, Insta"),
@@ -99,6 +100,19 @@ public class AiActionEngine
         list.add(new ActionOption("islamic_post", "Islamic Social Post", "Heart-touching post with hashtags"));
         list.add(new ActionOption("islamic_dua", "Dua & Blessings", "Heartfelt Islamic prayers & wishes"));
         list.add(new ActionOption("islamic_jummah", "Jummah Mubarak", "Jummah Mubarak greeting & reminder"));
+        break;
+
+      case CONTENT:
+        list.add(new ActionOption("content_title", "Catchy Title (ক্যাচি টাইটেল)", "5 viral, click-worthy titles for articles or videos"));
+        list.add(new ActionOption("content_yt_title", "YouTube Title (ইউটিউব টাইটেল)", "5 high-CTR, SEO-optimized YouTube video titles"));
+        list.add(new ActionOption("content_desc", "General Description (বিবরণ)", "Comprehensive, engaging description of the topic/media"));
+        list.add(new ActionOption("content_yt_desc", "YouTube Description (ইউটিউব ডেসক্রিপশন)", "Full YouTube description with summary, timestamps, CTA & hashtags"));
+        list.add(new ActionOption("content_prod_desc", "Product Description (পণ্যের বিবরণ)", "Persuasive e-commerce copy with features, benefits & CTA"));
+        list.add(new ActionOption("content_seo_meta", "SEO Meta Description (মেটা বিবরণ)", "150-160 char Google SEO meta description with keywords"));
+        list.add(new ActionOption("content_caption", "Social Caption (সোশ্যাল ক্যাপশন)", "Engaging caption for Facebook/Instagram with hashtags"));
+        list.add(new ActionOption("content_hook", "Viral Hook (ভাইরাল হুক)", "5 magnetic, scroll-stopping opening lines"));
+        list.add(new ActionOption("content_outline", "Article Outline (আউটলাইন)", "Structured H1, H2, H3 headings and talking points"));
+        list.add(new ActionOption("content_cta", "Call to Action (CTA)", "5 high-converting closing CTAs to drive action"));
         break;
 
       case REPLY:
@@ -304,7 +318,20 @@ public class AiActionEngine
       return new ContextDetectionResult("Long Text / Article", artSugg, Category.SUMMARIZE, "sum_bullets");
     }
 
-    // 7. General Text -> Recommend Rewrite / Naturalize
+    // 7. Detect Content Writing request (Title, Description, Outline, Hook, Caption)
+    if (lower.contains("title") || lower.contains("headline") || lower.contains("description")
+        || lower.contains("caption") || lower.contains("outline") || lower.contains("hook")
+        || lower.contains("টাইটেল") || lower.contains("ডেসক্রিপশন") || lower.contains("বিবরণ")
+        || lower.contains("ক্যাপশন") || lower.contains("আউটলাইন") || lower.contains("হুক"))
+    {
+      List<String> contentSugg = new ArrayList<>();
+      contentSugg.add("Generate catchy titles");
+      contentSugg.add("Write YouTube description");
+      contentSugg.add("Write detailed description");
+      return new ContextDetectionResult("Content Writing", contentSugg, Category.CONTENT, "content_title");
+    }
+
+    // 8. General Text -> Recommend Rewrite / Naturalize
     List<String> genSugg = new ArrayList<>();
     genSugg.add("Make it professional");
     genSugg.add("Make it natural & human");
@@ -417,6 +444,49 @@ public class AiActionEngine
         else if ("islamic_jummah".equals(optionId))
         {
           sb.append("ADDITIONAL RULE: Craft as a blessed Jummah Mubarak greeting with meaningful spiritual reflections, Durood reminder, and warm Jummah wishes.\n");
+        }
+        break;
+
+      case CONTENT:
+        if ("content_yt_title".equals(optionId))
+        {
+          sb.append("TASK: Generate 5 high-CTR, SEO-optimized YouTube video titles based on the input.\nFormat: Numbered list (1 to 5). Include emotional power words and curiosity hooks that maximize clicks.\n");
+        }
+        else if ("content_desc".equals(optionId))
+        {
+          sb.append("TASK: Write a clear, comprehensive, and engaging description based on the input. Structure with a strong opening overview, followed by key highlights, and an engaging concluding thought.\n");
+        }
+        else if ("content_yt_desc".equals(optionId))
+        {
+          sb.append("TASK: Write a complete, professional YouTube video description based on the input.\nStructure required:\n1. Hook & Video Summary (2-3 engaging lines)\n2. Key Timestamps / Chapters breakdown (e.g. 0:00 Intro, etc.)\n3. Links / Social / Resources placeholder\n4. Call to action (Like, Subscribe, Comment)\n5. 5-8 relevant hashtags (#Tag1 #Tag2...)\n");
+        }
+        else if ("content_prod_desc".equals(optionId))
+        {
+          sb.append("TASK: Write an irresistible, high-converting e-commerce product description based on the input.\nStructure required:\n1. Attention-grabbing headline\n2. Engaging product overview highlighting what makes it special\n3. Bulleted Key Features & Benefits (focus on how it solves real problems)\n4. Specifications/Details\n5. Strong Call to Action (Buy Now / Order Today)\n");
+        }
+        else if ("content_seo_meta".equals(optionId))
+        {
+          sb.append("TASK: Write an optimized SEO Meta Description (strictly between 150 to 160 characters) based on the input.\nInclude primary search keywords naturally, highlight unique value, and include a clear click-intent CTA.\n");
+        }
+        else if ("content_caption".equals(optionId))
+        {
+          sb.append("TASK: Write an engaging social media caption based on the input.\nInclude an attention-grabbing first line (hook), a relatable or informative message body, an interactive question to drive comments, and 4-6 relevant hashtags.\n");
+        }
+        else if ("content_hook".equals(optionId))
+        {
+          sb.append("TASK: Generate 5 powerful, magnetic opening hooks (first 3-5 seconds of a video or first line of a post) that stop the scroll and hook viewers instantly.\nFormat: Numbered list (1 to 5). Use curiosity gap, bold statements, or surprising facts.\n");
+        }
+        else if ("content_outline".equals(optionId))
+        {
+          sb.append("TASK: Create a detailed, structured content/article outline based on the input.\nInclude H1 Main Title, H2 Section Headings, and bulleted sub-points or talking points for each section.\n");
+        }
+        else if ("content_cta".equals(optionId))
+        {
+          sb.append("TASK: Generate 5 compelling, action-oriented Call to Action (CTA) phrases based on the input to drive user action (e.g. subscribe, comment, buy, share, follow).\nFormat: Numbered list (1 to 5).\n");
+        }
+        else
+        {
+          sb.append("TASK: Generate 5 catchy, high-converting, click-worthy titles/headlines based on the input.\nFormat: Numbered list (1 to 5). Make them punchy, intriguing, and memorable.\n");
         }
         break;
 

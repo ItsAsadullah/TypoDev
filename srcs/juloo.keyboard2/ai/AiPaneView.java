@@ -831,6 +831,16 @@ public class AiPaneView extends LinearLayout
             _activeCategory = AiActionEngine.Category.EXPLAIN;
             _activeOptionId = "exp_code";
           }
+          else if (lower.contains("title"))
+          {
+            _activeCategory = AiActionEngine.Category.CONTENT;
+            _activeOptionId = lower.contains("youtube") ? "content_yt_title" : "content_title";
+          }
+          else if (lower.contains("description"))
+          {
+            _activeCategory = AiActionEngine.Category.CONTENT;
+            _activeOptionId = lower.contains("youtube") ? "content_yt_desc" : "content_desc";
+          }
           else
           {
             _activeCategory = analysis.recommendedCategory;

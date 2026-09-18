@@ -37,15 +37,19 @@ public class AiStyle
   public static List<AiStyle> getBuiltInStyles()
   {
     List<AiStyle> list = new ArrayList<>();
+    list.add(new AiStyle("title", "Title", "📰", "Generate 5 catchy, high-converting headlines or titles based on the text.", false));
+    list.add(new AiStyle("desc", "Description", "📝", "Write an engaging, clear, and comprehensive description based on the text.", false));
+    list.add(new AiStyle("hook", "Hook", "🪝", "Generate 5 magnetic opening hooks that grab attention immediately based on the text.", false));
+    list.add(new AiStyle("caption", "Caption", "💬", "Write a catchy social media caption with emojis and hashtags based on the text.", false));
     list.add(new AiStyle("short", "Short", "🎯", "Make it very concise, punchy, and short without unnecessary words.", false));
     list.add(new AiStyle("corp", "Corp", "💼", "Rewrite in a professional, confident corporate business tone.", false));
-    list.add(new AiStyle("tribal", "Tribal", "🍗", "Rewrite in a tribal, rhythmic, primal, and spirited style.", false));
+    list.add(new AiStyle("casual", "Casual", "😊", "Rewrite in a warm, friendly, natural, and conversational casual tone.", false));
     list.add(new AiStyle("formal", "Formal", "🤝", "Rewrite with polite, respectful, elegant, and diplomatic formal phrasing.", false));
+    list.add(new AiStyle("enthusiastic", "Enthusiastic", "⚡", "Rewrite with high energy, upbeat vibes, positivity, and enthusiasm.", false));
+    list.add(new AiStyle("zen", "Zen", "🗿", "Rewrite in a calm, mindful, peaceful, and minimalist Zen style.", false));
+    list.add(new AiStyle("tribal", "Tribal", "🍗", "Rewrite in a tribal, rhythmic, primal, and spirited style.", false));
     list.add(new AiStyle("biblical", "Biblical", "🕯️", "Rewrite in a solemn, majestic, archaic biblical prose style.", false));
     list.add(new AiStyle("viking", "Viking", "🪓", "Write like a fierce, heroic Norse warrior and Viking. Speak of honor, glory, battle, and axes.", false));
-    list.add(new AiStyle("zen", "Zen", "🗿", "Rewrite in a calm, mindful, peaceful, and minimalist Zen style.", false));
-    list.add(new AiStyle("casual", "Casual", "😊", "Rewrite in a warm, friendly, natural, and conversational casual tone.", false));
-    list.add(new AiStyle("enthusiastic", "Enthusiastic", "⚡", "Rewrite with high energy, upbeat vibes, positivity, and enthusiasm.", false));
     return list;
   }
 
