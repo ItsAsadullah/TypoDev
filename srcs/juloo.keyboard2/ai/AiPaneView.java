@@ -12,6 +12,7 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
@@ -91,6 +92,7 @@ public class AiPaneView extends LinearLayout
 
   private ProgressBar _progressBar;
   private TextView _tvStatus;
+  private ScrollView _scrollBody;
   private EditText _etResultPreview;
   private LinearLayout _rowActionButtons;
 
@@ -168,14 +170,24 @@ public class AiPaneView extends LinearLayout
         updateBottomPadding(sb.bottom);
       }
     }
+    else if (Build.VERSION.SDK_INT >= 20)
+    {
+      int b = insets.getSystemWindowInsetBottom();
+      if (b > 0)
+      {
+        updateBottomPadding(b);
+      }
+    }
     return super.onApplyWindowInsets(insets);
   }
 
   private void updateBottomPadding(int rawBottomSafety)
   {
-    // Cap bottom padding to a clean 8-16dp so buttons sit perfectly above Android's
-    // navigation/gesture pill without any oversized black void below them
-    _bottomSafety = Math.min(Math.max(rawBottomSafety, 0), dp(16));
+    // The system navigation bar / gesture navigation pill / IME switcher globe button / down arrow
+    // typically occupy 36dp - 48dp at the bottom of the IME window.
+    // We ensure a minimum of 42dp so the action buttons NEVER collide with the system safe area.
+    int minSafeBottom = dp(42);
+    _bottomSafety = Math.max(rawBottomSafety, minSafeBottom);
     if (_rowActionButtons != null)
     {
       _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
@@ -288,9 +300,10 @@ public class AiPaneView extends LinearLayout
     // ==========================================
     // 2. Middle Scrollable Body
     // ==========================================
-    ScrollView scrollBody = new ScrollView(context);
-    scrollBody.setFillViewport(true);
-    scrollBody.setVerticalScrollBarEnabled(false);
+    _scrollBody = new ScrollView(context);
+    _scrollBody.setFillViewport(true);
+    _scrollBody.setVerticalScrollBarEnabled(true);
+    _scrollBody.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
 
     LinearLayout bodyContent = new LinearLayout(context);
     bodyContent.setOrientation(VERTICAL);
@@ -519,28 +532,73 @@ public class AiPaneView extends LinearLayout
     _etResultPreview.setTextColor(_colorLabel);
     _etResultPreview.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
     _etResultPreview.setHint("Generated result appears here. You can edit before replacing.");
-    _etResultPreview.setMinLines(2);
-    _etResultPreview.setMaxLines(5);
+    _etResultPreview.setMinLines(3);
+    _etResultPreview.setMaxLines(10);
     _etResultPreview.setGravity(Gravity.TOP);
+    _etResultPreview.setVerticalScrollBarEnabled(true);
+    _etResultPreview.setScrollbarFadingEnabled(false);
+    _etResultPreview.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
     _etResultPreview.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.35f), dp(8), adjustAlpha(_colorLabel, 0.25f)));
     _etResultPreview.setPadding(dp(10), dp(8), dp(10), dp(8));
+    _etResultPreview.setOnTouchListener(new OnTouchListener()
+    {
+      private float _startY = 0f;
+
+      @Override
+      public boolean onTouch(View v, MotionEvent event)
+      {
+        boolean canScrollUp = v.canScrollVertically(-1);
+        boolean canScrollDown = v.canScrollVertically(1);
+
+        if (canScrollUp || canScrollDown)
+        {
+          switch (event.getAction() & MotionEvent.ACTION_MASK)
+          {
+            case MotionEvent.ACTION_DOWN:
+              _startY = event.getY();
+              v.getParent().requestDisallowInterceptTouchEvent(true);
+              break;
+
+            case MotionEvent.ACTION_MOVE:
+              float deltaY = _startY - event.getY();
+              if ((deltaY > 0 && canScrollDown) || (deltaY < 0 && canScrollUp))
+              {
+                v.getParent().requestDisallowInterceptTouchEvent(true);
+              }
+              else
+              {
+                v.getParent().requestDisallowInterceptTouchEvent(false);
+              }
+              break;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+              v.getParent().requestDisallowInterceptTouchEvent(false);
+              break;
+          }
+        }
+        return false;
+      }
+    });
+
     LinearLayout.LayoutParams lpResult = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     lpResult.setMargins(0, dp(3), 0, dp(4));
     _etResultPreview.setLayoutParams(lpResult);
     bodyContent.addView(_etResultPreview);
 
-    scrollBody.addView(bodyContent);
-    addView(scrollBody, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
+    _scrollBody.addView(bodyContent);
+    addView(_scrollBody, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
     // ==========================================
-    // 3. Fixed Bottom Action Dock (Elevated above Safety Space)
+    // 3. Fixed Bottom Action Dock (Elevated safely above Gesture Bar & IME System Buttons)
     // ==========================================
+    _bottomSafety = dp(42);
     _rowActionButtons = new LinearLayout(context);
     _rowActionButtons.setOrientation(HORIZONTAL);
     _rowActionButtons.setGravity(Gravity.CENTER_VERTICAL);
     _rowActionButtons.setBackgroundColor(adjustAlpha(_colorKeyboard, 0.98f));
-    _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + dp(6));
+    _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
 
     // 3.1 Replace Button (Vibrant Emerald Pill)
     Button btnReplace = createPremiumButton("✓  Replace", Color.parseColor("#059669"), Color.parseColor("#34D399"), new OnClickListener()
@@ -624,14 +682,16 @@ public class AiPaneView extends LinearLayout
     // Calculate safety space for system gesture bar / navigation bar cleanly
     updateBottomPadding(bottomSafety);
 
-    if (targetHeight > 0)
+    boolean isLandscape = getContext().getResources().getConfiguration().orientation
+        == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    int minComfortHeight = isLandscape ? dp(220) : dp(360);
+    int finalHeight = Math.max(targetHeight + _bottomSafety, minComfortHeight);
+
+    ViewGroup.LayoutParams lp = getLayoutParams();
+    if (lp != null)
     {
-      ViewGroup.LayoutParams lp = getLayoutParams();
-      if (lp != null)
-      {
-        lp.height = targetHeight;
-        setLayoutParams(lp);
-      }
+      lp.height = finalHeight;
+      setLayoutParams(lp);
     }
 
     // Refresh provider badge
@@ -1143,7 +1203,36 @@ public class AiPaneView extends LinearLayout
             _lastGeneratedResult = resultText;
             _tvStatus.setText("✅ Generated successfully");
             _etResultPreview.setText(resultText);
-            _etResultPreview.setSelection(resultText.length());
+            _etResultPreview.setSelection(0);
+            _etResultPreview.scrollTo(0, 0);
+
+            _etResultPreview.post(new Runnable()
+            {
+              @Override
+              public void run()
+              {
+                if (_etResultPreview != null)
+                {
+                  _etResultPreview.setSelection(0);
+                  _etResultPreview.scrollTo(0, 0);
+                }
+              }
+            });
+
+            if (_scrollBody != null)
+            {
+              _scrollBody.post(new Runnable()
+              {
+                @Override
+                public void run()
+                {
+                  if (_etResultPreview != null && _scrollBody != null)
+                  {
+                    _scrollBody.smoothScrollTo(0, _etResultPreview.getTop() - dp(8));
+                  }
+                }
+              });
+            }
           }
 
           @Override
