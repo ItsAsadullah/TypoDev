@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">எதிர்பாராத விசைப்பலகை</string>
+    <string name="app_name_release">TypoDev</string>
     <string name="short_description">இலகுரக மற்றும் தனியுரிமை விழிப்புணர்வுள்ள மெய்நிகர் ஆண்ட்ராய்டு விசைப்பலகை.</string>
     <string name="store_description">இதன் முதன்மை அம்சமானது விசைகளை மூலைகளுக்கு வழித்தல் மூலம் கூடுதல் எழுத்துக்களை தட்டச்சு செய்யலாம்.\n\nஇந்த செயலி ஆதியில் டேர்மக்ஸ் (Termux) பயன்படுத்தும் நிரல் அமைப்பாளர்களுக்காக வடிவமைக்கப்பட்டது.\nஇப்போது அன்றாட பயன்பாட்டிற்கும் இது கச்சிதமானது.\n\nஇந்த செயலியில் விளம்பரங்கள் இல்லை மற்றும் இது திறந்த மூலமென்பொருள் (Open Source).</string>
     <string name="pref_portrait">முகப்பட அமைப்பில்</string>

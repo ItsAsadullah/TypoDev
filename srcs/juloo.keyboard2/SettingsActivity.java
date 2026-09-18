@@ -168,8 +168,8 @@ public class SettingsActivity extends PreferenceActivity
         public boolean onPreferenceClick(Preference preference)
         {
           new AlertDialog.Builder(SettingsActivity.this)
-              .setTitle("Unexpected Keyboard")
-              .setMessage("Version 2.1.0 (Mod with Gemini AI & FrostKeys)\n\n• Privacy-focused, lightweight virtual keyboard\n• Smart Gemini AI Assistant\n• 43,000+ Bengali & Multi-language wordlists\n\nOpen Source on GitHub:\nhttps://github.com/Julow/Unexpected-Keyboard")
+              .setTitle("TypoDev")
+              .setMessage("type faster, write smarter\n\nVersion 2.1.0 (with Gemini AI & Bengali Suggestions)\n\n• Privacy-focused, lightweight virtual keyboard\n• Smart Gemini AI Assistant\n• 43,000+ Bengali & Multi-language wordlists\n\nOpen Source on GitHub:\nhttps://github.com/Julow/Unexpected-Keyboard")
               .setPositiveButton("OK", null)
               .setNeutralButton("GitHub", (dialog, which) -> {
                 try {

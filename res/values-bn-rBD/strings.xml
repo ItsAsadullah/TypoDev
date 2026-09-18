@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">অপ্রত্যাশিত কীবোর্ড</string>
-    <string name="app_name_debug">অপ্রত্যাশিত কিবোর্ড (ডিবাগ)</string>
-    <string name="short_description">অ্যান্ড্রোয়েডের জন্য হালকা এবং গোপনীয়তা-সচেতন ভার্চুয়াল কিবোর্ড।</string>
+    <string name="app_name_release">TypoDev</string>
+    <string name="app_name_debug">TypoDev (ডিবাগ)</string>
+    <string name="app_tagline">type faster, write smarter</string>
+    <string name="short_description">TypoDev - দ্রুত টাইপ করুন, স্মার্টলি লিখুন। অ্যান্ড্রয়েডের জন্য হালকা ও এআই চালিত কিবোর্ড।</string>
     <string name="store_description">এর প্রধান বৈশিষ্ট্য হলো, কি-গুলোর কোণার দিকে সোয়াইপ করে আপনি আরও বেশি অক্ষর টাইপ করতে পারবেন।\n\nএই অ্যাপ্লিকেশনটি মূলত টার্মাক্স (Termux) ব্যবহারকারী প্রোগ্রামারদের জন্য ডিজাইন করা হয়েছিল।\nএখন এটি দৈনন্দিন ব্যবহারের জন্য উপযুক্ত।</string>
     <string name="pref_portrait">পোর্ট্রেড বিন্যাসে</string>
     <string name="pref_landscape">ল্যান্ডস্কেপ বিন্যাসে</string>
@@ -84,7 +85,7 @@
     <string name="key_action_send">পাঠান</string>
     <string name="launcher_button_imesettings">কিবোর্ড সক্রিয় করুন</string>
     <string name="launcher_button_imepicker">কিবোর্ড নির্বাচন করুন</string>
-    <string name="launcher_description">এই অ্যাপ্লিকেশনটি একটি ভার্চুয়াল কীবোর্ড। নিচের বোতামে ক্লিক করে সিস্টেম সেটিংসে যান এবং ‘Unexpected-Keyboard’ সক্রিয় করুন।</string>
+    <string name="launcher_description">এই অ্যাপ্লিকেশনটি TypoDev ভার্চুয়াল কীবোর্ড। নিচের বোতামে ক্লিক করে সিস্টেম সেটিংসে যান এবং TypoDev সক্রিয় করুন।</string>
     <string name="launcher_sourcecode">এটি একটি ফ্রি এবং ওপেন সোর্স অ্যাপ্লিকেশন। আপনি গিটহাবে এর সোর্স কোড খুঁজে পেতে পারেন অথবা বাগ রিপোর্ট করতে পারেন।</string>
     <string name="launcher_tryhere">সক্রিয় করার পর, আপনি এখানে কীবোর্ডটি ব্যবহার করে দেখতে পারেন:</string>
     <string name="launcher_tryhere_hint">এখানে চেষ্টা করুন</string>
@@ -127,8 +128,8 @@
     <string name="pref_get_api_key_summary">Google AI Studio থেকে সহজে ফ্রি API Key তৈরি করুন</string>
     <string name="pref_test_keyboard_title">🧪 কিবোর্ড টেস্ট করুন</string>
     <string name="pref_test_keyboard_summary">টাইপিং ও অঙ্গভঙ্গি পরীক্ষা করার জন্য টেস্ট এরিয়া ওপেন করুন</string>
-    <string name="pref_about_app_title">Unexpected Keyboard</string>
-    <string name="pref_about_app_summary">ভার্সন ২.১.০ • ওপেন সোর্স • সম্পূর্ণ সুরক্ষিত</string>
+    <string name="pref_about_app_title">TypoDev</string>
+    <string name="pref_about_app_summary">type faster, write smarter • ভার্সন ২.১.০</string>
     <string name="pref_extra_keys_summary">অতিরিক্ত কী, প্রতীক ও কোণার সোয়াইপ শর্টকাট কাস্টমাইজ করুন</string>
     <string name="pref_margin_bottom_summary">পোর্ট্রেট ও ল্যান্ডস্কেপে নিচের ব্যবধান নির্ধারণ করুন</string>
     <string name="pref_keyboard_height_summary">কিবোর্ডের উচ্চতা নির্ধারণ করুন</string>

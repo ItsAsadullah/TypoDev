@@ -1,6 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:fitsSystemWindows="true">
   <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:orientation="vertical">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="28dp"
+        android:paddingBottom="16dp">
+      <ImageView
+          android:layout_width="72dp"
+          android:layout_height="72dp"
+          android:src="@mipmap/ic_launcher"
+          android:contentDescription="@string/app_name_release"/>
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="@string/app_name_release"
+          android:textSize="24sp"
+          android:textStyle="bold"
+          android:textColor="?android:attr/textColorPrimary"
+          android:paddingTop="10dp"/>
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="@string/app_tagline"
+          android:textSize="14sp"
+          android:textColor="?android:attr/textColorSecondary"
+          android:paddingTop="2dp"/>
+    </LinearLayout>
     <TextView style="@style/paragraph" android:text="@string/launcher_description"/>
     <Button style="@style/paragraph" android:text="@string/launcher_button_imesettings" android:onClick="launch_imesettings" android:layout_width="wrap_content"/>
     <Button style="@style/paragraph" android:text="@string/launcher_button_imepicker" android:onClick="launch_imepicker" android:layout_width="wrap_content"/>

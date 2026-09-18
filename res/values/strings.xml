@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">Unexpected Keyboard</string>
-    <string name="app_name_debug">Unexpected Keyboard (Debug)</string>
-    <string name="short_description">Lightweight and privacy-conscious virtual keyboard for Android.</string>
-    <string name="store_description">The main feature is that you can type more characters by swiping the keys towards the corners.\n\nThis application was originally designed for programmers using Termux.\nNow perfect for everyday use.\n\nThis application contains no ads and is Open Source.</string>
+    <string name="app_name_release">TypoDev</string>
+    <string name="app_name_debug">TypoDev (Debug)</string>
+    <string name="app_tagline">type faster, write smarter</string>
+    <string name="short_description">TypoDev - type faster, write smarter. Lightweight, privacy-conscious virtual keyboard with AI.</string>
+    <string name="store_description">The main feature is that you can type more characters by swiping the keys towards the corners.\n\nNow enhanced with Gemini AI assistance and multi-language suggestions.\n\nThis application contains no ads and is Open Source.</string>
     <string name="pref_portrait">In portrait mode</string>
     <string name="pref_portrait_unfolded">In portrait mode unfolded</string>
     <string name="pref_landscape">In landscape mode</string>
@@ -113,7 +114,7 @@
     <string name="launcher_button_imesettings">Enable keyboard</string>
     <string name="launcher_button_imepicker">Select keyboard</string>
     <string name="launcher_button_dictionaries">Install dictionaries</string>
-    <string name="launcher_description">This application is a virtual keyboard. Go to the system settings by clicking on the button below and enable Unexpected-Keyboard.</string>
+    <string name="launcher_description">This application is the TypoDev virtual keyboard. Go to the system settings by clicking on the button below and enable TypoDev.</string>
     <string name="launcher_sourcecode">This is a free and open source application. You can find the source code or report bugs on GitHub.</string>
     <string name="launcher_tryhere">After enabling, you can try the keyboard here:</string>
     <string name="launcher_tryhere_hint">Try here</string>
@@ -177,8 +178,8 @@
     <string name="pref_get_api_key_summary">Open Google AI Studio in browser to generate a free key</string>
     <string name="pref_test_keyboard_title">🧪 Try &amp; Test Keyboard</string>
     <string name="pref_test_keyboard_summary">Open the interactive test area to test typing and gestures</string>
-    <string name="pref_about_app_title">Unexpected Keyboard</string>
-    <string name="pref_about_app_summary">Version 2.1.0 • Open Source • Privacy-First</string>
+    <string name="pref_about_app_title">TypoDev</string>
+    <string name="pref_about_app_summary">type faster, write smarter • v2.1.0</string>
     <string name="pref_extra_keys_summary">Configure extra keys, symbols, and corner swipes</string>
     <string name="pref_margin_bottom_summary">Adjust portrait &amp; landscape bottom spacing</string>
     <string name="pref_keyboard_height_summary">Adjust portrait &amp; landscape keyboard height</string>
