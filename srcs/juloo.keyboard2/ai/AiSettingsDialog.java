@@ -136,18 +136,34 @@ public class AiSettingsDialog
       @Override
       public void onClick(View v)
       {
-        new AlertDialog.Builder(context)
+        int selectedIndex = 0;
+        for (int i = 0; i < geminiModels.length; i++)
+        {
+          if (geminiModels[i].equalsIgnoreCase(currentSelectedGeminiModel[0]))
+          {
+            selectedIndex = i;
+            break;
+          }
+        }
+        AlertDialog modelDialog = new AlertDialog.Builder(context)
             .setTitle("Select Gemini Model")
-            .setItems(geminiModels, new DialogInterface.OnClickListener()
+            .setSingleChoiceItems(geminiModels, selectedIndex, new DialogInterface.OnClickListener()
             {
               @Override
               public void onClick(DialogInterface d, int which)
               {
                 currentSelectedGeminiModel[0] = geminiModels[which];
                 btnGeminiModel.setText("Model: " + currentSelectedGeminiModel[0]);
+                d.dismiss();
               }
             })
-            .show();
+            .setNegativeButton(android.R.string.cancel, null)
+            .create();
+
+        if (keyboard != null)
+          Utils.show_dialog_on_ime(modelDialog, keyboard);
+        else
+          modelDialog.show();
       }
     });
     llGemini.addView(btnGeminiModel);
@@ -201,6 +217,44 @@ public class AiSettingsDialog
     tvOpenAiModelLabel.setPadding(0, pad8, 0, 0);
     llOpenAi.addView(tvOpenAiModelLabel);
     llOpenAi.addView(etOpenAiModel);
+
+    final String[] popularOpenAiModels = {
+      "gpt-4o-mini",
+      "gpt-4o",
+      "deepseek-chat",
+      "deepseek-reasoner",
+      "llama-3.3-70b-versatile",
+      "claude-3-5-sonnet-20241022",
+      "gemini-2.0-flash"
+    };
+    Button btnPickOpenAiModel = new Button(context);
+    btnPickOpenAiModel.setText("📋 Pick Model from List");
+    btnPickOpenAiModel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    btnPickOpenAiModel.setOnClickListener(new View.OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        AlertDialog modelDialog = new AlertDialog.Builder(context)
+            .setTitle("Select Model")
+            .setItems(popularOpenAiModels, new DialogInterface.OnClickListener()
+            {
+              @Override
+              public void onClick(DialogInterface d, int which)
+              {
+                etOpenAiModel.setText(popularOpenAiModels[which]);
+              }
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .create();
+
+        if (keyboard != null)
+          Utils.show_dialog_on_ime(modelDialog, keyboard);
+        else
+          modelDialog.show();
+      }
+    });
+    llOpenAi.addView(btnPickOpenAiModel);
 
     root.addView(llOpenAi);
 

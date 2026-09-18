@@ -370,7 +370,7 @@ public class ExternalDictionaryManager
             conn.setInstanceFollowRedirects(true);
             conn.setConnectTimeout(25000);
             conn.setReadTimeout(45000);
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Unexpected-Keyboard/Android)");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (TypoDev/Android)");
 
             int code = conn.getResponseCode();
             if (code == HttpURLConnection.HTTP_MOVED_PERM ||

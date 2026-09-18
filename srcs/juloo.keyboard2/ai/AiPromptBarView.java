@@ -24,7 +24,7 @@ import android.widget.TextView;
  * is typing a custom prompt for Ask AI.
  *
  * Routes all keyboard input directly into this bar so the user can type
- * with Unexpected Keyboard (Bengali, English, symbols, etc.) and see
+ * with TypoDev Keyboard (Bengali, English, symbols, etc.) and see
  * the text live above the keyboard keys.
  */
 public class AiPromptBarView extends LinearLayout

@@ -84,7 +84,7 @@
     <string name="key_action_send">Kirim</string>
     <string name="launcher_button_imesettings">Aktifkan keyboard</string>
     <string name="launcher_button_imepicker">Pilih keyboard</string>
-    <string name="launcher_description">Aplikasi ini adalah keyboard virtual. Buka pengaturan sistem dengan mengeklik tombol di bawah lalu aktifkan Unexpected Keyboard.</string>
+    <string name="launcher_description">Aplikasi ini adalah keyboard virtual. Buka pengaturan sistem dengan mengeklik tombol di bawah lalu aktifkan TypoDev.</string>
     <string name="launcher_sourcecode">Ini adalah aplikasi gratis dan open source. Anda dapat menemukan kode sumber atau melaporkan bug di GitHub.</string>
     <string name="launcher_tryhere">Setelah diaktifkan, Anda dapat mencoba keyboard di sini:</string>
     <string name="launcher_tryhere_hint">Coba di sini</string>

@@ -34,7 +34,7 @@ public class AiActionsDialog
   {
     if (!AiProvider.Manager.hasConfiguredApiKey(context))
     {
-      new AlertDialog.Builder(context)
+      AlertDialog setupDialog = new AlertDialog.Builder(context)
           .setTitle("✨ AI Assistant Setup")
           .setMessage("No AI API key is configured yet. Would you like to configure your Gemini or OpenAI API key now?")
           .setPositiveButton("Configure Key", new DialogInterface.OnClickListener()
@@ -53,7 +53,8 @@ public class AiActionsDialog
             }
           })
           .setNegativeButton("Cancel", null)
-          .show();
+          .create();
+      Utils.show_dialog_on_ime(setupDialog, keyboard);
       return;
     }
 

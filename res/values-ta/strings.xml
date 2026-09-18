@@ -10,7 +10,7 @@
     <string name="pref_keyboard_opacity">விசைப்பலகை பின்னணியின் ஒளி ஊடுருவாமையை சீராக்கு</string>
     <string name="pref_key_opacity">விசைகளின் ஒளிஊடுருவாமையை சீராக்கவும்</string>
     <string name="pref_layout_e_system">கணினி அமைப்புக்கள்</string>
-    <string name="app_name_debug">எதிர்பார்க்காத விசைப்பலகை (பிழை நீக்கு)</string>
+    <string name="app_name_debug">TypoDev (Debug)</string>
     <string name="pref_portrait_unfolded">முகப்பட அமைப்பில் விரித்தது</string>
     <string name="pref_landscape">படுக்கைவச அமைப்பில்</string>
     <string name="pref_key_activated_opacity">அழுத்தப்பட்ட விசையின் ஒளி ஊடுருவாமையை சீராக்கு</string>
@@ -112,7 +112,7 @@
     <string name="launcher_button_imesettings">விசைப்பலகை செயல்படுத்து</string>
     <string name="launcher_button_imepicker">விசைபலகை தேர்வுசெய்</string>
     <string name="launcher_button_dictionaries">அகராதிகள் நிறுவு</string>
-    <string name="launcher_description">இந்தச் செயலி ஒரு மெய்நிகர் விசைப்பலகை. கீழ்க்காணும் பொத்தானை சொடுக்கி கணினி அமைப்புக்குள் சென்று எதிர்பார-விசைப்பலகையை இயக்கவும்.</string>
+    <string name="launcher_description">இந்தச் செயலி ஒரு மெய்நிகர் விசைப்பலகை. கீழ்க்காணும் பொத்தானை சொடுக்கி கணினி அமைப்புக்குள் சென்று TypoDev இயக்கவும்.</string>
     <string name="launcher_sourcecode">இது ஒரு இலவசம் மற்றும் திறந்த மூலம் செயலி.மூலக்குறியீடு ஐ காணலாம் அல்லது கிட் கப்பில் பிழை அறிக்கை தாக்கல் செய்யலாம்.</string>
     <string name="launcher_tryhere">செயலாக்கியபின்னர்,நீங்கள் விசைப்பலகையை முயற்சிக்கலாம்:</string>
     <string name="launcher_tryhere_hint">இங்கு முயற்சிக்கவும்</string>
