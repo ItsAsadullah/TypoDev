@@ -291,8 +291,9 @@ public class AiPaneView extends LinearLayout
     // ==========================================
     _scrollBody = new ScrollView(context);
     _scrollBody.setFillViewport(true);
-    _scrollBody.setVerticalScrollBarEnabled(true);
-    _scrollBody.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+    _scrollBody.setVerticalScrollBarEnabled(false);
+    _scrollBody.setHorizontalScrollBarEnabled(false);
+    _scrollBody.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
     LinearLayout bodyContent = new LinearLayout(context);
     bodyContent.setOrientation(VERTICAL);
@@ -383,6 +384,8 @@ public class AiPaneView extends LinearLayout
     // 2.3 Smart 1-Tap Quick Action Suggestions Strip
     _scrollQuick = new HorizontalScrollView(context);
     _scrollQuick.setHorizontalScrollBarEnabled(false);
+    _scrollQuick.setVerticalScrollBarEnabled(false);
+    _scrollQuick.setOverScrollMode(View.OVER_SCROLL_NEVER);
     _rowQuickSuggestions = new LinearLayout(context);
     _rowQuickSuggestions.setOrientation(HORIZONTAL);
     _rowQuickSuggestions.setGravity(Gravity.CENTER_VERTICAL);
@@ -396,6 +399,8 @@ public class AiPaneView extends LinearLayout
     // 2.4 [LINE 1] Main Category Tabs (Always Shown First)
     _scrollCat = new HorizontalScrollView(context);
     _scrollCat.setHorizontalScrollBarEnabled(false);
+    _scrollCat.setVerticalScrollBarEnabled(false);
+    _scrollCat.setOverScrollMode(View.OVER_SCROLL_NEVER);
     _rowCategories = new LinearLayout(context);
     _rowCategories.setOrientation(HORIZONTAL);
     _scrollCat.addView(_rowCategories);
@@ -408,6 +413,8 @@ public class AiPaneView extends LinearLayout
     // 2.5 [LINE 2] Dynamic Sub-Options Strip (Revealed ONLY after Category is chosen)
     _scrollSubOptions = new HorizontalScrollView(context);
     _scrollSubOptions.setHorizontalScrollBarEnabled(false);
+    _scrollSubOptions.setVerticalScrollBarEnabled(false);
+    _scrollSubOptions.setOverScrollMode(View.OVER_SCROLL_NEVER);
     _rowSubOptions = new LinearLayout(context);
     _rowSubOptions.setOrientation(HORIZONTAL);
     _scrollSubOptions.addView(_rowSubOptions);
@@ -486,6 +493,8 @@ public class AiPaneView extends LinearLayout
     // 2.6 [LINE 3] Tone Selector Strip (Revealed ONLY if user chooses Tone or requests it)
     _scrollTone = new HorizontalScrollView(context);
     _scrollTone.setHorizontalScrollBarEnabled(false);
+    _scrollTone.setVerticalScrollBarEnabled(false);
+    _scrollTone.setOverScrollMode(View.OVER_SCROLL_NEVER);
     _rowToneChips = new LinearLayout(context);
     _rowToneChips.setOrientation(HORIZONTAL);
     _rowToneChips.setGravity(Gravity.CENTER_VERTICAL);
@@ -524,9 +533,9 @@ public class AiPaneView extends LinearLayout
     _tvResultPreview.setMinLines(3);
     _tvResultPreview.setMaxLines(14);
     _tvResultPreview.setGravity(Gravity.TOP);
-    _tvResultPreview.setVerticalScrollBarEnabled(true);
-    _tvResultPreview.setScrollbarFadingEnabled(false);
-    _tvResultPreview.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+    _tvResultPreview.setVerticalScrollBarEnabled(false);
+    _tvResultPreview.setHorizontalScrollBarEnabled(false);
+    _tvResultPreview.setOverScrollMode(View.OVER_SCROLL_NEVER);
     _tvResultPreview.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.35f), dp(8), adjustAlpha(_colorLabel, 0.25f)));
     _tvResultPreview.setPadding(dp(10), dp(8), dp(10), dp(8));
     _tvResultPreview.setFocusable(false);

@@ -306,6 +306,9 @@ public class AiEditorDialog
       previewCard.setPadding(dp12, dp12, dp12, dp12);
 
       ScrollView previewScroll = new ScrollView(context);
+      previewScroll.setVerticalScrollBarEnabled(false);
+      previewScroll.setHorizontalScrollBarEnabled(false);
+      previewScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
       previewScroll.setLayoutParams(new RelativeLayout.LayoutParams(
           RelativeLayout.LayoutParams.MATCH_PARENT, (int) (140 * context.getResources().getDisplayMetrics().density)));
 

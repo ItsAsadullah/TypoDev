@@ -157,6 +157,9 @@ public class AiActionsDialog
     {
       ScrollView rootScrollView = new ScrollView(context);
       rootScrollView.setFillViewport(true);
+      rootScrollView.setVerticalScrollBarEnabled(false);
+      rootScrollView.setHorizontalScrollBarEnabled(false);
+      rootScrollView.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
       LinearLayout root = new LinearLayout(context);
       root.setOrientation(LinearLayout.VERTICAL);

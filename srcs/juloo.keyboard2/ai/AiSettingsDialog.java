@@ -42,6 +42,9 @@ public class AiSettingsDialog
     final int pad8 = (int)(8 * density);
 
     ScrollView scrollView = new ScrollView(context);
+    scrollView.setVerticalScrollBarEnabled(false);
+    scrollView.setHorizontalScrollBarEnabled(false);
+    scrollView.setOverScrollMode(View.OVER_SCROLL_NEVER);
     LinearLayout root = new LinearLayout(context);
     root.setOrientation(LinearLayout.VERTICAL);
     root.setPadding(pad16, pad16, pad16, pad16);
@@ -177,6 +180,8 @@ public class AiSettingsDialog
     // Preset quick chips
     HorizontalScrollView scrollPresets = new HorizontalScrollView(context);
     scrollPresets.setHorizontalScrollBarEnabled(false);
+    scrollPresets.setVerticalScrollBarEnabled(false);
+    scrollPresets.setOverScrollMode(View.OVER_SCROLL_NEVER);
     LinearLayout rowPresets = new LinearLayout(context);
     rowPresets.setOrientation(LinearLayout.HORIZONTAL);
     scrollPresets.addView(rowPresets);
