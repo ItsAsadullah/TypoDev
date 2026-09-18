@@ -290,16 +290,22 @@ public class Keyboard2 extends InputMethodService
           ch = _candidates_view.getMeasuredHeight();
         h = kh + ch;
       }
+      if (h <= 0)
+      {
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        h = (int)(280 * dm.density + 0.5f);
+      }
       int bottomSafety = (_keyboard_layout_view != null) ? _keyboard_layout_view.getBottomMargin() : 0;
       if (bottomSafety <= 0 && _config != null)
         bottomSafety = (int)_config.margin_bottom;
+
+      _ai_pane_view.open(h, bottomSafety);
 
       if (_candidates_view != null)
         _candidates_view.setVisibility(View.GONE);
       if (_keyboard_layout_view != null)
         _keyboard_layout_view.setVisibility(View.GONE);
 
-      _ai_pane_view.open(h, bottomSafety);
       _ai_pane_view.setVisibility(View.VISIBLE);
     }
     catch (Throwable t)

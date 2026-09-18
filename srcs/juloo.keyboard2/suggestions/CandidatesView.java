@@ -140,22 +140,29 @@ public class CandidatesView extends LinearLayout
       btnAi.setOnClickListener(new View.OnClickListener()
       {
         @Override
-        public void onClick(View v)
+        public void onClick(final View v)
         {
-          try
+          v.post(new Runnable()
           {
-            if (_keyboard2 != null)
+            @Override
+            public void run()
             {
-              if (_keyboard2.isAiPaneVisible())
-                _keyboard2.closeAiPane();
-              else
-                _keyboard2.showAiPane();
+              try
+              {
+                if (_keyboard2 != null)
+                {
+                  if (_keyboard2.isAiPaneVisible())
+                    _keyboard2.closeAiPane();
+                  else
+                    _keyboard2.showAiPane();
+                }
+              }
+              catch (Throwable t)
+              {
+                Logs.print_exception(t);
+              }
             }
-          }
-          catch (Throwable t)
-          {
-            Logs.print_exception(t);
-          }
+          });
         }
       });
     }

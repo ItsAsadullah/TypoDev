@@ -12,14 +12,10 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
-import android.view.WindowInsets;
 import android.view.inputmethod.InputConnection;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -95,7 +91,7 @@ public class AiPaneView extends LinearLayout
   private ProgressBar _progressBar;
   private TextView _tvStatus;
   private ScrollView _scrollBody;
-  private EditText _etResultPreview;
+  private TextView _tvResultPreview;
   private LinearLayout _rowActionButtons;
 
   public AiPaneView(Context context)
@@ -160,51 +156,31 @@ public class AiPaneView extends LinearLayout
     return (int)(dp * _density + 0.5f);
   }
 
-  @Override
-  public WindowInsets onApplyWindowInsets(WindowInsets insets)
-  {
-    try
-    {
-      if (Build.VERSION.SDK_INT >= 35 && insets != null)
-      {
-        android.graphics.Insets sb = insets.getInsets(
-            WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
-        if (sb != null && sb.bottom > 0)
-        {
-          updateBottomPadding(sb.bottom);
-        }
-      }
-      else if (Build.VERSION.SDK_INT >= 20 && insets != null)
-      {
-        int b = insets.getSystemWindowInsetBottom();
-        if (b > 0)
-        {
-          updateBottomPadding(b);
-        }
-      }
-    }
-    catch (Throwable t)
-    {
-      Logs.print_exception(t);
-    }
-    return super.onApplyWindowInsets(insets);
-  }
-
   private void updateBottomPadding(int rawBottomSafety)
   {
     // The system navigation bar / gesture navigation pill / IME switcher globe button / down arrow
     // typically occupy 36dp - 48dp at the bottom of the IME window.
-    // We ensure a minimum of 42dp so the action buttons NEVER collide with the system safe area.
-    int minSafeBottom = dp(42);
+    // We ensure a safe bottom margin so the action buttons NEVER collide with the system safe area.
+    int minSafeBottom = dp(36);
     int newBottomSafety = Math.max(rawBottomSafety, minSafeBottom);
-    if (_bottomSafety != newBottomSafety)
+    _bottomSafety = newBottomSafety;
+    if (_rowActionButtons != null)
     {
-      _bottomSafety = newBottomSafety;
-      if (_rowActionButtons != null)
-      {
-        _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
-      }
+      _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
     }
+  }
+
+  @Override
+  protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec)
+  {
+    int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+    int heightSize = MeasureSpec.getSize(heightMeasureSpec);
+    if (heightMode == MeasureSpec.UNSPECIFIED || (heightMode == MeasureSpec.AT_MOST && heightSize <= 0))
+    {
+      int fallbackHeight = (int)(280 * _density + 0.5f);
+      heightMeasureSpec = MeasureSpec.makeMeasureSpec(fallbackHeight, MeasureSpec.EXACTLY);
+    }
+    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
   }
 
   private void initLayout(final Context context)
@@ -539,72 +515,28 @@ public class AiPaneView extends LinearLayout
     rowStatus.addView(_tvStatus);
     bodyContent.addView(rowStatus);
 
-    // 2.8 Result Preview & Editor Box
-    _etResultPreview = new EditText(context);
-    _etResultPreview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-    _etResultPreview.setTextColor(_colorLabel);
-    _etResultPreview.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
-    _etResultPreview.setHint("Generated result appears here. You can edit before replacing.");
-    _etResultPreview.setMinLines(3);
-    _etResultPreview.setMaxLines(10);
-    _etResultPreview.setGravity(Gravity.TOP);
-    _etResultPreview.setVerticalScrollBarEnabled(true);
-    _etResultPreview.setScrollbarFadingEnabled(false);
-    _etResultPreview.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
-    _etResultPreview.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.35f), dp(8), adjustAlpha(_colorLabel, 0.25f)));
-    _etResultPreview.setPadding(dp(10), dp(8), dp(10), dp(8));
-    _etResultPreview.setOnTouchListener(new OnTouchListener()
-    {
-      private float _startY = 0f;
-
-      @Override
-      public boolean onTouch(View v, MotionEvent event)
-      {
-        try
-        {
-          if (v == null || event == null) return false;
-          boolean canScrollUp = v.canScrollVertically(-1);
-          boolean canScrollDown = v.canScrollVertically(1);
-
-          if (canScrollUp || canScrollDown)
-          {
-            ViewParent parent = v.getParent();
-            switch (event.getAction() & MotionEvent.ACTION_MASK)
-            {
-              case MotionEvent.ACTION_DOWN:
-                _startY = event.getY();
-                if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
-                break;
-
-              case MotionEvent.ACTION_MOVE:
-                float deltaY = _startY - event.getY();
-                if ((deltaY > 0 && canScrollDown) || (deltaY < 0 && canScrollUp))
-                {
-                  if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
-                }
-                else
-                {
-                  if (parent != null) parent.requestDisallowInterceptTouchEvent(false);
-                }
-                break;
-
-              case MotionEvent.ACTION_UP:
-              case MotionEvent.ACTION_CANCEL:
-                if (parent != null) parent.requestDisallowInterceptTouchEvent(false);
-                break;
-            }
-          }
-        }
-        catch (Throwable ignored) {}
-        return false;
-      }
-    });
+    // 2.8 Result Preview Box (TextView prevents IMM circular binding crash in IME window)
+    _tvResultPreview = new TextView(context);
+    _tvResultPreview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+    _tvResultPreview.setTextColor(_colorLabel);
+    _tvResultPreview.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
+    _tvResultPreview.setHint("Generated result appears here. Use buttons below to copy or insert.");
+    _tvResultPreview.setMinLines(3);
+    _tvResultPreview.setMaxLines(14);
+    _tvResultPreview.setGravity(Gravity.TOP);
+    _tvResultPreview.setVerticalScrollBarEnabled(true);
+    _tvResultPreview.setScrollbarFadingEnabled(false);
+    _tvResultPreview.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
+    _tvResultPreview.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.35f), dp(8), adjustAlpha(_colorLabel, 0.25f)));
+    _tvResultPreview.setPadding(dp(10), dp(8), dp(10), dp(8));
+    _tvResultPreview.setFocusable(false);
+    _tvResultPreview.setFocusableInTouchMode(false);
 
     LinearLayout.LayoutParams lpResult = new LinearLayout.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     lpResult.setMargins(0, dp(3), 0, dp(4));
-    _etResultPreview.setLayoutParams(lpResult);
-    bodyContent.addView(_etResultPreview);
+    _tvResultPreview.setLayoutParams(lpResult);
+    bodyContent.addView(_tvResultPreview);
 
     _scrollBody.addView(bodyContent);
     addView(_scrollBody, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
@@ -612,7 +544,7 @@ public class AiPaneView extends LinearLayout
     // ==========================================
     // 3. Fixed Bottom Action Dock (Elevated safely above Gesture Bar & IME System Buttons)
     // ==========================================
-    _bottomSafety = dp(42);
+    _bottomSafety = dp(36);
     _rowActionButtons = new LinearLayout(context);
     _rowActionButtons.setOrientation(HORIZONTAL);
     _rowActionButtons.setGravity(Gravity.CENTER_VERTICAL);
@@ -651,7 +583,7 @@ public class AiPaneView extends LinearLayout
       @Override
       public void onClick(View v)
       {
-        String res = _etResultPreview.getText().toString();
+        String res = _tvResultPreview.getText().toString();
         if (res.trim().isEmpty()) return;
         ClipboardManager cm = (ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
         if (cm != null)
@@ -717,7 +649,10 @@ public class AiPaneView extends LinearLayout
       if (_tvProviderBadge != null)
       {
         AiProvider provider = AiProvider.Manager.getActiveProvider(context);
-        _tvProviderBadge.setText(" ⚡ " + provider.getName() + " ");
+        if (provider != null)
+        {
+          _tvProviderBadge.setText(" ⚡ " + provider.getName() + " ");
+        }
       }
       updateEmojifyButtonState();
 
@@ -1247,19 +1182,17 @@ public class AiPaneView extends LinearLayout
             _progressBar.setVisibility(GONE);
             _lastGeneratedResult = resultText;
             _tvStatus.setText("✅ Generated successfully");
-            _etResultPreview.setText(resultText);
-            _etResultPreview.setSelection(0);
-            _etResultPreview.scrollTo(0, 0);
+            _tvResultPreview.setText(resultText);
+            _tvResultPreview.scrollTo(0, 0);
 
-            _etResultPreview.post(new Runnable()
+            _tvResultPreview.post(new Runnable()
             {
               @Override
               public void run()
               {
-                if (_etResultPreview != null)
+                if (_tvResultPreview != null)
                 {
-                  _etResultPreview.setSelection(0);
-                  _etResultPreview.scrollTo(0, 0);
+                  _tvResultPreview.scrollTo(0, 0);
                 }
               }
             });
@@ -1271,9 +1204,9 @@ public class AiPaneView extends LinearLayout
                 @Override
                 public void run()
                 {
-                  if (_etResultPreview != null && _scrollBody != null)
+                  if (_tvResultPreview != null && _scrollBody != null)
                   {
-                    _scrollBody.smoothScrollTo(0, _etResultPreview.getTop() - dp(8));
+                    _scrollBody.smoothScrollTo(0, _tvResultPreview.getTop() - dp(8));
                   }
                 }
               });
@@ -1293,7 +1226,7 @@ public class AiPaneView extends LinearLayout
 
   private void applyResultToField(boolean replaceOriginal)
   {
-    String output = _etResultPreview.getText().toString();
+    String output = _tvResultPreview.getText().toString();
     if (output == null || output.trim().isEmpty())
     {
       Toast.makeText(getContext(), "No output to apply", Toast.LENGTH_SHORT).show();
