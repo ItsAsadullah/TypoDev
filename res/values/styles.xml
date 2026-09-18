@@ -195,6 +195,10 @@
     <item name="android:fitsSystemWindows">true</item>
     <item name="android:colorAccent">#38bdf8</item>
     <item name="android:preferenceCategoryStyle">@style/CustomPreferenceCategory</item>
+    <item name="android:listPreferredItemPaddingStart">16dp</item>
+    <item name="android:listPreferredItemPaddingEnd">16dp</item>
+    <item name="android:listPreferredItemPaddingLeft">16dp</item>
+    <item name="android:listPreferredItemPaddingRight">16dp</item>
   </style>
   <style name="CustomPreferenceCategory">
     <item name="android:layout">@layout/pref_category_header</item>

@@ -1,6 +1,8 @@
 package juloo.keyboard2;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -12,7 +14,10 @@ import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
+import android.preference.PreferenceScreen;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.ListView;
 import android.widget.Toast;
 import juloo.keyboard2.dict.DictionariesActivity;
@@ -43,18 +48,13 @@ public class SettingsActivity extends PreferenceActivity
       getActionBar().setSubtitle("Settings & Customization");
     }
 
-    // Style the ListView with subtle dividers and padding
+    // Style the ListView with subtle dividers and uniform padding
     try
     {
       ListView list = getListView();
       if (list != null)
       {
-        list.setDivider(new ColorDrawable(0x18ffffff));
-        list.setDividerHeight((int)(1 * getResources().getDisplayMetrics().density));
-        list.setClipToPadding(false);
-        int padH = (int)(6 * getResources().getDisplayMetrics().density);
-        int padB = (int)(24 * getResources().getDisplayMetrics().density);
-        list.setPadding(padH, 0, padH, padB);
+        enforceConsistentPadding(list);
       }
     }
     catch (Exception ignored) {}
@@ -204,6 +204,80 @@ public class SettingsActivity extends PreferenceActivity
     {
       pref.setSummary("Enter your Google Gemini API key (tap to edit)");
     }
+  }
+
+  private void enforceConsistentPadding(final ListView list)
+  {
+    if (list == null) return;
+    list.setClipToPadding(false);
+    int padB = (int)(24 * getResources().getDisplayMetrics().density);
+    list.setPadding(0, 0, 0, padB);
+    list.setDivider(new ColorDrawable(0x18ffffff));
+    list.setDividerHeight((int)(1 * getResources().getDisplayMetrics().density));
+
+    final int targetPadding = (int)(16 * getResources().getDisplayMetrics().density);
+
+    list.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener()
+    {
+      @Override
+      public boolean onPreDraw()
+      {
+        int count = list.getChildCount();
+        for (int i = 0; i < count; i++)
+        {
+          View child = list.getChildAt(i);
+          if (child == null) continue;
+
+          int padL = child.getPaddingLeft();
+          int padR = child.getPaddingRight();
+          if (padL < targetPadding || padR < targetPadding)
+          {
+            child.setPadding(
+                Math.max(padL, targetPadding),
+                child.getPaddingTop(),
+                Math.max(padR, targetPadding),
+                child.getPaddingBottom()
+            );
+          }
+        }
+        return true;
+      }
+    });
+  }
+
+  @Override
+  public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference)
+  {
+    boolean result = super.onPreferenceTreeClick(preferenceScreen, preference);
+    if (preference instanceof PreferenceScreen)
+    {
+      final PreferenceScreen subScreen = (PreferenceScreen) preference;
+      final Dialog dialog = subScreen.getDialog();
+      if (dialog != null)
+      {
+        View list = dialog.findViewById(android.R.id.list);
+        if (list instanceof ListView)
+        {
+          enforceConsistentPadding((ListView) list);
+        }
+        else
+        {
+          dialog.setOnShowListener(new DialogInterface.OnShowListener()
+          {
+            @Override
+            public void onShow(DialogInterface d)
+            {
+              View l = dialog.findViewById(android.R.id.list);
+              if (l instanceof ListView)
+              {
+                enforceConsistentPadding((ListView) l);
+              }
+            }
+          });
+        }
+      }
+    }
+    return result;
   }
 
   @Override

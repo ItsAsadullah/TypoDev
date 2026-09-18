@@ -27,7 +27,7 @@
         android:key="show_numpad"
         android:title="@string/pref_show_numpad_title"
         android:summary="%s"
-        android:defaultValue="1"
+        android:defaultValue="never"
         android:entries="@array/pref_show_numpad_entries"
         android:entryValues="@array/pref_show_numpad_values"/>
     <ListPreference
