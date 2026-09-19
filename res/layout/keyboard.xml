@@ -42,6 +42,19 @@
           android:layout_height="match_parent"
           android:orientation="horizontal"
           android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/voice_live_banner"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="16dp"
+            android:singleLine="true"
+            android:text="🎙️ শুনছি... বলুন"
+            android:textColor="?attr/colorLabel"
+            android:textSize="15sp"
+            android:textStyle="normal"
+            android:visibility="gone" />
         <TextView android:id="@+id/candidates_emoji" style="@style/candidates_emoji" android:visibility="gone"/>
       </LinearLayout>
     </HorizontalScrollView>
@@ -64,6 +77,10 @@
             style="@style/toolbar_button"
             android:text="✨ AI" />
         <Button
+            android:id="@+id/toolbar_btn_fancy"
+            style="@style/toolbar_button"
+            android:text="𝓕 Fancy" />
+        <Button
             android:id="@+id/toolbar_btn_translate"
             style="@style/toolbar_button"
             android:text="🌐 Translate" />
@@ -80,14 +97,54 @@
             style="@style/toolbar_button"
             android:text="😊" />
         <Button
+            android:id="@+id/toolbar_btn_dev"
+            style="@style/toolbar_button"
+            android:text="👨‍💻 Dev" />
+        <Button
             android:id="@+id/toolbar_btn_settings"
             style="@style/toolbar_button"
             android:text="⚙️" />
       </LinearLayout>
     </HorizontalScrollView>
 
-    <TextView android:id="@+id/candidates_lang_name" style="@style/candidates_lang_name"/>
-    <Button android:id="@+id/dictionary_switch" style="@style/change_dictionary"/>
+    <!-- Legacy hidden stubs so legacy code safely finds them without showing them -->
+    <TextView android:id="@+id/candidates_lang_name" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <Button android:id="@+id/dictionary_switch" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+
+    <FrameLayout
+        android:id="@+id/btn_magic_autocomplete_container"
+        style="@style/candidates_magic_button">
+      <TextView
+          android:id="@+id/btn_magic_autocomplete"
+          android:layout_width="match_parent"
+          android:layout_height="match_parent"
+          android:gravity="center"
+          android:textColor="?attr/colorLabel"
+          android:text="🪄"
+          android:textSize="17sp" />
+      <ProgressBar
+          android:id="@+id/magic_autocomplete_progress"
+          style="?android:attr/progressBarStyleSmall"
+          android:layout_width="18dp"
+          android:layout_height="18dp"
+          android:layout_gravity="center"
+          android:visibility="gone"
+          android:indeterminate="true" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/btn_candidate_mic_container"
+        style="@style/candidates_magic_button">
+      <TextView
+          android:id="@+id/btn_candidate_mic"
+          android:layout_width="match_parent"
+          android:layout_height="match_parent"
+          android:gravity="center"
+          android:textColor="?attr/colorLabel"
+          android:text="🎙️"
+          android:textSize="17sp"
+          android:contentDescription="Voice Typing" />
+    </FrameLayout>
   </juloo.keyboard2.suggestions.CandidatesView>
 
   <juloo.keyboard2.ai.AiPromptBarView
@@ -109,6 +166,12 @@
 
   <juloo.keyboard2.ai.AiPaneView
       android:id="@+id/ai_pane_view"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:visibility="gone"/>
+
+  <juloo.keyboard2.fancy.FancyPaneView
+      android:id="@+id/fancy_pane_view"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:visibility="gone"/>

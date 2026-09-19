@@ -39,6 +39,10 @@
     <string name="pref_suggestions_summary">Enable word completion and spell checking</string>
     <string name="pref_space_bar_auto_complete_title">Autocomplete with the space bar</string>
     <string name="pref_space_bar_auto_complete_summary">Enter the best suggestion by pressing space</string>
+    <string name="pref_developer_mode_title">Developer Mode (👨‍💻 Dev)</string>
+    <string name="pref_developer_mode_summary">Show HTML closing tags and coding syntax auto-suggestions (Python, JS, TS, Java, CSS)</string>
+    <string name="pref_show_in_terminals_title">Show in Termux &amp; Terminals (📟)</string>
+    <string name="pref_show_in_terminals_summary">Display suggestion bar and toolbar in Termux and terminal emulators</string>
     <string name="pref_category_typing">✍️ Typing &amp; Gestures</string>
     <string name="pref_swipe_dist_title">Swiping distance</string>
     <string name="pref_swipe_dist_summary">Distance of characters in the corners of the keys (%s)</string>

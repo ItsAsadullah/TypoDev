@@ -288,6 +288,28 @@ public class GeminiAiService
     });
   }
 
+  public static void processAutocomplete(
+      final Context context,
+      final String text,
+      final AiCallback callback)
+  {
+    if (text == null || text.trim().isEmpty())
+    {
+      callback.onError("No text to complete");
+      return;
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("TASK: You are an intelligent mobile keyboard auto-complete assistant.\n");
+    sb.append("Analyze the user's sentence/message so far and generate 2 to 4 natural, realistic, and contextually fluent completions that finish or continue the sentence/message.\n");
+    sb.append("Rules:\n");
+    sb.append("1. Maintain the EXACT SAME language (Bengali if Bengali, English if English).\n");
+    sb.append("2. Output each completion on a separate new line.\n");
+    sb.append("3. Each completion should be concise (1 to 6 words) to fit nicely as a mobile keyboard suggestion chip.\n");
+    sb.append("4. Output ONLY the completions without numbering, bullets, quotes, or conversational filler.\n\n");
+    sb.append("User's text so far:\n\"\"\"").append(text).append("\"\"\"");
+    processPrompt(context, sb.toString(), callback);
+  }
+
   public static void processGrammarDiff(
       final Context context,
       final String text,

@@ -44,6 +44,11 @@ public final class EditorConfig
 
   public void refresh(EditorInfo info, Resources res)
   {
+    refresh(info, res, null);
+  }
+
+  public void refresh(EditorInfo info, Resources res, Config conf)
+  {
     int inputType = info.inputType & InputType.TYPE_MASK_CLASS;
     int options = info.imeOptions;
     /* Selection mode.
@@ -100,7 +105,8 @@ public final class EditorConfig
     initial_sel_start = info.initialSelStart;
     initial_sel_end = info.initialSelEnd;
     /* Suggestions */
-    should_show_candidates_view = CandidatesView.should_show(info);
+    boolean showInTerminals = (conf != null && conf.show_in_terminals);
+    should_show_candidates_view = CandidatesView.should_show(info, showInTerminals);
   }
 
   String actionLabel_of_imeAction(int action, Resources res)

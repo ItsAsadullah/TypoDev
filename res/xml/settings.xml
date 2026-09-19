@@ -46,10 +46,20 @@
         android:entryValues="@array/pref_split_layout_values"/>
   </PreferenceCategory>
 
-  <!-- 2. Gemini AI Assistant (Prominently placed near top) -->
+  <!-- 2. AI Assistant (Gemini & OpenAI / DeepSeek / Groq) -->
   <PreferenceCategory
       android:title="@string/pref_category_ai"
       android:layout="@layout/pref_category_header">
+    <ListPreference
+        android:key="pref_ai_provider"
+        android:title="Active AI Provider"
+        android:dialogTitle="Select Active AI Provider"
+        android:summary="%s"
+        android:defaultValue="gemini"
+        android:entries="@array/pref_ai_provider_entries"
+        android:entryValues="@array/pref_ai_provider_values"/>
+
+    <!-- Google Gemini -->
     <EditTextPreference
         android:key="gemini_api_key"
         android:title="Gemini API Key"
@@ -58,14 +68,47 @@
     <ListPreference
         android:key="gemini_working_model"
         android:title="Gemini AI Model"
+        android:dialogTitle="Select Gemini Model"
         android:summary="%s"
-        android:defaultValue="gemini-1.5-flash"
+        android:defaultValue="gemini-2.0-flash"
         android:entries="@array/pref_gemini_model_entries"
         android:entryValues="@array/pref_gemini_model_values"/>
     <Preference
         android:key="pref_get_api_key"
         android:title="@string/pref_get_api_key_title"
         android:summary="@string/pref_get_api_key_summary"/>
+
+    <!-- OpenAI / DeepSeek / Groq -->
+    <EditTextPreference
+        android:key="openai_base_url"
+        android:title="Base URL (OpenAI / DeepSeek / Groq / Ollama)"
+        android:dialogTitle="API Base URL"
+        android:defaultValue="https://api.openai.com/v1"
+        android:summary="https://api.openai.com/v1"/>
+    <EditTextPreference
+        android:key="openai_api_key"
+        android:title="OpenAI / DeepSeek / Groq API Key"
+        android:dialogTitle="API Key"
+        android:summary="Enter your API key (sk-...)"/>
+    <ListPreference
+        android:key="openai_model"
+        android:title="OpenAI / DeepSeek Model"
+        android:dialogTitle="Select OpenAI / DeepSeek Model"
+        android:summary="%s"
+        android:defaultValue="gpt-4o-mini"
+        android:entries="@array/pref_openai_model_entries"
+        android:entryValues="@array/pref_openai_model_values"/>
+
+    <!-- Common Options -->
+    <CheckBoxPreference
+        android:key="pref_ai_emojify"
+        android:title="Emoji Generation"
+        android:summary="Generate responses with emojis"
+        android:defaultValue="true"/>
+    <Preference
+        android:key="pref_open_ai_dialog"
+        android:title="⚙️ Quick AI Popup Settings"
+        android:summary="Open the compact popup dialog with presets and clipboard paste"/>
   </PreferenceCategory>
 
   <!-- 3. Suggestions & Dictionaries -->
@@ -82,10 +125,33 @@
         android:title="@string/pref_space_bar_auto_complete_title"
         android:summary="@string/pref_space_bar_auto_complete_summary"
         android:defaultValue="false"/>
+    <CheckBoxPreference
+        android:key="developer_mode"
+        android:title="@string/pref_developer_mode_title"
+        android:summary="@string/pref_developer_mode_summary"
+        android:defaultValue="false"/>
+    <CheckBoxPreference
+        android:key="show_in_terminals"
+        android:title="@string/pref_show_in_terminals_title"
+        android:summary="@string/pref_show_in_terminals_summary"
+        android:defaultValue="false"/>
     <Preference
         android:key="pref_dictionaries_frostkeys"
         android:title="📚 Dictionaries &amp; Wordlists (FrostKeys)"
         android:summary="Download presets, import wordlists, or install offline dictionaries"/>
+    <Preference
+        android:key="pref_snippet_manager"
+        android:title="📝 My Snippets &amp; Word Manager"
+        android:summary="Create shortcuts that expand to full text in the suggestion bar"/>
+    <CheckBoxPreference
+        android:key="pref_learning_enabled"
+        android:title="🧠 Adaptive Typing Learning"
+        android:summary="Learn from your typing patterns and accepted suggestions completely on-device"
+        android:defaultValue="true"/>
+    <Preference
+        android:key="pref_clear_learned_data"
+        android:title="🗑️ Clear Learned Words &amp; History"
+        android:summary="Reset all personalized typing history, learned words, and predictions"/>
   </PreferenceCategory>
 
   <!-- 4. Style & Appearance -->

@@ -3,6 +3,7 @@ package juloo.keyboard2;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -93,6 +94,24 @@ public final class ClipboardHistoryView extends NonScrollListView
             @Override
             public void onClick(View v) { pin_entry(pos); }
           });
+      // Save clipboard entry as a snippet
+      View btnSaveSnippet = v.findViewById(R.id.clipboard_entry_save_snippet);
+      if (btnSaveSnippet != null)
+      {
+        btnSaveSnippet.setOnClickListener(
+            new View.OnClickListener()
+            {
+              @Override
+              public void onClick(View btn)
+              {
+                final String clipText = _history.get(pos);
+                Intent intent = new Intent(getContext(), juloo.keyboard2.snippet.SnippetEditActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                intent.putExtra("clip_text", clipText);
+                getContext().startActivity(intent);
+              }
+            });
+      }
       v.findViewById(R.id.clipboard_entry_paste).setOnClickListener(
           new View.OnClickListener()
           {

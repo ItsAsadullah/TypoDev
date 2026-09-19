@@ -25,7 +25,8 @@ public class AiActionEngine
     EMOTION("❤️ Emotion", "Add heartfelt emotion to your message"),
     HUMOR("😂 Humor", "Add funny, witty, or sarcastic humor"),
     LENGTH("📏 Length", "Shorten or expand your writing"),
-    ASK_AI("🎯 Ask AI", "Type any custom instruction for AI");
+    ASK_AI("🎯 Ask AI", "Type any custom instruction for AI"),
+    AUTOCOMPLETE("🪄 Autocomplete", "AI auto-completes or continues your text");
 
     private final String title;
     private final String subtitle;
@@ -59,6 +60,12 @@ public class AiActionEngine
     List<ActionOption> list = new ArrayList<>();
     switch (cat)
     {
+      case AUTOCOMPLETE:
+        list.add(new ActionOption("auto_continue", "Continue Sentence", "Complete the current thought naturally"));
+        list.add(new ActionOption("auto_chat", "Chat Completion", "Natural messaging continuation"));
+        list.add(new ActionOption("auto_formal", "Formal Completion", "Professional phrasing continuation"));
+        break;
+
       case GRAMMAR:
         list.add(new ActionOption("grammar_all", "Fix All", "Spelling, punctuation & grammar"));
         list.add(new ActionOption("grammar_spelling", "Spelling Only", "Fix typos and spelling"));
@@ -574,6 +581,18 @@ public class AiActionEngine
           sb.append("Style: Promotional post highlighting benefits, urgency, and a clear Call To Action (CTA).\n");
         else
           sb.append("Platform: Facebook. Friendly, engaging post with natural emojis, an invitation to comment, and relevant hashtags.\n");
+        break;
+
+      case AUTOCOMPLETE:
+        sb.append("TASK: You are an intelligent mobile keyboard auto-complete assistant.\n");
+        sb.append("Continue and complete the user's sentence or thought naturally in the EXACT SAME language.\n");
+        if ("auto_formal".equals(optionId))
+          sb.append("Style: Professional, polite, and well-structured phrasing.\n");
+        else if ("auto_chat".equals(optionId))
+          sb.append("Style: Casual, authentic, and natural everyday conversational messaging.\n");
+        else
+          sb.append("Style: Fluid, natural continuation matching the author's voice and intent.\n");
+        sb.append("Output ONLY the completed sentence or message. Do NOT add preamble or explanations.\n");
         break;
 
       case GRAMMAR:

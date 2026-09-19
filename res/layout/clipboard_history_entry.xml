@@ -4,5 +4,13 @@
   <LinearLayout style="@style/clipboardEntryButtons">
     <View android:id="@+id/clipboard_entry_paste" style="@style/clipboardEntryButton" android:background="@drawable/ic_clipboard_paste"/>
     <View android:id="@+id/clipboard_entry_addpin" style="@style/clipboardEntryButton" android:background="@drawable/ic_clipboard_save"/>
+    <TextView
+        android:id="@+id/clipboard_entry_save_snippet"
+        style="@style/clipboardEntryButton"
+        android:gravity="center"
+        android:text="📝"
+        android:textSize="14sp"
+        android:contentDescription="Save as Snippet"/>
   </LinearLayout>
 </LinearLayout>
+

@@ -37,12 +37,35 @@
               android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"
               android:windowSoftInputMode="adjustResize"
               android:exported="false" />
+
+    <activity android:name="juloo.keyboard2.snippet.SnippetManagerActivity"
+              android:icon="@mipmap/ic_launcher"
+              android:theme="@style/appTheme"
+              android:exported="false"
+              android:label="My Snippets" />
+
+    <activity android:name="juloo.keyboard2.snippet.SnippetEditActivity"
+              android:theme="@android:style/Theme.Translucent.NoTitleBar"
+              android:windowSoftInputMode="stateVisible|adjustResize"
+              android:excludeFromRecents="true"
+              android:exported="false" />
+    <activity android:name="juloo.keyboard2.voice.VoicePermissionActivity"
+              android:theme="@android:style/Theme.Translucent.NoTitleBar"
+              android:windowSoftInputMode="stateAlwaysHidden"
+              android:excludeFromRecents="true"
+              android:exported="false" />
   </application>
 
-  <!-- To query enabled input methods for voice IME detection -->
+  <!-- To query enabled input methods for voice IME detection and speech recognition services -->
   <queries>
     <intent>
       <action android:name="android.view.InputMethod" />
+    </intent>
+    <intent>
+      <action android:name="android.speech.RecognitionService" />
+    </intent>
+    <intent>
+      <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
     </intent>
   </queries>
 </manifest>

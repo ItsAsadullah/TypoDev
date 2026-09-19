@@ -19,7 +19,20 @@
     <item name="android:gravity">center</item>
     <item name="android:background">@drawable/suggestions_item_background</item>
     <item name="android:textColor">?attr/colorLabel</item>
+    <item name="android:textSize">13sp</item>
     <item name="android:maxLines">1</item>
+  </style>
+  <style name="candidates_magic_button">
+    <item name="android:layout_width">36dp</item>
+    <item name="android:layout_height">match_parent</item>
+    <item name="android:layout_weight">0</item>
+    <item name="android:layout_marginTop">@dimen/candidates_margin_vertical</item>
+    <item name="android:layout_marginBottom">@dimen/candidates_margin_vertical</item>
+    <item name="android:layout_marginStart">2dp</item>
+    <item name="android:layout_marginEnd">4dp</item>
+    <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
+    <item name="android:clickable">true</item>
+    <item name="android:focusable">false</item>
   </style>
   <style name="candidates_emoji">
     <item name="android:layout_width">@dimen/candidates_emoji_width</item>
@@ -47,9 +60,16 @@
   <style name="candidates_lang_name">
     <item name="android:layout_width">wrap_content</item>
     <item name="android:layout_height">wrap_content</item>
-    <item name="android:gravity">end|center_vertical</item>
-    <item name="android:textColor">?attr/colorSubLabel</item>
+    <item name="android:gravity">center</item>
+    <item name="android:textColor">?attr/colorLabel</item>
+    <item name="android:textStyle">bold</item>
+    <item name="android:textSize">12sp</item>
+    <item name="android:paddingStart">4dp</item>
+    <item name="android:paddingEnd">2dp</item>
     <item name="android:layout_marginEnd">@dimen/candidates_gap</item>
+    <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
+    <item name="android:clickable">true</item>
+    <item name="android:focusable">false</item>
   </style>
   <style name="toolbar_button">
     <item name="android:layout_width">wrap_content</item>

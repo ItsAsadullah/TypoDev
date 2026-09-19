@@ -208,9 +208,9 @@ public final class CurrentlyTypedWord
     if (_has_selection)
       set_current_word("");
     else if (VERSION.SDK_INT >= 31)
-      set_current_word(_ic.getSurroundingText(20, 20, 0));
+      set_current_word(_ic.getSurroundingText(120, 120, 0));
     else
-      set_current_word(_ic.getTextBeforeCursor(20, 0));
+      set_current_word(_ic.getTextBeforeCursor(120, 0));
   }
 
   /** Refresh the current word by immediately querying the editor. */

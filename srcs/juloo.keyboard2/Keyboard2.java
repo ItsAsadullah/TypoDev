@@ -54,12 +54,17 @@ public class Keyboard2 extends InputMethodService
   private ViewGroup _emojiPane = null;
   private ViewGroup _clipboard_pane = null;
   private juloo.keyboard2.ai.AiPaneView _ai_pane_view = null;
+  private juloo.keyboard2.fancy.FancyPaneView _fancy_pane_view = null;
   private juloo.keyboard2.ai.AiPromptBarView _ai_prompt_bar = null;
   private boolean _isAiPromptInputMode = false;
   private InputConnection _aiPromptInputConnection = null;
   private EmojiSearchBarView _emoji_search_bar = null;
   private boolean _isEmojiSearchMode = false;
   private InputConnection _emojiSearchInputConnection = null;
+  private boolean _isAiSettingsOpen = false;
+  private boolean _wasAiPaneVisibleBeforeSettings = false;
+  private android.widget.EditText _dialogActiveEditText = null;
+  private InputConnection _dialogInputConnection = null;
   private Handler _handler;
 
   private Config _config;
@@ -163,8 +168,15 @@ public class Keyboard2 extends InputMethodService
   @Override
   public void onDestroy() {
     super.onDestroy();
+    juloo.keyboard2.voice.OfflineVoiceTypingService.stopListening();
 
     _foldStateTracker.close();
+  }
+
+  @Override
+  public void onWindowHidden() {
+    super.onWindowHidden();
+    juloo.keyboard2.voice.OfflineVoiceTypingService.stopListening();
   }
 
   private void create_keyboard_view()
@@ -177,6 +189,12 @@ public class Keyboard2 extends InputMethodService
     _ai_pane_view = (juloo.keyboard2.ai.AiPaneView)_keyboard_container_view.findViewById(R.id.ai_pane_view);
     if (_ai_pane_view != null)
       _ai_pane_view.init(this);
+    _fancy_pane_view = (juloo.keyboard2.fancy.FancyPaneView)_keyboard_container_view.findViewById(R.id.fancy_pane_view);
+    if (_fancy_pane_view != null)
+      _fancy_pane_view.init(this);
+    // Seed demo snippets on first run (no-op on subsequent launches)
+    try { juloo.keyboard2.snippet.SnippetStore.instance(this).seedDefaults(); }
+    catch (Throwable ignored) {}
     _ai_prompt_bar = (juloo.keyboard2.ai.AiPromptBarView)_keyboard_container_view.findViewById(R.id.ai_prompt_bar);
     if (_ai_prompt_bar != null)
     {
@@ -338,6 +356,131 @@ public class Keyboard2 extends InputMethodService
     }
   }
 
+  public boolean isAiSettingsOpen()
+  {
+    return _isAiSettingsOpen;
+  }
+
+  public void notifyDialogEditTextFocused(android.widget.EditText et)
+  {
+    _dialogActiveEditText = et;
+    if (et != null)
+    {
+      android.view.inputmethod.EditorInfo outAttrs = new android.view.inputmethod.EditorInfo();
+      android.view.inputmethod.InputConnection ic = et.onCreateInputConnection(outAttrs);
+      _dialogInputConnection = (ic != null) ? ic : new android.view.inputmethod.BaseInputConnection(et, true);
+    }
+    else
+    {
+      _dialogInputConnection = null;
+    }
+  }
+
+  public void onAiSettingsOpened()
+  {
+    _isAiSettingsOpen = true;
+    if (_candidates_view != null)
+      _candidates_view.setVisibility(View.GONE);
+  }
+
+  public void onAiSettingsClosed()
+  {
+    _isAiSettingsOpen = false;
+    _dialogInputConnection = null;
+    _dialogActiveEditText = null;
+    juloo.keyboard2.ai.AiSettingsDialog.sActiveDialogEditText = null;
+    if (isAiPaneVisible())
+    {
+      if (_candidates_view != null)
+        _candidates_view.setVisibility(View.GONE);
+      if (_ai_pane_view != null)
+        _ai_pane_view.setVisibility(View.VISIBLE);
+    }
+    else
+    {
+      if (_keyboard_layout_view != null)
+        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      refresh_candidates_view();
+    }
+  }
+
+  // =========================================================
+  // Fancy Pane (Unicode fonts, Text Art, Kaomoji)
+  // =========================================================
+
+  public boolean isFancyPaneVisible()
+  {
+    return _fancy_pane_view != null && _fancy_pane_view.getVisibility() == View.VISIBLE;
+  }
+
+  public void showFancyPane()
+  {
+    try
+    {
+      if (_fancy_pane_view == null) return;
+
+      // Compute target height (same logic as showAiPane)
+      int h = (_keyboard_container_view != null && _keyboard_container_view.getHeight() > 0)
+          ? _keyboard_container_view.getHeight() : 0;
+      if (h <= 0)
+      {
+        int kh = _keyboard_layout_view != null ? _keyboard_layout_view.getHeight() : 0;
+        if (kh <= 0 && _keyboard_layout_view != null)
+          kh = _keyboard_layout_view.getMeasuredHeight();
+        int ch = (_candidates_view != null && _candidates_view.getVisibility() == View.VISIBLE)
+            ? _candidates_view.getHeight() : 0;
+        if (ch <= 0 && _candidates_view != null && _candidates_view.getVisibility() == View.VISIBLE)
+          ch = _candidates_view.getMeasuredHeight();
+        h = kh + ch;
+      }
+      if (h <= 0)
+      {
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        h = (int)(280 * dm.density + 0.5f);
+      }
+      int bottomSafety = (_keyboard_layout_view != null) ? _keyboard_layout_view.getBottomMargin() : 0;
+      if (bottomSafety <= 0 && _config != null)
+        bottomSafety = (int)_config.margin_bottom;
+
+      // Hide AI pane if open
+      if (_ai_pane_view != null) _ai_pane_view.setVisibility(View.GONE);
+
+      // Open the fancy pane
+      _fancy_pane_view.open(h, bottomSafety);
+
+      if (_candidates_view != null)
+        _candidates_view.setVisibility(View.GONE);
+      if (_keyboard_layout_view != null)
+        _keyboard_layout_view.setVisibility(View.GONE);
+
+      _fancy_pane_view.setVisibility(View.VISIBLE);
+    }
+    catch (Throwable t)
+    {
+      Logs.print_exception(t);
+      // Fall back to showing the keyboard
+      if (_keyboard_layout_view != null)
+        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      refresh_candidates_view();
+    }
+  }
+
+  public void closeFancyPane()
+  {
+    try
+    {
+      if (_fancy_pane_view != null)
+        _fancy_pane_view.setVisibility(View.GONE);
+      if (_keyboard_layout_view != null)
+        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      refresh_candidates_view();
+    }
+    catch (Throwable t)
+    {
+      Logs.print_exception(t);
+    }
+  }
+
   public void showEmojiPane()
   {
     if (_isEmojiSearchMode)
@@ -475,15 +618,124 @@ public class Keyboard2 extends InputMethodService
 
   private void refresh_current_dictionary()
   {
-    _config.should_show_dictionary_switch =
-      (_config.device_locales.installed.size() > 0);
-    String dict_name = _dictionaries.get_selected(_config);
-    if (dict_name == null)
-      dict_name = (_config.device_locales.default_ != null) ?
-        _config.device_locales.default_.dictionary : null;
+    KeyboardData layout = current_layout_unmodified();
+    String layoutScript = (layout != null && layout.script != null) ? layout.script.toLowerCase(java.util.Locale.ROOT) : "";
+    String layoutName = (layout != null && layout.name != null) ? layout.name.toLowerCase(java.util.Locale.ROOT) : "";
+
+    boolean isBengali = layoutScript.contains("beng") || layoutName.contains("বাংলা");
+    boolean isLatin = layoutScript.contains("latin") || layoutScript.contains("latn") || (!isBengali && layoutScript.isEmpty());
+
+    java.util.Set<String> installed = _dictionaries.get_installed();
+    String dict_name = null;
+
+    if (isBengali)
+    {
+      dict_name = "bn";
+    }
+    else if (isLatin)
+    {
+      boolean prefersUk = layoutName.contains("uk") || layoutName.contains("gb");
+      if (prefersUk)
+      {
+        if (installed.contains("en_GB"))
+          dict_name = "en_GB";
+        else if (installed.contains("en_US"))
+          dict_name = "en_US";
+        else if (installed.contains("en_AU"))
+          dict_name = "en_AU";
+        else if (installed.contains("en_CA"))
+          dict_name = "en_CA";
+        else
+          dict_name = "en_GB";
+      }
+      else
+      {
+        if (installed.contains("en_US"))
+          dict_name = "en_US";
+        else if (installed.contains("en_GB"))
+          dict_name = "en_GB";
+        else if (installed.contains("en_AU"))
+          dict_name = "en_AU";
+        else if (installed.contains("en_CA"))
+          dict_name = "en_CA";
+        else
+          dict_name = "en_US";
+      }
+    }
+    else
+    {
+      String userSelected = _dictionaries.get_selected(_config);
+      if (userSelected != null && installed.contains(userSelected))
+      {
+        dict_name = userSelected;
+      }
+      else if (_config.device_locales != null && _config.device_locales.default_ != null)
+      {
+        dict_name = _config.device_locales.default_.dictionary;
+      }
+    }
+
+    String userSelected = _dictionaries.get_selected(_config);
+    if (userSelected != null && installed.contains(userSelected))
+    {
+      if (isBengali && "bn".equals(userSelected))
+      {
+        dict_name = userSelected;
+      }
+      else if (isLatin && userSelected.startsWith("en_"))
+      {
+        dict_name = userSelected;
+      }
+      else if (!isBengali && !isLatin)
+      {
+        dict_name = userSelected;
+      }
+    }
+
     _dictionaries.set_current_dictionary(_config, dict_name);
     _config.current_dictionary_name =
       SupportedDictionaries.get(getResources()).get_display_name(dict_name);
+    _config.current_dictionary_short_name =
+      compute_short_dictionary_code(dict_name, isBengali, isLatin, layoutName);
+    _config.is_bengali_mode = isBengali || "BN".equalsIgnoreCase(_config.current_dictionary_short_name)
+      || (dict_name != null && dict_name.toLowerCase(java.util.Locale.ROOT).startsWith("bn"));
+    _config.should_show_dictionary_switch = true;
+  }
+
+  private String compute_short_dictionary_code(String dictName, boolean isBengali, boolean isLatin, String layoutName)
+  {
+    if (isBengali || (dictName != null && "bn".equalsIgnoreCase(dictName)))
+    {
+      return "BN";
+    }
+    if (dictName != null)
+    {
+      if ("en_GB".equalsIgnoreCase(dictName))
+        return "UK";
+      if ("en_US".equalsIgnoreCase(dictName))
+        return "US";
+      if ("en_AU".equalsIgnoreCase(dictName))
+        return "AU";
+      if ("en_CA".equalsIgnoreCase(dictName))
+        return "CA";
+      if ("en_IN".equalsIgnoreCase(dictName))
+        return "IN";
+      if (dictName.contains("_"))
+      {
+        String country = dictName.substring(dictName.indexOf('_') + 1).toUpperCase(java.util.Locale.ROOT);
+        if ("GB".equals(country)) return "UK";
+        if (country.length() <= 3) return country;
+      }
+      if (dictName.length() == 2)
+      {
+        return dictName.toUpperCase(java.util.Locale.ROOT);
+      }
+    }
+    if (isLatin)
+    {
+      return (layoutName != null && (layoutName.contains("uk") || layoutName.contains("gb"))) ? "UK" : "US";
+    }
+    return (dictName != null && dictName.length() >= 2) ? dictName.substring(0, 2).toUpperCase(java.util.Locale.ROOT) : "";
   }
 
   /** Remember and apply the dictionary chosen by the user for the current
@@ -495,8 +747,14 @@ public class Keyboard2 extends InputMethodService
     refresh_candidates_view();
   }
 
-  private void refresh_candidates_view()
+  public void refresh_candidates_view()
   {
+    if (isAiPaneVisible() || isFancyPaneVisible() || _isEmojiSearchMode || _isAiSettingsOpen)
+    {
+      if (_candidates_view != null)
+        _candidates_view.setVisibility(View.GONE);
+      return;
+    }
     boolean should_show =
       _config.suggestions_enabled
       && _config.editor_config.should_show_candidates_view
@@ -506,7 +764,8 @@ public class Keyboard2 extends InputMethodService
       _candidates_view.refresh_config(_config);
       _keyeventhandler.dictionary_changed();
     }
-    _candidates_view.setVisibility(should_show ? View.VISIBLE : View.GONE);
+    if (_candidates_view != null)
+      _candidates_view.setVisibility(should_show ? View.VISIBLE : View.GONE);
   }
 
   /** Might re-create the keyboard view. [_keyboard_layout_view.setKeyboard()] and
@@ -551,7 +810,11 @@ public class Keyboard2 extends InputMethodService
   @Override
   public void onStartInputView(EditorInfo info, boolean restarting)
   {
-    _config.editor_config.refresh(info, getResources());
+    if (_isAiSettingsOpen)
+    {
+      return;
+    }
+    _config.editor_config.refresh(info, getResources(), _config);
     refresh_config();
     _currentSpecialLayout = refresh_special_layout();
     _keyboard_layout_view.setKeyboard(current_layout());
@@ -657,6 +920,10 @@ public class Keyboard2 extends InputMethodService
   public void onFinishInputView(boolean finishingInput)
   {
     super.onFinishInputView(finishingInput);
+    if (_isAiSettingsOpen)
+    {
+      return;
+    }
     if (_isEmojiSearchMode)
     {
       _isEmojiSearchMode = false;
@@ -818,9 +1085,11 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case SWITCH_VOICE_TYPING:
-          if (!VoiceImeSwitcher.switch_to_voice_ime(Keyboard2.this, get_imm(),
-                Config.globalPrefs()))
-            _config.shouldOfferVoiceTyping = false;
+          if (_candidates_view != null)
+          {
+            _candidates_view.onVoiceListeningStarted();
+          }
+          juloo.keyboard2.voice.OfflineVoiceTypingService.toggleListening(Keyboard2.this, Keyboard2.this);
           break;
 
         case SWITCH_VOICE_TYPING_CHOOSER:
@@ -855,6 +1124,10 @@ public class Keyboard2 extends InputMethodService
 
     public InputConnection getCurrentInputConnection()
     {
+      if (_isAiSettingsOpen && _dialogInputConnection != null)
+      {
+        return _dialogInputConnection;
+      }
       if (_isAiPromptInputMode && _aiPromptInputConnection != null)
       {
         return _aiPromptInputConnection;
@@ -874,6 +1147,23 @@ public class Keyboard2 extends InputMethodService
     public void set_suggestions(Suggestions suggestions)
     {
       _candidates_view.set_candidates(suggestions);
+    }
+
+    @Override
+    public CharSequence getTextBeforeCursor(int n, int flags)
+    {
+      InputConnection conn = getCurrentInputConnection();
+      if (conn != null)
+      {
+        return conn.getTextBeforeCursor(n, flags);
+      }
+      return null;
+    }
+
+    @Override
+    public boolean isSelectionActive()
+    {
+      return _keyeventhandler != null && _keyeventhandler.is_selection_not_empty();
     }
 
     public String provide_stateful_key_symbol(KeyValue.Stateful q)
@@ -964,5 +1254,57 @@ public class Keyboard2 extends InputMethodService
       });
     }
     return true;
+  }
+
+  public String getCurrentLanguageCode()
+  {
+    try
+    {
+      KeyboardData layout = current_layout_unmodified();
+      String layoutScript = (layout != null && layout.script != null) ? layout.script.toLowerCase(java.util.Locale.ROOT) : "";
+      String layoutName = (layout != null && layout.name != null) ? layout.name.toLowerCase(java.util.Locale.ROOT) : "";
+
+      if (layoutScript.contains("beng") || layoutName.contains("বাংলা") || layoutName.contains("bengali"))
+      {
+        return "bn-BD";
+      }
+    }
+    catch (Throwable ignored) {}
+    return "en-US";
+  }
+
+  public CandidatesView getCandidatesView()
+  {
+    return _candidates_view;
+  }
+
+  public void commitVoiceText(String text)
+  {
+    if (text == null || text.trim().isEmpty()) return;
+    String trimmed = text.trim();
+    android.view.inputmethod.InputConnection ic = getCurrentInputConnection();
+    if (ic != null)
+    {
+      ic.commitText(trimmed + " ", 1);
+    }
+    // Update word prediction and sentence learning context without double-committing text
+    if (_suggestions != null)
+    {
+      _suggestions.set_last_word(trimmed);
+      try
+      {
+        CharSequence before = (ic != null) ? ic.getTextBeforeCursor(120, 0) : null;
+        String contextStr = (before != null) ? before.toString() : trimmed;
+        juloo.keyboard2.suggestions.NextWordPredictor predictor =
+            juloo.keyboard2.suggestions.NextWordPredictor.instance(this);
+        predictor.learnSentence(contextStr);
+        _suggestions.predict_sentence_completion(contextStr);
+      }
+      catch (Throwable ignored) {}
+    }
+    if (_candidates_view != null)
+    {
+      _candidates_view.onVoiceListeningStopped();
+    }
   }
 }

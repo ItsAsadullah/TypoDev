@@ -75,6 +75,8 @@ public final class Config
   public boolean clipboard_history_enabled;
   public int clipboard_history_duration;
   public boolean space_bar_auto_complete;
+  public boolean developer_mode;
+  public boolean show_in_terminals;
   public boolean physical_keyboard_hide;
 
   // Dynamically set
@@ -88,6 +90,8 @@ public final class Config
   public Cdict current_dictionary = null; // Might be 'null'.
   public Cdict emoji_dictionary = null; // Might be 'null'.
   public String current_dictionary_name = null; // Display name for the current language
+  public String current_dictionary_short_name = null; // Short code (e.g. BN, UK, US)
+  public boolean is_bengali_mode = false;
   /** Whether to show the dictionary switching button in the candidates view. */
   public boolean should_show_dictionary_switch = false;
   public IKeyEventHandler handler;
@@ -100,6 +104,18 @@ public final class Config
   int current_layout_wide;
   /** Whether to automatically split the layout. */
   public boolean split_layout;
+
+  public Config()
+  {
+    _prefs = null;
+    editor_config = new EditorConfig();
+    marginTop = 0;
+    keyPadding = 0;
+    labelTextSize = 0.33f;
+    sublabelTextSize = 0.22f;
+    shouldOfferVoiceTyping = false;
+    extra_keys_subtype = null;
+  }
 
   private Config(SharedPreferences prefs, Resources res,
       Boolean foldableUnfolded, Dictionaries dicts)
@@ -200,6 +216,8 @@ public final class Config
     clipboard_history_enabled = _prefs.getBoolean("clipboard_history_enabled", false);
     clipboard_history_duration = Integer.parseInt(_prefs.getString("clipboard_history_duration", "5"));
     space_bar_auto_complete = _prefs.getBoolean("space_bar_auto_complete", false);
+    developer_mode = _prefs.getBoolean("developer_mode", false);
+    show_in_terminals = _prefs.getBoolean("show_in_terminals", false);
     physical_keyboard_hide = _prefs.getString("physical_keyboard_behavior", "hide").equals("hide");
     float screen_width_dp = dm.widthPixels / dm.density;
     wide_screen = screen_width_dp >= WIDE_DEVICE_THRESHOLD;

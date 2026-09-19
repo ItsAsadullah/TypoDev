@@ -1,8 +1,10 @@
 package juloo.keyboard2.suggestions;
 
 import android.content.Context;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import juloo.cdict.Cdict;
 import juloo.keyboard2.dict.Dictionaries;
 import juloo.keyboard2.Config;
@@ -40,12 +42,18 @@ public final class Suggestions
     _context = context;
   }
 
+  public Context getContext()
+  {
+    return _context;
+  }
+
   public void started()
   {
     _enabled = _config.editor_config.should_show_candidates_view;
     _second_last_word = "";
     _last_word = "";
     clear();
+    _callback.set_suggestions(this);
   }
 
   private String _second_last_word = "";
@@ -74,10 +82,113 @@ public final class Suggestions
     return _second_last_word;
   }
 
+  public boolean isBengaliMode()
+  {
+    if (_config != null)
+    {
+      if (_config.is_bengali_mode)
+        return true;
+      if ("BN".equalsIgnoreCase(_config.current_dictionary_short_name))
+        return true;
+      if (_config.current_dictionary_name != null &&
+          _config.current_dictionary_name.toLowerCase(java.util.Locale.ROOT).contains("bengali"))
+        return true;
+    }
+    return false;
+  }
+
+  public static boolean containsBengaliChar(String s)
+  {
+    if (s == null) return false;
+    for (int i = 0; i < s.length(); i++)
+    {
+      char c = s.charAt(i);
+      if (c >= '\u0980' && c <= '\u09FF')
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public void predict_sentence_completion(String textBefore)
+  {
+    if (!_enabled)
+      return;
+
+    if (textBefore == null || textBefore.isEmpty())
+    {
+      _last_word = "";
+      _second_last_word = "";
+      clear();
+      _callback.set_suggestions(this);
+      return;
+    }
+
+    if (textBefore.endsWith("\n") || textBefore.endsWith("\r"))
+    {
+      _last_word = "";
+      _second_last_word = "";
+      clear();
+      _callback.set_suggestions(this);
+      return;
+    }
+
+    clear();
+    boolean bengaliMode = isBengaliMode() || containsBengaliChar(textBefore);
+
+    // If text ends with angle bracket e.g. "<" or "</", show tag suggestions directly IF in developer mode
+    if (_config != null && _config.developer_mode && (textBefore.endsWith("</") || textBefore.endsWith("<")))
+    {
+      List<Candidate> devCands = DevSyntaxEngine.instance().queryCandidates("", textBefore, MAX_COUNT);
+      int i = 0;
+      for (Candidate c : devCands)
+      {
+        if (i >= MAX_COUNT) break;
+        suggestions[i++] = c.word;
+      }
+      count = i;
+      _callback.set_suggestions(this);
+      return;
+    }
+
+    NextWordPredictor predictor = NextWordPredictor.instance(_context);
+    predictor.learnSentence(textBefore);
+
+    List<String> nextWords = predictor.predictFromSentence(textBefore, MAX_COUNT);
+    int i = 0;
+    for (String nw : nextWords)
+    {
+      if (i >= MAX_COUNT) break;
+      if (!bengaliMode && containsBengaliChar(nw))
+        continue;
+      suggestions[i++] = nw;
+    }
+    count = i;
+    _callback.set_suggestions(this);
+  }
+
   public void predict_next_words(String prevWord)
   {
     if (!_enabled)
       return;
+
+    CharSequence textBefore = null;
+    if (_callback != null)
+    {
+      try
+      {
+        textBefore = _callback.getTextBeforeCursor(120, 0);
+      }
+      catch (Throwable ignored) {}
+    }
+
+    if (textBefore != null && textBefore.length() > 0)
+    {
+      predict_sentence_completion(textBefore.toString());
+      return;
+    }
+
     clear();
     String context = "";
     String priorWord = _last_word;
@@ -93,27 +204,28 @@ public final class Suggestions
     }
 
     set_last_word(prevWord);
-    if (_context != null)
+    NextWordPredictor predictor = NextWordPredictor.instance(_context);
+    // Learn transitions from prior words to this newly completed word
+    if (priorWord != null && !priorWord.isEmpty() && !priorWord.equalsIgnoreCase(prevWord))
     {
-      // Learn transitions from prior words to this newly completed word
-      if (priorWord != null && !priorWord.isEmpty() && !priorWord.equalsIgnoreCase(prevWord))
+      predictor.learn(priorWord, prevWord);
+      if (priorPriorWord != null && !priorPriorWord.isEmpty())
       {
-        NextWordPredictor.instance(_context).learn(priorWord, prevWord);
-        if (priorPriorWord != null && !priorPriorWord.isEmpty())
-        {
-          NextWordPredictor.instance(_context).learn(priorPriorWord + " " + priorWord, prevWord);
-        }
+        predictor.learn(priorPriorWord + " " + priorWord, prevWord);
       }
-
-      List<String> nextWords = NextWordPredictor.instance(_context).predict(context, prevWord, MAX_COUNT);
-      int i = 0;
-      for (String nw : nextWords)
-      {
-        if (i >= MAX_COUNT) break;
-        suggestions[i++] = nw;
-      }
-      count = i;
     }
+
+    List<String> nextWords = predictor.predict(context, prevWord, MAX_COUNT);
+    boolean bengaliMode = isBengaliMode() || containsBengaliChar(prevWord);
+    int i = 0;
+    for (String nw : nextWords)
+    {
+      if (i >= MAX_COUNT) break;
+      if (!bengaliMode && containsBengaliChar(nw))
+        continue;
+      suggestions[i++] = nw;
+    }
+    count = i;
     _callback.set_suggestions(this);
   }
 
@@ -121,31 +233,49 @@ public final class Suggestions
   {
     if (!_enabled)
       return;
+
     if (word == null || word.isEmpty())
     {
-      if (_context != null && _last_word != null && !_last_word.isEmpty())
+      if (_callback != null && _callback.isSelectionActive())
       {
-        predict_next_words(_last_word);
+        _last_word = "";
+        _second_last_word = "";
+        clear();
+        _callback.set_suggestions(this);
+        return;
+      }
+
+      CharSequence textBefore = null;
+      if (_callback != null)
+      {
+        try
+        {
+          textBefore = _callback.getTextBeforeCursor(120, 0);
+        }
+        catch (Throwable ignored) {}
+      }
+
+      if (textBefore != null && textBefore.length() > 0)
+      {
+        predict_sentence_completion(textBefore.toString());
+      }
+      else if (_last_word != null && !_last_word.isEmpty())
+      {
+        predict_sentence_completion(_last_word + " ");
       }
       else
       {
-        clear();
-        _callback.set_suggestions(this);
+        predict_sentence_completion("");
       }
       return;
     }
-    set_last_word(word);
-    boolean hasExt = (_context != null && juloo.keyboard2.dict.ExternalDictionaryManager.instance(_context).getWordCount() > 0);
-    if (_config.current_dictionary == null && !hasExt)
-    {
-      clear();
-    }
-    else
-    {
-      query_suggestions(word);
-    }
+    query_suggestions(word);
     _callback.set_suggestions(this);
   }
+
+  public boolean should_autocorrect = false;
+  public String verbatim_word = null;
+  public Candidate top_candidate = null;
 
   void clear()
   {
@@ -153,6 +283,9 @@ public final class Suggestions
     for (int i = 0; i < MAX_COUNT; i++)
       suggestions[i] = null;
     emoji_suggestion = null;
+    should_autocorrect = false;
+    verbatim_word = null;
+    top_candidate = null;
   }
 
   int query_suggestions(String word)
@@ -160,61 +293,297 @@ public final class Suggestions
     try
     {
       String rawWord = word;
+      verbatim_word = rawWord;
       Cdict dict = _config.current_dictionary;
       boolean first_char_upper = (word != null && !word.isEmpty() && Character.isUpperCase(word.charAt(0)));
       String subWord = apply_substitutions(word);
-      int i = 0;
+      boolean bengaliMode = isBengaliMode() || containsBengaliChar(rawWord);
 
-      if (dict != null)
+      List<Candidate> rawCandidates = new ArrayList<>(48);
+
+      // 0. Developer Coding Syntax & Tag Suggestions (ONLY in developer_mode)
+      if (_config != null && _config.developer_mode)
       {
-        Cdict.Result r = dict.find(subWord);
-        if (r.found)
-          suggestions[i++] = dict.word(r.index);
-        int[] suffixes = dict.suffixes(r, MAX_COUNT);
-        // Disable distance search for small words
-        int[] dist = (subWord.length() < 3 || i + 1 >= MAX_COUNT) ? NO_RESULTS :
-          dict.distance(subWord, 1, MAX_COUNT);
-        for (int j = 0; j < MAX_COUNT && i < MAX_COUNT; j++)
+        CharSequence textBefore = null;
+        if (_callback != null)
         {
-          if (suffixes.length > j)
-            suggestions[i++] = dict.word(suffixes[j]);
-          if (dist.length > j && i < MAX_COUNT)
-            suggestions[i++] = dict.word(dist[j]);
+          try
+          {
+            textBefore = _callback.getTextBeforeCursor(120, 0);
+          }
+          catch (Throwable ignored) {}
         }
+        String textBeforeStr = (textBefore != null) ? textBefore.toString() : "";
+        List<Candidate> devCands = DevSyntaxEngine.instance().queryCandidates(rawWord, textBeforeStr, 8);
+        rawCandidates.addAll(devCands);
       }
 
-      // Merge external imported dictionary / wordlist words (FrostKeys / HeliBoard style)
-      if (_context != null && i < MAX_COUNT)
+      // 1. English Grammar, Contractions, Spellings, Inflections & Ordinals
+      if (!bengaliMode || !containsBengaliChar(rawWord))
       {
-        juloo.keyboard2.dict.ExternalDictionaryManager ext =
-            juloo.keyboard2.dict.ExternalDictionaryManager.instance(_context);
-        // Query raw word first (preserves exact Unicode Bengali and Latin case)
-        List<String> extWords = ext.query(rawWord, MAX_COUNT - i);
-        for (String ew : extWords)
-        {
-          if (i >= MAX_COUNT) break;
-          if (!containsSuggestion(ew, i))
-          {
-            suggestions[i++] = ew;
-          }
-        }
+        List<Candidate> grammarCands = EnglishGrammarEngine.instance().queryCandidates(rawWord, 8);
+        rawCandidates.addAll(grammarCands);
+      }
 
-        // If still space, query substituted word
-        if (i < MAX_COUNT && !rawWord.equals(subWord))
+      // 2. Snippet / Word Manager (high priority shortcuts)
+      if (_context != null && word != null && word.length() >= 2)
+      {
+        try
         {
-          List<String> subExtWords = ext.query(subWord, MAX_COUNT - i);
-          for (String ew : subExtWords)
+          java.util.List<juloo.keyboard2.snippet.Snippet> snippets =
+              juloo.keyboard2.snippet.SnippetStore.instance(_context)
+                  .findByShortcutPrefix(word);
+          for (juloo.keyboard2.snippet.Snippet sn : snippets)
           {
-            if (i >= MAX_COUNT) break;
-            if (!containsSuggestion(ew, i))
+            boolean isExact = word.equalsIgnoreCase(sn.shortcut);
+            int minLen = Math.max(2, (int)Math.ceil(sn.shortcut.length() * 0.75));
+            if (!isExact && word.length() < minLen) continue;
+            String expansion = sn.expansion;
+            if (expansion != null && !expansion.isEmpty())
             {
-              suggestions[i++] = ew;
+              rawCandidates.add(new Candidate(expansion, Candidate.Source.SNIPPET, 240, 0, 1.0f));
             }
           }
         }
+        catch (Throwable ignored) {}
       }
 
+      // 3. Personal & Learned Vocabulary (highest user affinity)
+      if (_context != null)
+      {
+        try
+        {
+          List<Candidate> userCands = UserVocabularyStore.instance(_context).queryCandidates(rawWord, 6);
+          for (Candidate c : userCands)
+          {
+            if (!bengaliMode && containsBengaliChar(c.word)) continue;
+            rawCandidates.add(c);
+          }
+        }
+        catch (Throwable ignored) {}
+      }
+
+      // 4. Offline Core Lexicon (built-in English & Bengali high-frequency words)
+      try
+      {
+        List<Candidate> coreCands = CoreLexiconManager.instance(_context).queryPrefix(rawWord, 12);
+        for (Candidate c : coreCands)
+        {
+          if (!bengaliMode && containsBengaliChar(c.word)) continue;
+          rawCandidates.add(c);
+        }
+      }
+      catch (Throwable ignored) {}
+
+      // 5. Native Cdict dictionary (if loaded)
+      if (dict != null)
+      {
+        try
+        {
+          Cdict.Result r = dict.find(subWord);
+          if (r.found)
+          {
+            int f = Math.min(255, dict.freq(r.index) * 17);
+            String dw = dict.word(r.index);
+            if (bengaliMode || !containsBengaliChar(dw))
+            {
+              rawCandidates.add(new Candidate(dw, Candidate.Source.CDICT, f, 0, 1.0f));
+            }
+          }
+          int[] suffixes = dict.suffixes(r, 10);
+          for (int sIdx : suffixes)
+          {
+            String sw = dict.word(sIdx);
+            if (!bengaliMode && containsBengaliChar(sw)) continue;
+            int f = Math.min(255, dict.freq(sIdx) * 17);
+            float ratio = (float) subWord.length() / (float) sw.length();
+            rawCandidates.add(new Candidate(sw, Candidate.Source.CDICT, f, 0, ratio));
+          }
+          if (subWord.length() >= 3)
+          {
+            int[] dist = dict.distance(subWord, 1, 6);
+            for (int dIdx : dist)
+            {
+              String dw = dict.word(dIdx);
+              if (!bengaliMode && containsBengaliChar(dw)) continue;
+              int f = Math.min(255, dict.freq(dIdx) * 17);
+              rawCandidates.add(new Candidate(dw, Candidate.Source.TYPO_CORRECTION, f, 1, 0.8f));
+            }
+          }
+        }
+        catch (Throwable ignored) {}
+      }
+
+      // 6. External downloaded/imported dictionaries (frequency-aware)
+      if (_context != null)
+      {
+        try
+        {
+          juloo.keyboard2.dict.ExternalDictionaryManager ext =
+              juloo.keyboard2.dict.ExternalDictionaryManager.instance(_context);
+          List<Candidate> extCands = ext.queryCandidates(rawWord, 10);
+          for (Candidate c : extCands)
+          {
+            if (!bengaliMode && containsBengaliChar(c.word)) continue;
+            rawCandidates.add(c);
+          }
+
+          if (!rawWord.equals(subWord))
+          {
+            List<Candidate> subExtCands = ext.queryCandidates(subWord, 6);
+            for (Candidate c : subExtCands)
+            {
+              if (!bengaliMode && containsBengaliChar(c.word)) continue;
+              rawCandidates.add(c);
+            }
+          }
+        }
+        catch (Throwable ignored) {}
+      }
+
+      // 7. Banglish-to-Bangla Transliteration Candidate Generation (ONLY IN BENGALI MODE)
+      if (bengaliMode && BanglishEngine.isLatinOnly(rawWord) && rawWord.length() >= 2)
+      {
+        try
+        {
+          List<Candidate> bnCands = BanglishEngine.instance().generateCandidates(rawWord, 5);
+          rawCandidates.addAll(bnCands);
+        }
+        catch (Throwable ignored) {}
+      }
+
+      // 8. Levenshtein Typo Corrections from Core Lexicon
+      if (rawWord.length() >= 3)
+      {
+        try
+        {
+          List<Candidate> coreTypos = CoreLexiconManager.instance(_context).queryTypoCorrections(rawWord, 4);
+          for (Candidate c : coreTypos)
+          {
+            if (!bengaliMode && containsBengaliChar(c.word)) continue;
+            rawCandidates.add(c);
+          }
+        }
+        catch (Throwable ignored) {}
+      }
+
+      // 9. Context Collocation & Predictive Boost from preceding words in sentence
+      CharSequence textBefore = null;
+      if (_callback != null)
+      {
+        try
+        {
+          textBefore = _callback.getTextBeforeCursor(120, 0);
+        }
+        catch (Throwable ignored) {}
+      }
+      String priorText = (textBefore != null) ? textBefore.toString() : "";
+      if (!priorText.isEmpty() && rawWord != null && !rawWord.isEmpty())
+      {
+        if (priorText.endsWith(rawWord))
+        {
+          priorText = priorText.substring(0, priorText.length() - rawWord.length());
+        }
+      }
+      if (priorText.isEmpty() && _last_word != null && !_last_word.equalsIgnoreCase(rawWord))
+      {
+        priorText = _last_word + " ";
+      }
+
+      if (!priorText.trim().isEmpty())
+      {
+        try
+        {
+          List<String> expectedNextWords = NextWordPredictor.instance(_context).predictFromSentence(priorText, 16);
+          if (expectedNextWords != null && !expectedNextWords.isEmpty())
+          {
+            String lowerRaw = rawWord.toLowerCase(Locale.ROOT);
+            for (int predIdx = 0; predIdx < expectedNextWords.size(); predIdx++)
+            {
+              String pred = expectedNextWords.get(predIdx);
+              if (pred == null || pred.isEmpty()) continue;
+              if (!bengaliMode && containsBengaliChar(pred)) continue;
+
+              String lowerPred = pred.toLowerCase(Locale.ROOT);
+              if (lowerPred.startsWith(lowerRaw))
+              {
+                float ctxScore = Math.max(0.5f, 1.0f - (predIdx * 0.05f));
+                int freqBoost = Math.max(200, 255 - (predIdx * 2));
+                boolean found = false;
+                for (Candidate c : rawCandidates)
+                {
+                  if (c.word.equalsIgnoreCase(pred))
+                  {
+                    c.source = Candidate.Source.AUTOCORRECT;
+                    c.contextScore = Math.max(c.contextScore, ctxScore);
+                    c.frequency = Math.max(c.frequency, freqBoost);
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found)
+                {
+                  float ratio = (float)lowerRaw.length() / (float)pred.length();
+                  rawCandidates.add(new Candidate(pred, Candidate.Source.AUTOCORRECT, freqBoost, 0, ratio, ctxScore));
+                }
+              }
+            }
+          }
+        }
+        catch (Throwable ignored) {}
+      }
+
+      // 10. Strict English filter: if not in Bengali mode, filter any candidate with Bengali characters
+      List<Candidate> candidatesToRank = rawCandidates;
+      if (!bengaliMode)
+      {
+        candidatesToRank = new ArrayList<>(rawCandidates.size());
+        for (Candidate c : rawCandidates)
+        {
+          if (c != null && c.word != null && !containsBengaliChar(c.word))
+          {
+            candidatesToRank.add(c);
+          }
+        }
+      }
+
+      // 11. Composite Scoring & Ranking
+      List<Candidate> ranked = CandidateRanker.rank(candidatesToRank, MAX_COUNT);
+
+      // 12. Autocorrect Evaluation
+      should_autocorrect = false;
+      top_candidate = null;
+      if (!ranked.isEmpty())
+      {
+        top_candidate = ranked.get(0);
+        Candidate second = ranked.size() > 1 ? ranked.get(1) : null;
+
+        boolean isWordValid = CoreLexiconManager.instance(_context).containsWord(rawWord);
+        if (!isWordValid && _context != null)
+        {
+          isWordValid = UserVocabularyStore.instance(_context).containsWord(rawWord)
+              || juloo.keyboard2.dict.ExternalDictionaryManager.instance(_context).containsWord(rawWord);
+        }
+        if (!isWordValid && dict != null)
+        {
+          isWordValid = dict.find(subWord).found;
+        }
+
+        boolean isProtected = (_context != null && UserVocabularyStore.instance(_context).isProtectedWord(rawWord));
+
+        should_autocorrect = AutocorrectDecision.shouldAutocorrect(
+            rawWord, top_candidate, second, isWordValid, isProtected, AutocorrectDecision.Sensitivity.BALANCED);
+      }
+
+      // 13. Populate Suggestions Array
+      int i = 0;
+      for (Candidate c : ranked)
+      {
+        if (i >= MAX_COUNT) break;
+        suggestions[i++] = c.word;
+      }
       count = i;
+
       if (first_char_upper)
         capitalize_results();
       emoji_suggestion = query_emoji(subWord);
@@ -245,7 +614,19 @@ public final class Suggestions
     {
       if (suggestions[i] != null && !suggestions[i].isEmpty())
       {
-        suggestions[i] = juloo.keyboard2.Utils.capitalize_string(suggestions[i]);
+        String s = suggestions[i];
+        // Do not capitalize tags, code snippets, or formulas
+        if (s.startsWith("<") || s.contains("(") || s.contains(";") || s.contains(":") || s.contains("="))
+        {
+          continue;
+        }
+        // Do not alter words that already have internal capitalization or apostrophes (e.g. I'm, Father's, 3ʳᵈ)
+        if (s.startsWith("I'") || s.startsWith("i'"))
+        {
+          suggestions[i] = "I" + s.substring(1);
+          continue;
+        }
+        suggestions[i] = juloo.keyboard2.Utils.capitalize_string(s);
       }
     }
   }
@@ -286,5 +667,7 @@ public final class Suggestions
   public static interface Callback
   {
     public void set_suggestions(Suggestions suggestions);
+    default CharSequence getTextBeforeCursor(int n, int flags) { return null; }
+    default boolean isSelectionActive() { return false; }
   }
 }

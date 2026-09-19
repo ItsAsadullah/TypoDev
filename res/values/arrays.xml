@@ -156,18 +156,48 @@
     <item>landscape</item>
     <item>never</item>
   </string-array>
+  <string-array name="pref_ai_provider_entries">
+    <item>Google Gemini</item>
+    <item>OpenAI / DeepSeek / Groq</item>
+  </string-array>
+  <string-array name="pref_ai_provider_values">
+    <item>gemini</item>
+    <item>openai</item>
+  </string-array>
+
   <string-array name="pref_gemini_model_entries">
-    <item>Gemini 1.5 Flash (Recommended - Fastest &amp; High Quota)</item>
+    <item>Gemini 2.0 Flash (Recommended - Fastest)</item>
     <item>Gemini 2.0 Flash Lite (Ultra-Low Latency)</item>
-    <item>Gemini 1.5 Flash-8B (High Efficiency)</item>
-    <item>Gemini 2.0 Flash</item>
-    <item>Gemini 1.5 Pro</item>
+    <item>Gemini 1.5 Flash (High Free Quota)</item>
+    <item>Gemini 1.5 Flash-8B (Lightweight)</item>
+    <item>Gemini 1.5 Pro (Complex Reasoning)</item>
+    <item>Gemini 2.0 Pro Experimental</item>
   </string-array>
   <string-array name="pref_gemini_model_values">
-    <item>gemini-1.5-flash</item>
-    <item>gemini-2.0-flash-lite</item>
-    <item>gemini-1.5-flash-8b</item>
     <item>gemini-2.0-flash</item>
+    <item>gemini-2.0-flash-lite</item>
+    <item>gemini-1.5-flash</item>
+    <item>gemini-1.5-flash-8b</item>
     <item>gemini-1.5-pro</item>
+    <item>gemini-2.0-pro-exp-02-05</item>
+  </string-array>
+
+  <string-array name="pref_openai_model_entries">
+    <item>gpt-4o-mini (OpenAI Fast &amp; Affordable)</item>
+    <item>gpt-4o (OpenAI Flagship)</item>
+    <item>deepseek-chat (DeepSeek V3)</item>
+    <item>deepseek-reasoner (DeepSeek R1)</item>
+    <item>llama-3.3-70b-versatile (Groq Ultra Fast)</item>
+    <item>claude-3-5-sonnet-20241022 (Claude 3.5 Sonnet)</item>
+    <item>gemini-2.0-flash (Gemini via Proxy/OpenRouter)</item>
+  </string-array>
+  <string-array name="pref_openai_model_values">
+    <item>gpt-4o-mini</item>
+    <item>gpt-4o</item>
+    <item>deepseek-chat</item>
+    <item>deepseek-reasoner</item>
+    <item>llama-3.3-70b-versatile</item>
+    <item>claude-3-5-sonnet-20241022</item>
+    <item>gemini-2.0-flash</item>
   </string-array>
 </resources>

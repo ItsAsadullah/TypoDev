@@ -131,21 +131,129 @@ public final class KeyEventHandler
     update_meta_state(mods);
   }
 
+  public boolean is_selection_not_empty()
+  {
+    return _typedword != null && _typedword.is_selection_not_empty();
+  }
+
   @Override
   public void suggestion_entered(String text)
   {
+    if (text == null) return;
+    boolean isMagic = text.startsWith("🪄 ");
+    String effectiveText = isMagic ? text.substring(3).trim() : text;
     String old = _typedword.get();
     int cur_rel = _typedword.cursor_relative();
-    String textWithSpace = text.endsWith(" ") ? text : text + " ";
-    replace_surrounding_text(old.length() + cur_rel, -cur_rel, textWithSpace);
-    last_replaced_word = old;
-    last_replacement_word_len = textWithSpace.length();
+    InputConnection conn = _recv.getCurrentInputConnection();
+
+    // Check if we need to remove leading '<' or '</' if the suggestion starts with '<'
+    int extraBefore = 0;
+    if (conn != null && effectiveText.startsWith("<"))
+    {
+      CharSequence before = conn.getTextBeforeCursor(old.length() + Math.abs(cur_rel) + 4, 0);
+      if (before != null)
+      {
+        String sBefore = before.toString();
+        String oldPrefix = (cur_rel < 0 && old.length() + cur_rel >= 0)
+            ? old.substring(0, old.length() + cur_rel)
+            : old;
+        if (sBefore.endsWith("</" + oldPrefix))
+        {
+          extraBefore = 2;
+        }
+        else if (sBefore.endsWith("<" + oldPrefix))
+        {
+          extraBefore = 1;
+        }
+      }
+    }
+
+    // Code syntax (tags, function calls, CSS styles, block delimiters) should not append a trailing space
+    boolean isCodeSyntax = effectiveText.startsWith("<") || effectiveText.endsWith(">")
+        || effectiveText.endsWith(")") || effectiveText.endsWith(";") || effectiveText.endsWith("}")
+        || effectiveText.endsWith("{") || effectiveText.endsWith(":");
+    String textToInsert = isCodeSyntax ? effectiveText : (effectiveText.endsWith(" ") ? effectiveText : effectiveText + " ");
+
+    int removeBefore = old.length() + cur_rel + extraBefore;
+    if (isMagic)
+    {
+      if (!old.isEmpty())
+      {
+        String lowerOld = old.toLowerCase(java.util.Locale.ROOT);
+        String lowerEff = effectiveText.toLowerCase(java.util.Locale.ROOT);
+        if (lowerEff.startsWith(lowerOld))
+        {
+          removeBefore = old.length() + cur_rel;
+        }
+        else
+        {
+          // Magic completion is a continuation of the sentence.
+          // Do NOT delete the preceding completed word (e.g. "কাজ করছি" -> keep "করছি")!
+          removeBefore = 0;
+        }
+      }
+      else
+      {
+        removeBefore = 0;
+      }
+
+      if (removeBefore == 0 && conn != null)
+      {
+        CharSequence before = conn.getTextBeforeCursor(2, 0);
+        String sBefore = (before != null) ? before.toString() : "";
+        if (!sBefore.isEmpty() && !sBefore.endsWith(" ") && !textToInsert.startsWith(" "))
+        {
+          textToInsert = " " + textToInsert;
+        }
+      }
+    }
+
+    replace_surrounding_text(removeBefore, -cur_rel, textToInsert);
+    last_replaced_word = (removeBefore > 0) ? old : "";
+    last_replacement_word_len = textToInsert.length();
     _next_last_action = LastAction.SUGGESTION_ENTERED;
 
-    String clean = text.trim();
+    String clean = effectiveText.trim();
+    if (_suggestions != null && _suggestions.getContext() != null)
+    {
+      juloo.keyboard2.suggestions.UserVocabularyStore.instance(_suggestions.getContext()).learnWord(clean);
+    }
+    CharSequence textBefore = null;
+    if (conn != null)
+    {
+      try
+      {
+        textBefore = conn.getTextBeforeCursor(120, 0);
+      }
+      catch (Throwable ignored) {}
+    }
+
+    String contextString = (textBefore != null) ? textBefore.toString() : "";
+    // If the asynchronous IPC hasn't reflected the committed suggestion text yet, synthesize it
+    if (!contextString.endsWith(textToInsert) && !contextString.endsWith(clean + " ") && !contextString.endsWith(clean))
+    {
+      if (!contextString.isEmpty() && !contextString.endsWith(" "))
+      {
+        contextString += " ";
+      }
+      contextString += textToInsert;
+    }
+
     if (_suggestions != null)
     {
-      _suggestions.predict_next_words(clean);
+      _suggestions.set_last_word(clean);
+      if (_suggestions.getContext() != null)
+      {
+        juloo.keyboard2.suggestions.NextWordPredictor predictor =
+            juloo.keyboard2.suggestions.NextWordPredictor.instance(_suggestions.getContext());
+        String priorWord = _suggestions.get_second_last_word();
+        if (priorWord != null && !priorWord.isEmpty() && !priorWord.equalsIgnoreCase(clean))
+        {
+          predictor.learn(priorWord, clean);
+        }
+        predictor.learnSentence(contextString);
+      }
+      _suggestions.predict_sentence_completion(contextString);
     }
   }
 
@@ -552,10 +660,14 @@ public final class KeyEventHandler
       backspace. */
   int last_replacement_word_len = 0;
 
-  /** Implement autocorrect when enabled in the settings. */
+  /** Implement autocorrect when enabled in the settings and approved by AutocorrectDecision. */
   void handle_space_bar()
   {
-    if (_space_bar_auto_complete && _suggestions.count > 0
+    boolean allowSpaceReplace = _space_bar_auto_complete
+        || (_suggestions != null && _suggestions.top_candidate != null
+            && _suggestions.top_candidate.source == juloo.keyboard2.suggestions.Candidate.Source.AUTOCORRECT);
+    if (allowSpaceReplace && _suggestions.count > 0
+        && _suggestions.should_autocorrect
         && !_typedword.is_selection_not_empty()
         && _typedword.cursor_relative() == 0)
     {
@@ -565,19 +677,46 @@ public final class KeyEventHandler
     {
       String currentWord = _typedword.get();
       send_text(" ");
-      if (_suggestions != null && currentWord != null && !currentWord.trim().isEmpty())
+      if (currentWord != null && !currentWord.trim().isEmpty())
+      {
+        String clean = currentWord.trim();
+        if (_suggestions != null && _suggestions.getContext() != null)
+        {
+          juloo.keyboard2.suggestions.UserVocabularyStore.instance(_suggestions.getContext()).learnWord(clean);
+        }
+      }
+      InputConnection conn = _recv.getCurrentInputConnection();
+      CharSequence textBefore = null;
+      if (conn != null)
+      {
+        textBefore = conn.getTextBeforeCursor(120, 0);
+      }
+      if (textBefore != null && textBefore.length() > 0 && _suggestions != null)
+      {
+        _suggestions.predict_sentence_completion(textBefore.toString());
+      }
+      else if (_suggestions != null && currentWord != null && !currentWord.trim().isEmpty())
       {
         _suggestions.predict_next_words(currentWord.trim());
       }
     }
   }
 
-  /** Undo the last autocorrect. */
+  /** Undo the last autocorrect and record rejection penalty. */
   void handle_backspace()
   {
     if (_last_action == LastAction.SUGGESTION_ENTERED
         && last_replaced_word != null)
     {
+      if (_suggestions != null && _suggestions.count > 0 && _suggestions.getContext() != null)
+      {
+        String candidateThatReplaced = _suggestions.suggestions[0];
+        if (candidateThatReplaced != null)
+        {
+          juloo.keyboard2.suggestions.UserVocabularyStore.instance(_suggestions.getContext())
+              .recordRejection(candidateThatReplaced, last_replaced_word);
+        }
+      }
       replace_surrounding_text(last_replacement_word_len, 0, last_replaced_word);
       last_replaced_word = null;
     }

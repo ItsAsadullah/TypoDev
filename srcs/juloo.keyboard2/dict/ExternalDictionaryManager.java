@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -151,9 +152,23 @@ public class ExternalDictionaryManager
     });
   }
 
+  private volatile Map<String, Integer> loadedFrequencies = Collections.emptyMap();
+
+  public static class ParsedEntry
+  {
+    public final String word;
+    public final int frequency;
+
+    public ParsedEntry(String word, int frequency)
+    {
+      this.word = word;
+      this.frequency = Math.max(1, Math.min(255, frequency));
+    }
+  }
+
   private void reloadAllFromDisk()
   {
-    TreeSet<String> uniqueWords = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    Map<String, Integer> freqMap = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     File dir = getDictsDir();
     File[] files = dir.listFiles();
     SharedPreferences.Editor editor = context.getSharedPreferences(PREFS_EXT_DICTS, Context.MODE_PRIVATE).edit();
@@ -170,10 +185,14 @@ public class ExternalDictionaryManager
             String line;
             while ((line = br.readLine()) != null)
             {
-              String word = cleanLine(line);
-              if (word != null && !word.isEmpty())
+              ParsedEntry entry = parseLine(line);
+              if (entry != null && !entry.word.isEmpty())
               {
-                uniqueWords.add(word);
+                Integer prev = freqMap.get(entry.word);
+                if (prev == null || entry.frequency > prev)
+                {
+                  freqMap.put(entry.word, entry.frequency);
+                }
                 fileCount++;
               }
             }
@@ -189,32 +208,57 @@ public class ExternalDictionaryManager
     }
     editor.apply();
 
-    List<String> list = new ArrayList<>(uniqueWords);
+    List<String> list = new ArrayList<>(freqMap.keySet());
     // Atomic reference swap for instant non-blocking reads on UI thread
     this.loadedWords = Collections.unmodifiableList(list);
+    this.loadedFrequencies = Collections.unmodifiableMap(freqMap);
     this.totalWordCount = list.size();
     this.isLoaded = true;
   }
 
-  public static String cleanLine(String line)
+  public static ParsedEntry parseLine(String line)
   {
     if (line == null) return null;
     String trimmed = line.trim();
     if (trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith("//"))
       return null;
 
+    int freq = 50;
+
     // 1. Helium314 / AOSP .combined format: word=hello,f=255,...
     if (trimmed.startsWith("word="))
     {
+      String w = trimmed;
       int comma = trimmed.indexOf(',');
       if (comma > 5)
-        trimmed = trimmed.substring(5, comma).trim();
+      {
+        w = trimmed.substring(5, comma).trim();
+        int fIdx = trimmed.indexOf("f=");
+        if (fIdx > 0)
+        {
+          int fEnd = trimmed.indexOf(',', fIdx);
+          String fStr = (fEnd > fIdx) ? trimmed.substring(fIdx + 2, fEnd).trim() : trimmed.substring(fIdx + 2).trim();
+          try { freq = Integer.parseInt(fStr); } catch (Exception ignored) {}
+        }
+      }
       else
-        trimmed = trimmed.substring(5).trim();
+      {
+        w = trimmed.substring(5).trim();
+      }
+      trimmed = w;
     }
     // 2. XML tag format: <w f="100">hello</w>
     else if (trimmed.startsWith("<w") && trimmed.contains(">") && trimmed.contains("</w>"))
     {
+      int fIdx = trimmed.indexOf("f=\"");
+      if (fIdx > 0)
+      {
+        int fEnd = trimmed.indexOf('"', fIdx + 3);
+        if (fEnd > fIdx)
+        {
+          try { freq = Integer.parseInt(trimmed.substring(fIdx + 3, fEnd).trim()); } catch (Exception ignored) {}
+        }
+      }
       int start = trimmed.indexOf('>') + 1;
       int end = trimmed.indexOf("</w>");
       if (end > start)
@@ -227,6 +271,8 @@ public class ExternalDictionaryManager
       if (spaceIdx < 0) spaceIdx = trimmed.indexOf(' ');
       if (spaceIdx > 0)
       {
+        String fStr = trimmed.substring(spaceIdx + 1).trim();
+        try { freq = Integer.parseInt(fStr); } catch (Exception ignored) {}
         trimmed = trimmed.substring(0, spaceIdx).trim();
       }
     }
@@ -237,20 +283,35 @@ public class ExternalDictionaryManager
       trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
     }
 
-    return trimmed.isEmpty() ? null : trimmed;
+    if (trimmed.isEmpty()) return null;
+    return new ParsedEntry(trimmed, freq);
+  }
+
+  public static String cleanLine(String line)
+  {
+    ParsedEntry pe = parseLine(line);
+    return pe != null ? pe.word : null;
+  }
+
+  public boolean containsWord(String word)
+  {
+    if (word == null || word.trim().isEmpty()) return false;
+    List<String> words = this.loadedWords;
+    if (words == null || words.isEmpty()) return false;
+    return Collections.binarySearch(words, word.trim(), String.CASE_INSENSITIVE_ORDER) >= 0;
   }
 
   /**
-   * Ultra-fast O(log N) prefix query using binary search.
-   * Completely thread-safe and lock-free; cannot block the IME UI thread.
+   * Frequency-aware candidate query for ExternalDictionaryManager.
    */
-  public List<String> query(String prefix, int maxResults)
+  public List<juloo.keyboard2.suggestions.Candidate> queryCandidates(String prefix, int maxResults)
   {
     if (prefix == null) return Collections.emptyList();
     String cleanPrefix = prefix.trim();
     if (cleanPrefix.isEmpty() || maxResults <= 0) return Collections.emptyList();
 
-    List<String> words = this.loadedWords; // atomic read of immutable list
+    List<String> words = this.loadedWords;
+    Map<String, Integer> freqs = this.loadedFrequencies;
     if (words == null || words.isEmpty()) return Collections.emptyList();
 
     int len = words.size();
@@ -261,20 +322,52 @@ public class ExternalDictionaryManager
     }
 
     int prefixLen = cleanPrefix.length();
-    List<String> results = new ArrayList<>(Math.min(maxResults, 8));
+    List<juloo.keyboard2.suggestions.Candidate> matches = new ArrayList<>(Math.min(maxResults * 2, 32));
 
-    for (int i = idx; i < len && results.size() < maxResults; i++)
+    for (int i = idx; i < len && matches.size() < maxResults * 4; i++)
     {
       String w = words.get(i);
       if (w.regionMatches(true, 0, cleanPrefix, 0, prefixLen))
       {
-        results.add(w);
+        int f = 50;
+        Integer storedFreq = freqs != null ? freqs.get(w) : null;
+        if (storedFreq != null) f = storedFreq;
+        float ratio = (float) prefixLen / (float) w.length();
+        matches.add(new juloo.keyboard2.suggestions.Candidate(
+            w, juloo.keyboard2.suggestions.Candidate.Source.EXTERNAL, f, 0, ratio));
       }
       else
       {
-        // Since words is ordered case-insensitively, no further words can match this prefix
         break;
       }
+    }
+
+    Collections.sort(matches, new java.util.Comparator<juloo.keyboard2.suggestions.Candidate>()
+    {
+      @Override
+      public int compare(juloo.keyboard2.suggestions.Candidate a, juloo.keyboard2.suggestions.Candidate b)
+      {
+        return Integer.compare(b.frequency, a.frequency);
+      }
+    });
+
+    if (matches.size() > maxResults)
+    {
+      return matches.subList(0, maxResults);
+    }
+    return matches;
+  }
+
+  /**
+   * Ultra-fast O(log N) prefix query returning plain strings (sorted by frequency).
+   */
+  public List<String> query(String prefix, int maxResults)
+  {
+    List<juloo.keyboard2.suggestions.Candidate> candList = queryCandidates(prefix, maxResults);
+    List<String> results = new ArrayList<>(candList.size());
+    for (juloo.keyboard2.suggestions.Candidate c : candList)
+    {
+      results.add(c.word);
     }
     return results;
   }

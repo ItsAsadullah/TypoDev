@@ -134,4 +134,8 @@
     <string name="pref_margin_bottom_summary">পোর্ট্রেট ও ল্যান্ডস্কেপে নিচের ব্যবধান নির্ধারণ করুন</string>
     <string name="pref_keyboard_height_summary">কিবোর্ডের উচ্চতা নির্ধারণ করুন</string>
     <string name="pref_horizontal_margin_summary">কিবোর্ডের দুই পাশের ব্যবধান নির্ধারণ করুন</string>
+    <string name="pref_developer_mode_title">ডেভেলপার মোড (👨‍💻 Dev)</string>
+    <string name="pref_developer_mode_summary">HTML ক্লোজিং ট্যাগ ও কোডিং সিনট্যাক্স অটো-সাজেশন দেখান</string>
+    <string name="pref_show_in_terminals_title">টার্মিনাল ও Termux-এ প্রদর্শন (📟)</string>
+    <string name="pref_show_in_terminals_summary">Termux এবং টার্মিনাল অ্যাপসমূহে সাজেশন বার ও টুলবার দৃশ্যমান রাখুন</string>
 </resources>

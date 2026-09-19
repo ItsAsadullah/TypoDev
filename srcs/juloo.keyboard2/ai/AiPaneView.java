@@ -749,8 +749,12 @@ public class AiPaneView extends LinearLayout
     }
   }
 
+  private long _lastSettingsOpenTime = 0;
   private void openSettingsDialog()
   {
+    long now = System.currentTimeMillis();
+    if (now - _lastSettingsOpenTime < 1000) return;
+    _lastSettingsOpenTime = now;
     if (_keyboard == null) return;
     AiSettingsDialog.show(getContext(), _keyboard, new AiSettingsDialog.OnSettingsSavedListener()
     {

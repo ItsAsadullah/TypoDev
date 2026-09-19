@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Each snippet card in the manager list -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+  <!-- Top row: shortcut pill + category badge -->
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical"
+      android:layout_marginBottom="4dp">
+
+    <!-- Shortcut pill -->
+    <TextView
+        android:id="@+id/snippet_shortcut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/snippet_shortcut_bg"/>
+
+    <!-- Spacer -->
+    <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+
+    <!-- Category badge -->
+    <TextView
+        android:id="@+id/snippet_category"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:textColor="#88FFFFFF"/>
+
+    <!-- Edit button -->
+    <TextView
+        android:id="@+id/snippet_btn_edit"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:gravity="center"
+        android:text="✏"
+        android:textSize="15sp"
+        android:textColor="#AAAAAA"
+        android:background="@android:color/transparent"/>
+
+    <!-- Delete button -->
+    <TextView
+        android:id="@+id/snippet_btn_delete"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:gravity="center"
+        android:text="🗑"
+        android:textSize="15sp"
+        android:textColor="#AAAAAA"
+        android:background="@android:color/transparent"/>
+  </LinearLayout>
+
+  <!-- Name -->
+  <TextView
+      android:id="@+id/snippet_name"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:textSize="13sp"
+      android:textStyle="bold"
+      android:textColor="#CCFFFFFF"
+      android:layout_marginBottom="2dp"/>
+
+  <!-- Expansion preview -->
+  <TextView
+      android:id="@+id/snippet_expansion"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:textSize="12sp"
+      android:textColor="#88FFFFFF"
+      android:maxLines="2"
+      android:ellipsize="end"/>
+
+</LinearLayout>
