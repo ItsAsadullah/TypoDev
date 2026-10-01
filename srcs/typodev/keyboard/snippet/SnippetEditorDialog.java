@@ -29,7 +29,7 @@ import typodev.keyboard.Utils;
  * Can be opened:
  *   - From SnippetManagerActivity with no pre-fill (new snippet)
  *   - From SnippetManagerActivity with a Snippet to edit
- *   - From ClipboardHistoryView with pre-filled expansion text
+ *   - From the clipboard pane with pre-filled expansion text
  */
 public final class SnippetEditorDialog
 {

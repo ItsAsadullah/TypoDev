@@ -398,6 +398,13 @@ public final class Config
     return _globalConfig;
   }
 
+  public static void clearGlobalHandler(IKeyEventHandler handler)
+  {
+    if (_globalHandler == handler) _globalHandler = null;
+    if (_globalConfig != null && _globalConfig.handler == handler)
+      _globalConfig.handler = null;
+  }
+
   /** Independent settings for previews; never replaces the running IME state. */
   public static Config createPreviewConfig(SharedPreferences prefs, Resources res)
   {

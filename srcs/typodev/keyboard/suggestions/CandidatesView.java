@@ -87,6 +87,7 @@ public class CandidatesView extends LinearLayout
   private boolean _toolbar_open = true;
   private boolean _has_suggestions = false;
   private boolean _userManuallyToggled = false;
+  private long _magicRequestId = 0;
 
   private SuggestionRemovalOverlay _removalOverlay = null;
   private boolean _isDraggingSuggestion = false;
@@ -686,6 +687,7 @@ public class CandidatesView extends LinearLayout
   protected void onDetachedFromWindow()
   {
     super.onDetachedFromWindow();
+    cancelMagicAutocomplete();
     removeCallbacks(_rebuildToolbar);
     if (_tools_manager != null) _tools_manager.removeListener(_toolsChangedListener);
   }
@@ -1675,6 +1677,23 @@ public class CandidatesView extends LinearLayout
     }
   }
 
+  public void cancelMagicAutocomplete()
+  {
+    _magicRequestId++;
+    setMagicLoading(false);
+  }
+
+  private boolean finishMagicRequest(long requestId, long sessionId,
+      InputConnection connection, String originalBefore)
+  {
+    if (requestId != _magicRequestId) return false;
+    setMagicLoading(false);
+    return isAttachedToWindow() && _keyboard2 != null
+        && _keyboard2.getInputSessionId() == sessionId
+        && _keyboard2.getCurrentInputConnection() == connection
+        && typodev.keyboard.ai.EditorTextGuard.matches(connection, originalBefore, false);
+  }
+
   public void trigger_magic_autocomplete()
   {
     android.view.inputmethod.InputConnection ic = (_keyboard2 != null)
@@ -1689,6 +1708,10 @@ public class CandidatesView extends LinearLayout
       return;
     }
 
+    final long requestId = ++_magicRequestId;
+    final long sessionId = _keyboard2.getInputSessionId();
+    final InputConnection requestConnection = ic;
+    final String originalBefore = before.toString();
     setMagicLoading(true);
 
     // If typing in Avro/Banglish mode, first check if user is typing a Banglish word to fix
@@ -1721,7 +1744,7 @@ public class CandidatesView extends LinearLayout
             @Override
             public void run()
             {
-              setMagicLoading(false);
+              if (!finishMagicRequest(requestId, sessionId, requestConnection, originalBefore)) return;
               if (results != null && !results.isEmpty())
               {
                 display_custom_completions(results);
@@ -1742,7 +1765,7 @@ public class CandidatesView extends LinearLayout
             @Override
             public void run()
             {
-              setMagicLoading(false);
+              if (!finishMagicRequest(requestId, sessionId, requestConnection, originalBefore)) return;
               android.widget.Toast.makeText(getContext(), "AI: " + error, android.widget.Toast.LENGTH_SHORT).show();
             }
           });
@@ -1764,7 +1787,7 @@ public class CandidatesView extends LinearLayout
             @Override
             public void run()
             {
-              setMagicLoading(false);
+              if (!finishMagicRequest(requestId, sessionId, requestConnection, originalBefore)) return;
               apply_ai_completions(resultText, text);
             }
           });
@@ -1778,7 +1801,7 @@ public class CandidatesView extends LinearLayout
             @Override
             public void run()
             {
-              setMagicLoading(false);
+              if (!finishMagicRequest(requestId, sessionId, requestConnection, originalBefore)) return;
               apply_offline_completions(text);
               android.widget.Toast.makeText(getContext(), "AI: " + errorMessage + " (অফলাইন সাজেশন দেখানো হয়েছে)", android.widget.Toast.LENGTH_SHORT).show();
             }

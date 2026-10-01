@@ -10,6 +10,13 @@ import java.util.Set;
 
 public final class DirectBootAwarePreferences
 {
+  public static boolean isUserUnlocked(Context context)
+  {
+    if (VERSION.SDK_INT < 24) return true;
+    android.os.UserManager manager = (android.os.UserManager)context.getSystemService(Context.USER_SERVICE);
+    return manager != null && manager.isUserUnlocked();
+  }
+
   /* On API >= 24, preferences are read from the device protected storage. This
    * storage is less protected than the default, no personnal or sensitive
    * information is stored there (only the keyboard settings). This storage is

@@ -71,6 +71,10 @@ public class ExternalDictionaryManager
     {
       _instance = new ExternalDictionaryManager(context.getApplicationContext());
     }
+    else if (!_instance.isLoaded)
+    {
+      _instance.loadAllDictionariesAsync();
+    }
     return _instance;
   }
 
@@ -82,6 +86,7 @@ public class ExternalDictionaryManager
   private volatile List<String> loadedWords = Collections.emptyList();
   private volatile int totalWordCount = 0;
   private volatile boolean isLoaded = false;
+  private boolean isLoading = false;
 
   private ExternalDictionaryManager(Context context)
   {
@@ -112,6 +117,7 @@ public class ExternalDictionaryManager
   public List<DictInfo> getInstalledDictionaries()
   {
     List<DictInfo> list = new ArrayList<>();
+    if (!typodev.keyboard.DirectBootAwarePreferences.isUserUnlocked(context)) return list;
     SharedPreferences prefs = context.getSharedPreferences(PREFS_EXT_DICTS, Context.MODE_PRIVATE);
     File dir = getDictsDir();
     File[] files = dir.listFiles();
@@ -140,14 +146,27 @@ public class ExternalDictionaryManager
     return "📂 কাস্টম ডিকশনারি (Custom Wordlist)";
   }
 
-  public void loadAllDictionariesAsync()
+  public synchronized void loadAllDictionariesAsync()
   {
+    if (isLoading || !typodev.keyboard.DirectBootAwarePreferences.isUserUnlocked(context)) return;
+    isLoading = true;
     executor.execute(new Runnable()
     {
       @Override
       public void run()
       {
-        reloadAllFromDisk();
+        try
+        {
+          reloadAllFromDisk();
+        }
+        catch (RuntimeException e)
+        {
+          typodev.keyboard.Logs.print_exception(e);
+        }
+        finally
+        {
+          synchronized (ExternalDictionaryManager.this) { isLoading = false; }
+        }
       }
     });
   }

@@ -156,7 +156,7 @@ public class GeminiAiService
 
   public static boolean isEmojifyEnabled(Context context)
   {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+    SharedPreferences prefs = typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context);
     return prefs.getBoolean(PREF_AI_EMOJIFY, true);
   }
 
@@ -164,6 +164,8 @@ public class GeminiAiService
   {
     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
     prefs.edit().putBoolean(PREF_AI_EMOJIFY, enabled).apply();
+    typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
+        .edit().putBoolean(PREF_AI_EMOJIFY, enabled).apply();
   }
 
   public static String stripEmojis(String text)

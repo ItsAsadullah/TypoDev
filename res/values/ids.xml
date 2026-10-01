@@ -7,7 +7,6 @@
   <item name="toolbar_btn_clipboard" type="id"/>
   <item name="toolbar_btn_fancy" type="id"/>
   <item name="toolbar_btn_dev" type="id"/>
-  <item name="toolbar_btn_more" type="id"/>
   <item name="toolbar_btn_mic" type="id"/>
   <item name="toolbar_btn_theme" type="id"/>
   <item name="toolbar_btn_settings" type="id"/>

@@ -29,7 +29,7 @@ public final class Dictionaries
       // direct boot, when credential protected storage is locked.
       SharedPreferences prefs =
         DirectBootAwarePreferences.get_protected_prefs(ctx, "dictionaries");
-      _instance = new Dictionaries(ctx, prefs);
+      _instance = new Dictionaries(ctx.getApplicationContext(), prefs);
     }
     return _instance;
   }
@@ -65,7 +65,8 @@ public final class Dictionaries
     if (_loaded_dictionaries.containsKey(dict_name))
       return _loaded_dictionaries.get(dict_name);
     Cdict[] dict = load_uncached(dict_name);
-    _loaded_dictionaries.put(dict_name, dict);
+    // Failed reads during direct boot must be retried after the user unlocks.
+    if (dict != null) _loaded_dictionaries.put(dict_name, dict);
     return dict;
   }
 

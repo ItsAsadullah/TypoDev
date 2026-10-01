@@ -47,10 +47,10 @@
     <attr name="suggestions_background" format="color"/>
     <attr name="suggestions_border_radius" format="dimension"/>
   </declare-styleable>
-  <style name="BaseTheme">
-    <item name="android:forceDarkAllowed">false</item>
+  <style name="KeyboardPlatformTheme"/>
+  <style name="BaseTheme" parent="KeyboardPlatformTheme">
     <item name="navigationBarColor">?attr/colorKeyboard</item>
-    <item name="windowLightNavigationBar">?attr/android:isLightTheme</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="keyBorderRadius">5dp</item>
     <item name="keyBorderWidth">0dp</item>
     <item name="keyBorderWidthActivated">0dp</item>
@@ -66,7 +66,7 @@
     <item name="suggestions_border_radius">?attr/keyBorderRadius</item>
   </style>
   <style name="Dark" parent="BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">#1b1b1b</item>
     <item name="colorKey">#333333</item>
     <item name="colorKeyActivated">#1b1b1b</item>
@@ -85,7 +85,7 @@
     <item name="emoji_color" type="color">#ffffff</item>
   </style>
   <style name="Light" parent="BaseTheme">
-    <item name="android:isLightTheme">true</item>
+    <item name="windowLightNavigationBar">true</item>
     <item name="colorKeyboard">#e3e3e3</item>
     <item name="colorKey">#cccccc</item>
     <item name="colorKeyActivated">#e3e3e3</item>
@@ -107,7 +107,7 @@
     <item name="emoji_color">#000000</item>
   </style>
   <style name="Black" parent="BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">#000000</item>
     <item name="colorKey">#000000</item>
     <item name="colorKeyActivated">#333333</item>
@@ -131,7 +131,7 @@
     <item name="keyBorderWidth">1dp</item>
   </style>
   <style name="White" parent="BaseTheme">
-    <item name="android:isLightTheme">true</item>
+    <item name="windowLightNavigationBar">true</item>
     <item name="colorKeyboard">#ffffff</item>
     <item name="colorKey">#ffffff</item>
     <item name="colorKeyAction">#ffffff</item>
@@ -152,7 +152,7 @@
     <item name="clipboard_divider_color" type="color">#eeeeee</item>
   </style>
   <style name="ePaper" parent="BaseTheme">
-    <item name="android:isLightTheme">true</item>
+    <item name="windowLightNavigationBar">true</item>
     <item name="colorKeyboard">#ffffff</item>
     <item name="colorKey">#ffffff</item>
     <item name="colorKeyAction">#ffffff</item>
@@ -174,7 +174,7 @@
     <item name="clipboard_divider_height">2dp</item>
   </style>
   <style name="Desert" parent="@style/BaseTheme">
-    <item name="android:isLightTheme">true</item>
+    <item name="windowLightNavigationBar">true</item>
     <item name="colorKeyboard">#ffe0b2</item>
     <item name="colorKey">#fff3e0</item>
     <item name="colorKeyActivated">#ffcc80</item>
@@ -194,7 +194,7 @@
     <item name="emoji_color">#000000</item>
   </style>
   <style name="Jungle" parent="@style/BaseTheme">
-    <item name="android:isLightTheme">true</item>
+    <item name="windowLightNavigationBar">true</item>
     <item name="colorKeyboard">#4db6ac</item>
     <item name="colorKey">#e0f2f1</item>
     <item name="colorKeyActivated">#00695c</item>
@@ -214,7 +214,7 @@
     <item name="emoji_color">#000000</item>
   </style>
   <style name="MonetLight" parent="@style/BaseTheme">
-    <item name="android:isLightTheme">true</item>
+    <item name="windowLightNavigationBar">true</item>
     <item name="colorKeyboard">@color/system_neutral1_100</item>
     <item name="colorKey">@color/system_neutral1_50</item>
     <item name="colorKeyActivated">?colorKeyboard</item>
@@ -228,7 +228,7 @@
     <item name="emoji_color">?colorKeyboard</item>
   </style>
   <style name="MonetDark" parent="@style/BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">@color/system_neutral1_900</item>
     <item name="colorKey">@color/system_neutral1_800</item>
     <item name="colorKeyActivated">?colorKeyboard</item>
@@ -241,7 +241,7 @@
     <item name="emoji_color">?colorKeyboard</item>
   </style>
   <style name="RosePine" parent="BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">#191724</item>
     <item name="colorKey">#26233a</item>
     <item name="colorKeyActivated">#403d52</item>
@@ -262,7 +262,7 @@
     <item name="emoji_color">#e0def4</item>
   </style>
   <style name="EverforestLight" parent="BaseTheme">
-    <item name="android:isLightTheme">true</item>
+    <item name="windowLightNavigationBar">true</item>
     <item name="colorKeyboard">#f8f5e4</item>
     <item name="colorKey">#e5e2d1</item>
     <item name="colorKeyActivated">#dbe0b6</item>
@@ -277,7 +277,7 @@
     <item name="clipboard_divider_color">?colorKey</item>
  </style>
  <style name="Cobalt" parent="BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">#000000</item>
     <item name="colorKey">?colorKeyboard</item>
     <item name="colorKeyActivated">#78bfff</item>
@@ -296,7 +296,7 @@
     <item name="clipboard_divider_color">?colorKey</item>
  </style>
  <style name="Pine" parent="BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">#000000</item>
     <item name="colorKey">?colorKeyboard</item>
     <item name="colorKeyActivated">#74cc8a</item>
@@ -315,7 +315,7 @@
     <item name="clipboard_divider_color">?colorKey</item>
  </style>
  <style name="ePaperBlack" parent="BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">#000000</item>
     <item name="colorKey">?colorKeyboard</item>
     <item name="colorKeyActivated">#ffffff</item>
@@ -336,7 +336,7 @@
     <item name="clipboard_divider_height">2dp</item>
  </style>
  <style name="Dracula" parent="BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">#282A36</item>
     <item name="colorKey">#343746</item>
     <item name="colorKeyActivated">#44475A</item>
@@ -353,7 +353,7 @@
     <item name="emoji_color">#F8F8F2</item>
   </style>
   <style name="GradientPurplePink" parent="BaseTheme">
-    <item name="android:isLightTheme">false</item>
+    <item name="windowLightNavigationBar">false</item>
     <item name="colorKeyboard">#251A3A</item>
     <item name="keyboardGradientStart">#8A2BE2</item>
     <item name="keyboardGradientEnd">#AF6679</item>

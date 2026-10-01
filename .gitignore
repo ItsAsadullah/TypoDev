@@ -14,3 +14,6 @@
 
 Unexpected-Keyboard-mod.apk
 *.apk
+/scratch/
+*.lnk
+__pycache__/

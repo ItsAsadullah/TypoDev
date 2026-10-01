@@ -89,6 +89,12 @@ public class ClipboardItem
     return extractedOtp != null && !extractedOtp.isEmpty();
   }
 
+  /** Stable identity for history deletion and selection, including image clips. */
+  public String historyKey()
+  {
+    return isImage && imageUri != null ? imageUri : content;
+  }
+
   public boolean hasUrl()
   {
     return extractedUrl != null && !extractedUrl.isEmpty();

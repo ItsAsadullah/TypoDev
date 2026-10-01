@@ -22,6 +22,11 @@ public final class ClipboardHistoryService
     _paste_callback = cb;
   }
 
+  public static void on_shutdown(ClipboardPasteCallback cb)
+  {
+    if (_paste_callback == cb) _paste_callback = null;
+  }
+
   /** Start the service if it hasn't been started before. Returns [null] if the
       feature is unsupported. */
   public static ClipboardHistoryService get_service(Context ctx)
@@ -217,7 +222,7 @@ public final class ClipboardHistoryService
   {
     _ctx = ctx != null ? ctx.getApplicationContext() : null;
     _history = new ArrayList<HistoryEntry>();
-    _cm = (ClipboardManager)ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+    _cm = ctx == null ? null : (ClipboardManager)ctx.getSystemService(Context.CLIPBOARD_SERVICE);
     try
     {
       _cm.addPrimaryClipChangedListener(this.new SystemListener());
@@ -273,26 +278,38 @@ public final class ClipboardHistoryService
   /** This will call [on_clipboard_history_change]. */
   public synchronized void remove_history_entry(String clip)
   {
-    int last_pos = _history.size() - 1;
     if (clip == null) return;
-    boolean last_pos_changed = false;
-    for (int pos = last_pos; pos >= 0; pos--)
+    boolean removed = false;
+    for (int pos = _history.size() - 1; pos >= 0; pos--)
     {
       HistoryEntry entry = _history.get(pos);
-      if (entry == null || !clip.equals(entry.content))
+      if (entry == null || !clip.equals(entry.isImage ? entry.uriString : entry.content))
         continue;
-      // Removing the current clipboard, clear the system clipboard.
-      if (pos == last_pos)
-        last_pos_changed = true;
       _history.remove(pos);
+      removed = true;
     }
-    if (last_pos_changed)
+    // History is newest-first, but its position is not proof of system ownership.
+    // The clipboard may have changed while this process was in the background.
+    if (removed && _cm != null)
     {
-      if (VERSION.SDK_INT >= 28)
-        _cm.clearPrimaryClip();
-      else
-        _cm.setText("");
+      try
+      {
+        ClipData current = _cm.getPrimaryClip();
+        if (current != null && current.getItemCount() == 1)
+        {
+          ClipData.Item item = current.getItemAt(0);
+          String value = item.getUri() != null ? item.getUri().toString()
+              : item.getText() != null ? item.getText().toString() : null;
+          if (clip.equals(value))
+          {
+            if (VERSION.SDK_INT >= 28) _cm.clearPrimaryClip();
+            else _cm.setPrimaryClip(ClipData.newPlainText("", ""));
+          }
+        }
+      }
+      catch (RuntimeException ignored) { /* Clipboard access may be revoked. */ }
     }
+    if (removed && clip.equals(_lastCopiedText)) _lastCopiedPasted = true;
     if (_listener != null)
       _listener.on_clipboard_history_change();
   }
@@ -306,7 +323,8 @@ public final class ClipboardHistoryService
 
   public synchronized void add_clip(String clip, boolean isFreshCopy)
   {
-    if (!Config.globalConfig().clipboard_history_enabled)
+    Config config = Config.globalConfig();
+    if (config == null || !config.clipboard_history_enabled || clip == null || clip.isEmpty())
       return;
     int size = _history.size();
     if (clip.equals("") || (size > 0 && _history.get(0).content.equals(clip)))
@@ -330,10 +348,11 @@ public final class ClipboardHistoryService
 
   public synchronized void add_image_clip(String uriString)
   {
-    if (!Config.globalConfig().clipboard_history_enabled || uriString == null || uriString.isEmpty())
+    Config config = Config.globalConfig();
+    if (config == null || !config.clipboard_history_enabled || uriString == null || uriString.isEmpty())
       return;
     int size = _history.size();
-    if (size > 0 && _history.get(0).content.equals(uriString))
+    if (size > 0 && _history.get(0).isImage && uriString.equals(_history.get(0).uriString))
       return;
     if (size >= MAX_HISTORY_SIZE)
       _history.remove(size - 1);
@@ -366,6 +385,11 @@ public final class ClipboardHistoryService
   }
 
   public void set_on_clipboard_history_change(OnClipboardHistoryChange l) { _listener = l; }
+
+  public void remove_on_clipboard_history_change(OnClipboardHistoryChange l)
+  {
+    if (_listener == l) _listener = null;
+  }
 
   public static interface OnClipboardHistoryChange
   {
@@ -400,6 +424,11 @@ public final class ClipboardHistoryService
       ClipData.Item itm = clip.getItemAt(i);
       if (itm == null)
         continue;
+      if (itm.getUri() != null && clip.getDescription().hasMimeType("image/*"))
+      {
+        add_image_clip(itm.getUri().toString());
+        continue;
+      }
       CharSequence text = itm.getText();
       if ((text == null || text.length() == 0) && _ctx != null)
       {
@@ -413,15 +442,12 @@ public final class ClipboardHistoryService
       {
         add_clip(text.toString(), isFreshCopy);
       }
-      else if (itm.getUri() != null)
-      {
-        add_image_clip(itm.getUri().toString());
-      }
     }
   }
 
   int get_history_ttl_minutes() {
-    return Config.globalConfig().clipboard_history_duration;
+    Config config = Config.globalConfig();
+    return config == null ? 30 : config.clipboard_history_duration;
   }
 
   final class SystemListener implements ClipboardManager.OnPrimaryClipChangedListener

@@ -981,7 +981,7 @@ public class ClipboardPaneView extends LinearLayout
     if (_isEditMode)
     {
       final CheckBox cb = new CheckBox(context);
-      cb.setChecked(_selectedClips.contains(item.content));
+      cb.setChecked(_selectedClips.contains(item.historyKey()));
       cb.setClickable(false);
       topRow.addView(cb);
     }
@@ -1040,13 +1040,14 @@ public class ClipboardPaneView extends LinearLayout
             _pinnedStore.pinClip(item.content);
             if (_historyService != null)
             {
-              _historyService.remove_history_entry(item.content);
+              _historyService.remove_history_entry(item.historyKey());
             }
           }
           refreshCards();
         }
       });
-      topRow.addView(ivPin);
+      // The pinned store persists text only; do not turn an image into "[Image]".
+      if (!item.isImage) topRow.addView(ivPin);
 
       // Professional Vector Delete Icon
       ImageView ivDelete = new ImageView(context);
@@ -1065,7 +1066,7 @@ public class ClipboardPaneView extends LinearLayout
           }
           else if (_historyService != null)
           {
-            _historyService.remove_history_entry(item.content);
+            _historyService.remove_history_entry(item.historyKey());
           }
           refreshCards();
         }
@@ -1265,13 +1266,13 @@ public class ClipboardPaneView extends LinearLayout
       {
         if (_isEditMode)
         {
-          if (_selectedClips.contains(item.content))
+          if (_selectedClips.contains(item.historyKey()))
           {
-            _selectedClips.remove(item.content);
+            _selectedClips.remove(item.historyKey());
           }
           else
           {
-            _selectedClips.add(item.content);
+            _selectedClips.add(item.historyKey());
           }
           refreshCards();
         }
@@ -1373,9 +1374,12 @@ public class ClipboardPaneView extends LinearLayout
       optionsList.add("Grammar Fix & Polish");
       optionsList.add("Summarize Text");
     }
-    optionsList.add(item.isPinned ? "Unpin from clipboard" : "Pin to clipboard");
-    optionsList.add("Save as Snippet");
-    optionsList.add("Copy text");
+    if (!item.isImage)
+    {
+      optionsList.add(item.isPinned ? "Unpin from clipboard" : "Pin to clipboard");
+      optionsList.add("Save as Snippet");
+      optionsList.add("Copy text");
+    }
     optionsList.add("Delete");
 
     final String[] options = optionsList.toArray(new String[0]);
@@ -1390,7 +1394,10 @@ public class ClipboardPaneView extends LinearLayout
             String opt = options[which];
             if (opt.startsWith("Paste directly"))
             {
-              ClipboardHistoryService.paste(item.content);
+              if (item.isImage && item.imageUri != null && _keyboard != null)
+                _keyboard.pasteImageContent(Uri.parse(item.imageUri), "image/*");
+              else if (!item.isImage)
+                ClipboardHistoryService.paste(item.content);
               if (_keyboard != null) _keyboard.handle_event_key(KeyValue.Event.SWITCH_BACK_CLIPBOARD);
             }
             else if (opt.startsWith("Paste Code"))
@@ -1437,7 +1444,7 @@ public class ClipboardPaneView extends LinearLayout
               else
               {
                 _pinnedStore.pinClip(item.content);
-                if (_historyService != null) _historyService.remove_history_entry(item.content);
+                if (_historyService != null) _historyService.remove_history_entry(item.historyKey());
               }
               refreshCards();
             }
@@ -1460,7 +1467,7 @@ public class ClipboardPaneView extends LinearLayout
             else if (opt.startsWith("Delete"))
             {
               if (item.isPinned) _pinnedStore.unpinClip(item.content);
-              else if (_historyService != null) _historyService.remove_history_entry(item.content);
+              else if (_historyService != null) _historyService.remove_history_entry(item.historyKey());
               refreshCards();
             }
           }
@@ -2043,6 +2050,20 @@ public class ClipboardPaneView extends LinearLayout
     refreshCards();
   }
 
+  @Override
+  protected void onAttachedToWindow()
+  {
+    super.onAttachedToWindow();
+    if (_historyService != null) _historyService.set_on_clipboard_history_change(this);
+  }
+
+  @Override
+  protected void onDetachedFromWindow()
+  {
+    if (_historyService != null) _historyService.remove_on_clipboard_history_change(this);
+    super.onDetachedFromWindow();
+  }
+
   private void selectAllClips()
   {
     List<String> pinned = _pinnedStore.getPinnedClips();
@@ -2058,7 +2079,7 @@ public class ClipboardPaneView extends LinearLayout
       _selectedClips.addAll(pinned);
       for (ClipboardItem it : recent)
       {
-        _selectedClips.add(it.content);
+        _selectedClips.add(it.historyKey());
       }
     }
     refreshCards();
@@ -2067,15 +2088,22 @@ public class ClipboardPaneView extends LinearLayout
   private void executeBatchPin()
   {
     if (_selectedClips.isEmpty()) return;
+    Set<String> imageKeys = new HashSet<>();
+    if (_historyService != null)
+      for (ClipboardItem item : _historyService.clear_expired_and_get_history_items())
+        if (item.isImage) imageKeys.add(item.historyKey());
+    int pinnedCount = 0;
     for (String s : _selectedClips)
     {
+      if (imageKeys.contains(s)) continue;
       _pinnedStore.pinClip(s);
+      pinnedCount++;
       if (_historyService != null)
       {
         _historyService.remove_history_entry(s);
       }
     }
-    Toast.makeText(getContext(), _selectedClips.size() + " clips pinned", Toast.LENGTH_SHORT).show();
+    Toast.makeText(getContext(), pinnedCount + " text clips pinned", Toast.LENGTH_SHORT).show();
     setEditMode(false);
   }
 

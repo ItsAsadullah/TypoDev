@@ -157,7 +157,8 @@ public class AvroAndJatiyoTypingTest
     assertEquals("খো", composingBuffer.toString());
 
     handler.send_text("m");
-    assertEquals("খোম", composingBuffer.toString());
+    // Live composition uses the master lexicon's exact candidate for "khom".
+    assertEquals("ক্ষোম", composingBuffer.toString());
 
     handler.send_text("a");
     assertEquals("ক্ষমা", composingBuffer.toString());
@@ -223,9 +224,9 @@ public class AvroAndJatiyoTypingTest
     handler.send_text("a");
     assertEquals("ক্ষমা", composingBuffer.toString());
 
-    // Backspace once: "khoma" -> "khom" -> "খোম"
+    // Backspace restores the same lexicon candidate used when typing "khom".
     handler.handle_backspace();
-    assertEquals("খোম", composingBuffer.toString());
+    assertEquals("ক্ষোম", composingBuffer.toString());
 
     // Backspace all the way to 0
     handler.handle_backspace();

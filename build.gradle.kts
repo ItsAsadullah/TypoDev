@@ -32,7 +32,9 @@ android {
   sourceSets {
     named("main") {
       manifest.srcFile("AndroidManifest.xml")
-      java.srcDirs("srcs/typodev.keyboard", "vendor/cdict/java/juloo.cdict")
+      java.srcDirs("srcs", "vendor/cdict/java/juloo.cdict")
+      // Asset-generation helpers are host tools, not Android application code.
+      (java as com.android.build.gradle.api.AndroidSourceDirectorySet).exclude("res/**")
       res.srcDirs("res", "build/generated-resources")
       assets.srcDirs("assets")
     }
@@ -154,7 +156,7 @@ val genMethodXml by tasks.registering(Exec::class) {
 
 val checkKeyboardLayouts by tasks.registering(Exec::class) {
   inputs.dir(projectDir.resolve("srcs/layouts"))
-  inputs.file(projectDir.resolve("srcs/typodev.keyboard/KeyValue.java"))
+  inputs.file(projectDir.resolve("srcs/typodev/keyboard/KeyValue.java"))
   outputs.file(projectDir.resolve("check_layout.output"))
   doFirst { println("\nChecking layouts") }
   workingDir = projectDir
@@ -163,7 +165,7 @@ val checkKeyboardLayouts by tasks.registering(Exec::class) {
 
 val compileComposeSequences by tasks.registering(Exec::class) {
   val `in` = projectDir.resolve("srcs/compose")
-  val out = projectDir.resolve("srcs/typodev.keyboard/ComposeKeyData.java")
+  val out = projectDir.resolve("srcs/typodev/keyboard/ComposeKeyData.java")
   inputs.dir(`in`)
   outputs.file(out)
   doFirst { println("\nGenerating $out") }

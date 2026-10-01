@@ -108,7 +108,33 @@ public class Keyboard2 extends InputMethodService
     if (_keyeventhandler != null)
       _keyeventhandler.finished();
     if (_candidates_view != null)
+    {
+      _candidates_view.cancelMagicAutocomplete();
       _candidates_view.setInlineSuggestions(null);
+    }
+    if (!_isAiSettingsOpen)
+      resetTransientPanes();
+  }
+
+  /** End a session without navigating back into a previous tool panel. */
+  private void resetTransientPanes()
+  {
+    _isAiPromptInputMode = false;
+    _aiPromptInputConnection = null;
+    _isEmojiSearchMode = false;
+    _emojiSearchInputConnection = null;
+    _isClipboardSearchMode = false;
+    _clipboardSearchInputConnection = null;
+    _isAddClipMode = false;
+    _addClipInputConnection = null;
+    _isClipboardPaneOpen = false;
+    View[] panes = { _ai_prompt_bar, _ai_pane_view, _fancy_pane_view,
+        _tools_grid_pane, _emoji_search_bar, _clipboard_search_bar,
+        _clipboard_add_bar, _clipboard_pane_view };
+    for (View pane : panes)
+      if (pane != null) pane.setVisibility(View.GONE);
+    if (_keyboard_layout_view != null)
+      _keyboard_layout_view.setVisibility(View.VISIBLE);
   }
 
   @Override
@@ -136,7 +162,7 @@ public class Keyboard2 extends InputMethodService
       return _currentSpecialLayout;
     KeyboardData layout = null;
     int layout_i = _config.get_current_layout();
-    if (layout_i >= _config.layouts.size())
+    if (layout_i < 0 || layout_i >= _config.layouts.size())
       layout_i = 0;
     if (layout_i < _config.layouts.size())
       layout = _config.layouts.get(layout_i);
@@ -235,6 +261,8 @@ public class Keyboard2 extends InputMethodService
       _handler.removeCallbacksAndMessages(null);
     if (KeyValue.Stateful._handler == _receiver)
       KeyValue.Stateful._handler = null;
+    Config.clearGlobalHandler(_keyeventhandler);
+    ClipboardHistoryService.on_shutdown(_keyeventhandler);
     super.onDestroy();
     try
     {
@@ -1799,33 +1827,7 @@ public class Keyboard2 extends InputMethodService
       return;
     }
     finishInputSession();
-    if (_isEmojiSearchMode)
-    {
-      _isEmojiSearchMode = false;
-      _emojiSearchInputConnection = null;
-      if (_emoji_search_bar != null) _emoji_search_bar.setVisibility(View.GONE);
-    }
-    if (_isClipboardSearchMode)
-    {
-      _isClipboardSearchMode = false;
-      _clipboardSearchInputConnection = null;
-      if (_clipboard_search_bar != null) _clipboard_search_bar.setVisibility(View.GONE);
-    }
-    if (_isAddClipMode)
-    {
-      _isAddClipMode = false;
-      _addClipInputConnection = null;
-      if (_clipboard_add_bar != null) _clipboard_add_bar.setVisibility(View.GONE);
-    }
-    if (_isClipboardPaneOpen)
-    {
-      closeClipboardPane();
-    }
-    if (isToolsPaneVisible())
-      closeToolsPane();
-    if (isAiPaneVisible())
-      closeAiPane();
-    _keyboard_layout_view.reset();
+    if (_keyboard_layout_view != null) _keyboard_layout_view.reset();
   }
 
   @Override
@@ -1861,6 +1863,11 @@ public class Keyboard2 extends InputMethodService
       if (isAiPaneVisible())
       {
         closeAiPane();
+        return true;
+      }
+      if (isFancyPaneVisible())
+      {
+        closeFancyPane();
         return true;
       }
       if (isToolsPaneVisible())

@@ -133,7 +133,7 @@ def check_layout(layout):
 # Fill 'known_keys', which is used for some checks
 def parse_known_keys():
     global known_keys
-    with open("srcs/typodev.keyboard/KeyValue.java", "r", encoding="utf-8") as f:
+    with open("srcs/typodev/keyboard/KeyValue.java", "r", encoding="utf-8") as f:
         known_keys = set(
                 ( m.group(1) for m in re.finditer('case "([^"]+)":', f.read()) )
                 )

@@ -124,7 +124,8 @@ public class ToolbarToolsManager
     {
       SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(_context);
       String saved = prefs.getString(PREF_PINNED_TOOLS, DEFAULT_PINNED);
-      if (saved == null || saved.isEmpty()) saved = DEFAULT_PINNED;
+      // Empty is a valid customization: every tool has been unpinned.
+      if (saved == null) saved = DEFAULT_PINNED;
       String[] ids = saved.split(SEP);
       for (String id : ids)
       {

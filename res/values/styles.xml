@@ -152,17 +152,20 @@
     <item name="android:layout_weight">1</item>
     <item name="android:layout_width">fill_parent</item>
     <item name="android:layout_height">wrap_content</item>
-    <item name="android:layout_marginHorizontal">14dp</item>
-    <item name="android:layout_marginVertical">14dp</item>
+    <item name="android:layout_marginLeft">14dp</item>
+    <item name="android:layout_marginRight">14dp</item>
+    <item name="android:layout_marginTop">14dp</item>
+    <item name="android:layout_marginBottom">14dp</item>
     <item name="android:textSize">16dp</item>
     <item name="android:textColor">?attr/colorLabel</item>
   </style>
   <style name="clipboardHeading">
-    <item name="android:layout_marginHorizontal">6dp</item>
+    <item name="android:layout_marginLeft">6dp</item>
+    <item name="android:layout_marginRight">6dp</item>
     <item name="android:layout_marginTop">14dp</item>
     <item name="android:layout_marginBottom">0dp</item>
     <item name="android:textSize">14dp</item>
-    <item name="android:fontWeight">700</item>
+    <item name="android:textStyle">bold</item>
     <item name="android:textColor">?attr/colorSubLabel</item>
   </style>
   <style name="clipboardEntryButtons">
@@ -175,7 +178,8 @@
   <style name="clipboardEntryButton">
     <item name="android:layout_width">24dp</item>
     <item name="android:layout_height">24dp</item>
-    <item name="android:layout_marginHorizontal">2dp</item>
+    <item name="android:layout_marginLeft">2dp</item>
+    <item name="android:layout_marginRight">2dp</item>
     <item name="android:backgroundTint">?attr/colorLabel</item>
     <item name="android:backgroundTintMode">src_in</item>
   </style>
@@ -183,8 +187,10 @@
   <style name="paragraph">
     <item name="android:layout_width">fill_parent</item>
     <item name="android:layout_height">wrap_content</item>
-    <item name="android:layout_marginVertical">8dp</item>
-    <item name="android:layout_marginHorizontal">24dp</item>
+    <item name="android:layout_marginTop">8dp</item>
+    <item name="android:layout_marginBottom">8dp</item>
+    <item name="android:layout_marginLeft">24dp</item>
+    <item name="android:layout_marginRight">24dp</item>
     <item name="android:layout_gravity">center</item>
   </style>
   <style name="anim">
@@ -196,7 +202,8 @@
   <style name="anim_text">
     <item name="android:layout_gravity">center</item>
     <item name="android:layout_height">wrap_content</item>
-    <item name="android:layout_marginHorizontal">20dp</item>
+    <item name="android:layout_marginLeft">20dp</item>
+    <item name="android:layout_marginRight">20dp</item>
     <item name="android:layout_weight">1</item>
     <item name="android:layout_width">wrap_content</item>
     <item name="android:textAlignment">center</item>
@@ -206,7 +213,8 @@
   <style name="anim_box">
     <item name="android:layout_gravity">center</item>
     <item name="android:layout_height">wrap_content</item>
-    <item name="android:layout_marginVertical">16dp</item>
+    <item name="android:layout_marginTop">16dp</item>
+    <item name="android:layout_marginBottom">16dp</item>
     <item name="android:layout_width">wrap_content</item>
     <item name="android:orientation">horizontal</item>
   </style>
@@ -214,7 +222,8 @@
   <style name="dictionary_list_view">
     <item name="android:layout_width">fill_parent</item>
     <item name="android:layout_height">wrap_content</item>
-    <item name="android:layout_marginVertical">4dp</item>
+    <item name="android:layout_marginTop">4dp</item>
+    <item name="android:layout_marginBottom">4dp</item>
   </style>
   <style name="dictionary_download_item">
     <item name="android:orientation">horizontal</item>
@@ -246,7 +255,7 @@
     <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
     <item name="android:scaleType">fitCenter</item>
   </style>
-  <style name="appTheme" parent="@android:style/Theme.DeviceDefault.DayNight"/>
+  <style name="appTheme" parent="@android:style/Theme.DeviceDefault.Light"/>
   <style name="SnippetManagerTheme" parent="appTheme">
     <item name="android:windowBackground">@color/settings_bg</item>
     <item name="android:colorBackground">@color/settings_bg</item>
