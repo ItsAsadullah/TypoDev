@@ -6,50 +6,70 @@
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
   <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
-  <application android:label="@string/app_name" android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:hardwareAccelerated="false" android:largeHeap="true">
-    <service android:name="juloo.keyboard2.Keyboard2" android:label="@string/app_name" android:permission="android.permission.BIND_INPUT_METHOD" android:exported="true" android:directBootAware="true">
+  <application android:label="@string/app_name" android:allowBackup="false" android:fullBackupContent="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:hardwareAccelerated="false" android:largeHeap="true">
+    <service android:name="typodev.keyboard.Keyboard2" android:label="@string/app_name" android:permission="android.permission.BIND_INPUT_METHOD" android:exported="true" android:directBootAware="true">
       <intent-filter>
         <action android:name="android.view.InputMethod"/>
       </intent-filter>
       <meta-data android:name="android.view.im" android:resource="@xml/method"/>
     </service>
 
-    <activity android:name="juloo.keyboard2.SettingsActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/settingsTheme" android:exported="true" android:directBootAware="true">
+    <activity android:name="typodev.keyboard.SettingsActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/settingsTheme" android:exported="true" android:directBootAware="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
       </intent-filter>
     </activity>
 
-    <activity android:name="juloo.keyboard2.LauncherActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/appTheme" android:exported="true" android:directBootAware="true">
+    <activity android:name="typodev.keyboard.SettingsCategoryActivity"
+              android:icon="@mipmap/ic_launcher"
+              android:theme="@style/settingsTheme"
+              android:exported="false"
+              android:directBootAware="true" />
+
+    <activity android:name="typodev.keyboard.LauncherActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/appTheme" android:exported="true" android:directBootAware="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
 
-    <activity android:name="juloo.keyboard2.dict.DictionariesActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/appTheme" android:exported="true" android:directBootAware="true">
+    <activity android:name="typodev.keyboard.dict.DictionariesActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/settingsTheme" android:exported="true" android:directBootAware="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
       </intent-filter>
     </activity>
 
-    <activity android:name="juloo.keyboard2.ai.NewStyleActivity"
+    <activity android:name="typodev.keyboard.ai.NewStyleActivity"
               android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"
               android:windowSoftInputMode="adjustResize"
               android:exported="false" />
 
-    <activity android:name="juloo.keyboard2.snippet.SnippetManagerActivity"
+    <activity android:name="typodev.keyboard.snippet.SnippetManagerActivity"
               android:icon="@mipmap/ic_launcher"
-              android:theme="@style/appTheme"
+              android:theme="@style/SnippetManagerTheme"
+              android:windowSoftInputMode="adjustNothing"
               android:exported="false"
               android:label="My Snippets" />
 
-    <activity android:name="juloo.keyboard2.snippet.SnippetEditActivity"
+    <activity android:name="typodev.keyboard.theme.ThemeCustomizerActivity"
+              android:icon="@mipmap/ic_launcher"
+              android:theme="@style/ThemeCustomizerTheme"
+              android:windowSoftInputMode="stateAlwaysHidden"
+              android:exported="false"
+              android:label="Theme Customizer" />
+
+    <activity android:name="typodev.keyboard.symbol.KeySymbolCustomizerActivity"
+              android:icon="@mipmap/ic_launcher"
+              android:theme="@style/appTheme"
+              android:exported="false"
+              android:label="Key &amp; Symbol Customizer" />
+
+    <activity android:name="typodev.keyboard.snippet.SnippetEditActivity"
               android:theme="@android:style/Theme.Translucent.NoTitleBar"
-              android:windowSoftInputMode="stateVisible|adjustResize"
+              android:windowSoftInputMode="stateVisible|adjustPan"
               android:excludeFromRecents="true"
               android:exported="false" />
-    <activity android:name="juloo.keyboard2.voice.VoicePermissionActivity"
+    <activity android:name="typodev.keyboard.voice.VoicePermissionActivity"
               android:theme="@android:style/Theme.Translucent.NoTitleBar"
               android:windowSoftInputMode="stateAlwaysHidden"
               android:excludeFromRecents="true"

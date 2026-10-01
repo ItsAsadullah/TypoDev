@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <PreferenceCategory
+      android:title="AI Provider"
+      android:layout="@layout/pref_category_header">
+    <ListPreference
+        android:key="pref_ai_provider"
+        android:title="Active AI Provider"
+        android:dialogTitle="Select Active AI Provider"
+        android:summary="%s"
+        android:defaultValue="gemini"
+        android:entries="@array/pref_ai_provider_entries"
+        android:entryValues="@array/pref_ai_provider_values"/>
+    <Preference
+        android:key="pref_open_ai_dialog"
+        android:title="⚙️ Quick AI Popup Settings"
+        android:summary="Configure presets, test connection, or paste API keys via dialog"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="Google Gemini (Recommended)"
+      android:layout="@layout/pref_category_header">
+    <EditTextPreference
+        android:key="gemini_api_key"
+        android:title="Gemini API Key"
+        android:dialogTitle="Google Gemini API Key"
+        android:summary="Enter your Google Gemini API key (tap to edit)"/>
+    <ListPreference
+        android:key="gemini_working_model"
+        android:title="Gemini AI Model"
+        android:dialogTitle="Select Gemini Model"
+        android:summary="%s"
+        android:defaultValue="gemini-2.0-flash"
+        android:entries="@array/pref_gemini_model_entries"
+        android:entryValues="@array/pref_gemini_model_values"/>
+    <Preference
+        android:key="pref_get_api_key"
+        android:title="@string/pref_get_api_key_title"
+        android:summary="@string/pref_get_api_key_summary"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="OpenAI / DeepSeek / Groq / Local LLM"
+      android:layout="@layout/pref_category_header">
+    <EditTextPreference
+        android:key="openai_base_url"
+        android:title="API Base URL"
+        android:dialogTitle="API Base URL"
+        android:defaultValue="https://api.openai.com/v1"
+        android:summary="https://api.openai.com/v1"/>
+    <EditTextPreference
+        android:key="openai_api_key"
+        android:title="OpenAI / DeepSeek API Key"
+        android:dialogTitle="API Key"
+        android:summary="Enter your API key (sk-...)"/>
+    <ListPreference
+        android:key="openai_model"
+        android:title="Model Name"
+        android:dialogTitle="Select Model"
+        android:summary="%s"
+        android:defaultValue="gpt-4o-mini"
+        android:entries="@array/pref_openai_model_entries"
+        android:entryValues="@array/pref_openai_model_values"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="Voice Auto-Punctuation &amp; Generation"
+      android:layout="@layout/pref_category_header">
+    <SwitchPreference
+        android:key="pref_voice_ai_punctuation"
+        android:title="@string/pref_voice_ai_punctuation_title"
+        android:summary="@string/pref_voice_ai_punctuation_summary"
+        android:defaultValue="true"/>
+    <SwitchPreference
+        android:key="pref_voice_spoken_punctuation"
+        android:title="@string/pref_voice_spoken_punctuation_title"
+        android:summary="@string/pref_voice_spoken_punctuation_summary"
+        android:defaultValue="true"/>
+    <SwitchPreference
+        android:key="pref_ai_emojify"
+        android:title="Emoji Generation"
+        android:summary="Allow AI to generate expressive emojis in responses"
+        android:defaultValue="true"/>
+  </PreferenceCategory>
+
+</PreferenceScreen>

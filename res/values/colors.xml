@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Modern Clean Warm Minimalist Theme - Light Mode -->
+  <color name="settings_bg">#FFFFFFFF</color>
+  <color name="settings_appbar_bg">#FFFFFFFF</color>
+  <color name="settings_surface">#FFF5F2</color>
+  <color name="settings_border">#FFEAE2</color>
+  <color name="settings_search_bg">#FFF7F4</color>
+  <color name="settings_icon_box_bg">#FFEAE2</color>
+  <color name="settings_icon_tint">#334155</color>
+  <color name="settings_chip_bg">#FFF0EB</color>
+  <color name="settings_chip_border">#FFD8CC</color>
+  <color name="settings_text_title">#1E293B</color>
+  <color name="settings_text_subtitle">#64748B</color>
+  <color name="settings_text_section">#94A3B8</color>
+  <color name="settings_text_footer">#94A3B8</color>
+  <color name="settings_text_footer_sub">#CBD5E1</color>
+  <color name="settings_accent">#FF5733</color>
+  <color name="settings_chevron">#94A3B8</color>
+  <color name="settings_back_btn">#FF5733</color>
+  <color name="settings_switch_track_on">#34C759</color>
+  <color name="settings_switch_track_off">#334155</color>
+  <color name="settings_switch_thumb">#FFFFFFFF</color>
+
+  <!-- Input Field Colors -->
+  <color name="settings_input_bg">#FFFFFFFF</color>
+  <color name="settings_input_border">#CBD5E1</color>
+  <color name="settings_input_icon_bg">#FFEAE2</color>
+
+  <!-- Banner colors -->
+  <color name="settings_banner_start">#FF7255</color>
+  <color name="settings_banner_end">#FF5436</color>
+  <color name="settings_banner_border">#00000000</color>
+  <color name="settings_banner_text">#FFFFFFFF</color>
+  <color name="settings_banner_subtext">#FFF0EB</color>
+</resources>

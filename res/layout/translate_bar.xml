@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<typodev.keyboard.translate.TranslateBarView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/translate_bar_view"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp"
+    android:paddingTop="3dp"
+    android:paddingBottom="4dp"
+    android:visibility="gone">
+
+  <!-- Row 1: Controls & Language Header -->
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="32dp"
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+    <!-- Back / Close button -->
+    <TextView
+        android:id="@+id/btn_translate_close"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:gravity="center"
+        android:background="@drawable/round_icon_chip_bg"
+        android:textColor="?attr/colorLabel"
+        android:textSize="18sp"
+        android:text="←"
+        android:clickable="true"
+        android:focusable="false"
+        android:contentDescription="Close Translate" />
+
+    <!-- Space -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_weight="1" />
+
+    <!-- Source Language Button -->
+    <Button
+        android:id="@+id/btn_source_lang"
+        style="@style/toolbar_button"
+        android:layout_height="28dp"
+        android:minWidth="64dp"
+        android:textSize="12sp"
+        android:text="English" />
+
+    <!-- Swap Languages Button -->
+    <TextView
+        android:id="@+id/btn_swap_lang"
+        android:layout_width="30dp"
+        android:layout_height="28dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:gravity="center"
+        android:background="@drawable/round_icon_chip_bg"
+        android:textColor="?attr/colorLabel"
+        android:textSize="16sp"
+        android:text="⇄"
+        android:clickable="true"
+        android:focusable="false"
+        android:contentDescription="Swap Languages" />
+
+    <!-- Target Language Button -->
+    <Button
+        android:id="@+id/btn_target_lang"
+        style="@style/toolbar_button"
+        android:layout_height="28dp"
+        android:minWidth="64dp"
+        android:textSize="12sp"
+        android:text="বাংলা" />
+
+    <!-- Space -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_weight="1" />
+
+    <!-- Offline Status / Download Button -->
+    <TextView
+        android:id="@+id/btn_offline_status"
+        android:layout_width="wrap_content"
+        android:layout_height="26dp"
+        android:gravity="center"
+        android:background="@drawable/toolbar_chip_bg"
+        android:textColor="?attr/colorLabel"
+        android:textSize="11sp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="📥 Offline"
+        android:clickable="true"
+        android:focusable="false"
+        android:contentDescription="Offline Translation Pack" />
+  </LinearLayout>
+
+  <!-- Row 2: Live Translation Input Field (Gboard style) -->
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="34dp"
+      android:layout_marginTop="3dp"
+      android:orientation="horizontal"
+      android:gravity="center_vertical"
+      android:background="@drawable/translate_input_bg"
+      android:paddingStart="10dp"
+      android:paddingEnd="4dp">
+
+    <EditText
+        android:id="@+id/tv_translate_input"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center_vertical|start"
+        android:hint="কিবোর্ডে লিখলে লাইভ অনুবাদ হবে..."
+        android:textColorHint="?android:attr/textColorSecondary"
+        android:textColor="?attr/colorLabel"
+        android:textSize="13sp"
+        android:background="@null"
+        android:cursorVisible="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:inputType="textNoSuggestions"
+        android:singleLine="true"
+        android:ellipsize="end" />
+
+    <ProgressBar
+        android:id="@+id/translate_progress"
+        style="?android:attr/progressBarStyleSmall"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginEnd="6dp"
+        android:visibility="gone"
+        android:indeterminate="true" />
+
+    <TextView
+        android:id="@+id/btn_translate_clear"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:gravity="center"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:textColor="?attr/colorLabel"
+        android:textSize="14sp"
+        android:text="✕"
+        android:clickable="true"
+        android:focusable="false"
+        android:visibility="gone"
+        android:contentDescription="Clear Text" />
+  </LinearLayout>
+</typodev.keyboard.translate.TranslateBarView>

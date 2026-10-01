@@ -16,6 +16,7 @@
     <item>armn_cpbsmo</item>
     <item>armn_kvertc</item>
     <item>beng_assamese</item>
+    <item>beng_avro</item>
     <item>beng_national</item>
     <item>beng_provat</item>
     <item>cyrl_fcuzhen_mn</item>
@@ -110,7 +111,8 @@
     <item>ՃՓԲՍՄՈ</item>
     <item>ՔՎԸՐՏՃ</item>
     <item>অসমীয়া (Assamese)</item>
-    <item>বাংলা (জাতীয়)</item>
+    <item>বাংলা (অভ্র) - Avro Phonetic</item>
+    <item>বাংলা (জাতীয় / ই-বিজয়)</item>
     <item>বাংলা (প্রভাত)</item>
     <item>ФЦУЖЭН (Монгол)</item>
     <item>ЈЦУКЕН (Всисловѣнск)</item>
@@ -204,6 +206,7 @@
     <item>@xml/armn_cpbsmo</item>
     <item>@xml/armn_kvertc</item>
     <item>@xml/beng_assamese</item>
+    <item>@xml/beng_avro</item>
     <item>@xml/beng_national</item>
     <item>@xml/beng_provat</item>
     <item>@xml/cyrl_fcuzhen_mn</item>

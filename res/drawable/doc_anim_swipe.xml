@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <animated-vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
   <aapt:attr name="android:drawable">
-    <vector android:name="vector" android:width="35dp" android:height="40dp" android:viewportWidth="35" android:viewportHeight="40">
-      <path android:name="trace" android:pathData="  M 31 4      m 2,0 a 2,2 0 1,1 -4,0 a 2,2 0 1,1 4,0 M 17.5 20.0 L 31  ,4" android:fillColor="#09b3f1" android:strokeColor="#09b3f1" android:strokeWidth="2" android:strokeLineCap="round"/>
+    <vector android:name="vector" android:width="25dp" android:height="30dp" android:viewportWidth="25" android:viewportHeight="30">
+      <group android:translateX="-9.0" android:translateY="-1.0">
+        <path android:name="trace" android:pathData="  M 31 4      m 2,0 a 2,2 0 1,1 -4,0 a 2,2 0 1,1 4,0 M 17.5 20.0 L 31  ,4" android:fillColor="#09b3f1" android:strokeColor="#09b3f1" android:strokeWidth="2" android:strokeLineCap="round"/>
+      </group>
     </vector>
   </aapt:attr>
   <target android:name="trace">

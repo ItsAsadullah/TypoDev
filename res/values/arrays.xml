@@ -47,6 +47,7 @@
     <item>@string/pref_theme_e_pine</item>
     <item>@string/pref_theme_e_epaperblack</item>
     <item>@string/pref_theme_e_dracula</item>
+    <item>@string/pref_theme_e_custom</item>
     <item>@string/pref_theme_e_gradientpurplepink</item>
   </string-array>
   <string-array name="pref_theme_values">
@@ -68,6 +69,7 @@
     <item>pine</item>
     <item>epaperblack</item>
     <item>dracula</item>
+    <item>custom</item>
     <item>gradientpurplepink</item>
   </string-array>
   <string-array name="pref_swipe_dist_entries">
@@ -138,6 +140,18 @@
     <item>prev</item>
     <item>next</item>
   </string-array>
+  <string-array name="pref_sound_effect_type_entries">
+    <item>@string/pref_sound_effect_default</item>
+    <item>@string/pref_sound_effect_mechanical</item>
+    <item>@string/pref_sound_effect_ios</item>
+    <item>@string/pref_sound_effect_system</item>
+  </string-array>
+  <string-array name="pref_sound_effect_type_values">
+    <item>default</item>
+    <item>mechanical</item>
+    <item>ios</item>
+    <item>system</item>
+  </string-array>
   <string-array name="pref_physical_keyboard_behavior_entries">
     <item>@string/pref_physical_keyboard_behavior_hide</item>
     <item>@string/pref_physical_keyboard_behavior_show</item>
@@ -199,5 +213,14 @@
     <item>llama-3.3-70b-versatile</item>
     <item>claude-3-5-sonnet-20241022</item>
     <item>gemini-2.0-flash</item>
+  </string-array>
+
+  <string-array name="pref_one_hand_side_entries">
+    <item>Right-Handed</item>
+    <item>Left-Handed</item>
+  </string-array>
+  <string-array name="pref_one_hand_side_values">
+    <item>right</item>
+    <item>left</item>
   </string-array>
 </resources>

@@ -5,16 +5,24 @@
   <PreferenceCategory
       android:title="@string/pref_category_layout"
       android:layout="@layout/pref_category_header">
-    <juloo.keyboard2.prefs.LayoutsPreference/>
+    <typodev.keyboard.prefs.LayoutsPreference/>
+    <Preference
+        android:key="pref_symbol_customizer"
+        android:title="@string/pref_symbol_customizer_title"
+        android:summary="@string/pref_symbol_customizer_summary"/>
     <PreferenceScreen
         android:title="@string/pref_extra_keys_title"
         android:summary="@string/pref_extra_keys_summary">
+      <Preference
+          android:key="pref_symbol_customizer_nested"
+          android:title="@string/pref_symbol_customizer_title"
+          android:summary="@string/pref_symbol_customizer_summary"/>
       <PreferenceCategory
           android:title="@string/pref_extra_keys_custom"
           android:layout="@layout/pref_category_header">
-        <juloo.keyboard2.prefs.CustomExtraKeysPreference/>
+        <typodev.keyboard.prefs.CustomExtraKeysPreference/>
       </PreferenceCategory>
-      <juloo.keyboard2.prefs.ExtraKeysPreference android:title="@string/pref_extra_keys_internal"/>
+      <typodev.keyboard.prefs.ExtraKeysPreference android:title="@string/pref_extra_keys_internal"/>
     </PreferenceScreen>
     <ListPreference
         android:key="number_row"
@@ -100,7 +108,17 @@
         android:entryValues="@array/pref_openai_model_values"/>
 
     <!-- Common Options -->
-    <CheckBoxPreference
+    <SwitchPreference
+        android:key="pref_voice_spoken_punctuation"
+        android:title="@string/pref_voice_spoken_punctuation_title"
+        android:summary="@string/pref_voice_spoken_punctuation_summary"
+        android:defaultValue="true"/>
+    <SwitchPreference
+        android:key="pref_voice_ai_punctuation"
+        android:title="@string/pref_voice_ai_punctuation_title"
+        android:summary="@string/pref_voice_ai_punctuation_summary"
+        android:defaultValue="true"/>
+    <SwitchPreference
         android:key="pref_ai_emojify"
         android:title="Emoji Generation"
         android:summary="Generate responses with emojis"
@@ -115,22 +133,22 @@
   <PreferenceCategory
       android:title="@string/pref_category_suggestions"
       android:layout="@layout/pref_category_header">
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="suggestions"
         android:title="@string/pref_suggestions_title"
         android:summary="@string/pref_suggestions_summary"
         android:defaultValue="true"/>
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="space_bar_auto_complete"
         android:title="@string/pref_space_bar_auto_complete_title"
         android:summary="@string/pref_space_bar_auto_complete_summary"
         android:defaultValue="false"/>
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="developer_mode"
         android:title="@string/pref_developer_mode_title"
         android:summary="@string/pref_developer_mode_summary"
         android:defaultValue="false"/>
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="show_in_terminals"
         android:title="@string/pref_show_in_terminals_title"
         android:summary="@string/pref_show_in_terminals_summary"
@@ -139,11 +157,7 @@
         android:key="pref_dictionaries_frostkeys"
         android:title="📚 Dictionaries &amp; Wordlists (FrostKeys)"
         android:summary="Download presets, import wordlists, or install offline dictionaries"/>
-    <Preference
-        android:key="pref_snippet_manager"
-        android:title="📝 My Snippets &amp; Word Manager"
-        android:summary="Create shortcuts that expand to full text in the suggestion bar"/>
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="pref_learning_enabled"
         android:title="🧠 Adaptive Typing Learning"
         android:summary="Learn from your typing patterns and accepted suggestions completely on-device"
@@ -165,28 +179,37 @@
         android:defaultValue="system"
         android:entries="@array/pref_theme_entries"
         android:entryValues="@array/pref_theme_values"/>
-    <juloo.keyboard2.prefs.IntSlideBarPreference
+    <Preference
+        android:key="pref_theme_customizer"
+        android:title="🎨 Theme Customizer"
+        android:summary="Customize keys, Shift, Ctrl, Enter, Backspace, Space bar, background &amp; suggestions"/>
+    <SwitchPreference
+        android:key="popup_on_keypress"
+        android:title="Keypress Popup Preview"
+        android:summary="Show character preview popup bubble while typing keys"
+        android:defaultValue="false"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
         android:key="label_brightness"
         android:title="@string/pref_label_brightness"
         android:summary="%s%%"
         android:defaultValue="100"
         min="50"
         max="100"/>
-    <juloo.keyboard2.prefs.IntSlideBarPreference
+    <typodev.keyboard.prefs.IntSlideBarPreference
         android:key="keyboard_opacity"
         android:title="@string/pref_keyboard_opacity"
         android:summary="%s%%"
         android:defaultValue="100"
         min="0"
         max="100"/>
-    <juloo.keyboard2.prefs.IntSlideBarPreference
+    <typodev.keyboard.prefs.IntSlideBarPreference
         android:key="key_opacity"
         android:title="@string/pref_key_opacity"
         android:summary="%s%%"
         android:defaultValue="100"
         min="0"
         max="100"/>
-    <juloo.keyboard2.prefs.IntSlideBarPreference
+    <typodev.keyboard.prefs.IntSlideBarPreference
         android:key="key_activated_opacity"
         android:title="@string/pref_key_activated_opacity"
         android:summary="%s%%"
@@ -196,28 +219,28 @@
     <PreferenceScreen
         android:title="@string/pref_margin_bottom_title"
         android:summary="@string/pref_margin_bottom_summary">
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="margin_bottom_portrait"
           android:title="@string/pref_portrait"
           android:summary="%sdp"
           android:defaultValue="7"
           min="0"
           max="250"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="margin_bottom_landscape"
           android:title="@string/pref_landscape"
           android:summary="%sdp"
           android:defaultValue="3"
           min="0"
           max="120"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="margin_bottom_portrait_unfolded"
           android:title="@string/pref_portrait_unfolded"
           android:summary="%sdp"
           android:defaultValue="7"
           min="0"
           max="250"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="margin_bottom_landscape_unfolded"
           android:title="@string/pref_landscape_unfolded"
           android:summary="%sdp"
@@ -228,28 +251,28 @@
     <PreferenceScreen
         android:title="@string/pref_keyboard_height_title"
         android:summary="@string/pref_keyboard_height_summary">
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="keyboard_height"
           android:title="@string/pref_portrait"
           android:summary="%s%%"
           android:defaultValue="35"
           min="10"
           max="100"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="keyboard_height_landscape"
           android:title="@string/pref_landscape"
           android:summary="%s%%"
           android:defaultValue="50"
           min="20"
           max="65"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="keyboard_height_unfolded"
           android:title="@string/pref_portrait_unfolded"
           android:summary="%s%%"
           android:defaultValue="35"
           min="10"
           max="50"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="keyboard_height_landscape_unfolded"
           android:title="@string/pref_landscape_unfolded"
           android:summary="%s%%"
@@ -260,28 +283,28 @@
     <PreferenceScreen
         android:title="@string/pref_horizontal_margin_title"
         android:summary="@string/pref_horizontal_margin_summary">
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="horizontal_margin_portrait"
           android:title="@string/pref_portrait"
           android:summary="%sdp"
           android:defaultValue="3"
           min="0"
           max="30"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="horizontal_margin_landscape"
           android:title="@string/pref_landscape"
           android:summary="%sdp"
           android:defaultValue="28"
           min="0"
           max="200"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="horizontal_margin_portrait_unfolded"
           android:title="@string/pref_portrait_unfolded"
           android:summary="%sdp"
           android:defaultValue="3"
           min="0"
           max="30"/>
-      <juloo.keyboard2.prefs.IntSlideBarPreference
+      <typodev.keyboard.prefs.IntSlideBarPreference
           android:key="horizontal_margin_landscape_unfolded"
           android:title="@string/pref_landscape_unfolded"
           android:summary="%sdp"
@@ -289,32 +312,32 @@
           min="0"
           max="200"/>
     </PreferenceScreen>
-    <juloo.keyboard2.prefs.SlideBarPreference
+    <typodev.keyboard.prefs.SlideBarPreference
         android:key="character_size"
         android:title="@string/pref_character_size_title"
         android:summary="@string/pref_character_size_summary"
         android:defaultValue="1.15"
         min="0.75"
         max="1.5"/>
-    <juloo.keyboard2.prefs.SlideBarPreference
+    <typodev.keyboard.prefs.SlideBarPreference
         android:key="key_vertical_margin"
         android:title="@string/pref_key_vertical_space"
         android:summary="%s%%"
         android:defaultValue="1.5"
         min="0"
         max="5"/>
-    <juloo.keyboard2.prefs.SlideBarPreference
+    <typodev.keyboard.prefs.SlideBarPreference
         android:key="key_horizontal_margin"
         android:title="@string/pref_key_horizontal_space"
         android:summary="%s%%"
         android:defaultValue="2"
         min="0"
         max="5"/>
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="border_config"
         android:title="@string/pref_border_config_title"
         android:defaultValue="false"/>
-    <juloo.keyboard2.prefs.IntSlideBarPreference
+    <typodev.keyboard.prefs.IntSlideBarPreference
         android:key="custom_border_radius"
         android:title="@string/pref_corners_radius_title"
         android:summary="%s%%"
@@ -322,7 +345,7 @@
         min="0"
         max="100"
         android:dependency="border_config"/>
-    <juloo.keyboard2.prefs.SlideBarPreference
+    <typodev.keyboard.prefs.SlideBarPreference
         android:key="custom_border_line_width"
         android:title="@string/pref_border_width_title"
         android:summary="%sdp"
@@ -357,18 +380,18 @@
         android:defaultValue="30"
         android:entries="@array/pref_slider_sensitivity_entries"
         android:entryValues="@array/pref_slider_sensitivity_values"/>
-    <juloo.keyboard2.prefs.IntSlideBarPreference
+    <typodev.keyboard.prefs.IntSlideBarPreference
         android:key="longpress_timeout"
         android:title="@string/pref_long_timeout_title"
         android:summary="%sms"
         android:defaultValue="600"
         min="50"
         max="2000"/>
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="keyrepeat_enabled"
         android:title="@string/pref_keyrepeat_enabled"
         android:defaultValue="true"/>
-    <juloo.keyboard2.prefs.IntSlideBarPreference
+    <typodev.keyboard.prefs.IntSlideBarPreference
         android:key="longpress_interval"
         android:dependency="keyrepeat_enabled"
         android:title="@string/pref_long_interval_title"
@@ -376,7 +399,7 @@
         android:defaultValue="25"
         min="5"
         max="100"/>
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="lock_double_tap"
         android:title="@string/pref_lock_double_tap_title"
         android:summary="@string/pref_lock_double_tap_summary"
@@ -394,7 +417,7 @@
   <PreferenceCategory
       android:title="@string/pref_category_behavior"
       android:layout="@layout/pref_category_header">
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="autocapitalisation"
         android:title="@string/pref_autocapitalisation_title"
         android:summary="@string/pref_autocapitalisation_summary"
@@ -406,17 +429,38 @@
         android:entries="@array/pref_change_method_key_replacement_entries"
         android:entryValues="@array/pref_change_method_key_replacement_values"
         android:defaultValue="prev"/>
-    <CheckBoxPreference
+    <SwitchPreference
         android:key="vibrate_custom"
         android:title="@string/pref_vibrate_custom"
         android:defaultValue="false"/>
-    <juloo.keyboard2.prefs.IntSlideBarPreference
+    <typodev.keyboard.prefs.IntSlideBarPreference
         android:dependency="vibrate_custom"
         android:key="vibrate_duration"
         android:title="@string/pref_vibrate_duration_title"
         android:summary="%sms"
         android:defaultValue="20"
         min="0"
+        max="100"/>
+    <SwitchPreference
+        android:key="sound_on_keypress"
+        android:title="@string/pref_sound_on_keypress"
+        android:summary="@string/pref_sound_on_keypress_summary"
+        android:defaultValue="true"/>
+    <ListPreference
+        android:dependency="sound_on_keypress"
+        android:key="sound_effect_type"
+        android:title="@string/pref_sound_effect_type_title"
+        android:summary="%s"
+        android:defaultValue="default"
+        android:entries="@array/pref_sound_effect_type_entries"
+        android:entryValues="@array/pref_sound_effect_type_values"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:dependency="sound_on_keypress"
+        android:key="sound_volume"
+        android:title="@string/pref_sound_volume_title"
+        android:summary="%s%%"
+        android:defaultValue="60"
+        min="1"
         max="100"/>
     <ListPreference
         android:key="number_entry_layout"

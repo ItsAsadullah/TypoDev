@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="toolbar_more_tools">More tools</string>
+    <string name="toolbar_back_to_keyboard">Back to keyboard</string>
+    <string name="theme_apply_failed">Could not apply the theme. Please try again.</string>
     <string name="app_name_release">TypoDev</string>
     <string name="app_name_debug">TypoDev (Debug)</string>
     <string name="app_tagline">type faster, write smarter</string>
@@ -32,6 +35,8 @@
     <string name="pref_numpad_layout_e_high_first">High digits first</string>
     <string name="pref_numpad_layout_e_low_first">Low digits first</string>
     <string name="pref_extra_keys_title">Add keys to the keyboard</string>
+    <string name="pref_symbol_customizer_title">Customize Key Symbols &amp; Swipes</string>
+    <string name="pref_symbol_customizer_summary">Assign custom symbols and swipe corners to any key</string>
     <string name="pref_extra_keys_custom">Add custom keys</string>
     <string name="pref_extra_keys_internal">Select keys to add to the keyboard</string>
     <string name="pref_category_suggestions">💡 Suggestions &amp; Dictionaries</string>
@@ -60,6 +65,14 @@
     <string name="pref_change_method_key_replacement_e_next">Switch to the next in the list</string>
     <string name="pref_vibrate_custom">Custom vibration</string>
     <string name="pref_vibrate_duration_title">Vibration intensity</string>
+    <string name="pref_sound_on_keypress">Sound on keypress</string>
+    <string name="pref_sound_on_keypress_summary">Play audio clicks when typing</string>
+    <string name="pref_sound_effect_type_title">Keypress sound effect</string>
+    <string name="pref_sound_effect_default">Default (AOSP / Gboard)</string>
+    <string name="pref_sound_effect_mechanical">Mechanical keyboard (Clicky switch)</string>
+    <string name="pref_sound_effect_ios">iOS / iPhone</string>
+    <string name="pref_sound_effect_system">Android system clicks</string>
+    <string name="pref_sound_volume_title">Keypress sound volume</string>
     <string name="pref_number_entry_title">Layout when typing numbers, dates, and phone numbers</string>
     <string name="pref_number_entry_layout_pin">PIN Entry</string>
     <string name="pref_number_entry_layout_number">Number pane</string>
@@ -89,6 +102,7 @@
     <string name="pref_theme_e_pine">Pine</string>
     <string name="pref_theme_e_epaperblack">ePaper Black</string>
     <string name="pref_theme_e_dracula">Dracula</string>
+    <string name="pref_theme_e_custom">🎨 Custom Theme</string>
     <string name="pref_theme_e_gradientpurplepink">Purple Pink Gradient</string>
     <string name="pref_swipe_dist_e_very_short">Very short</string>
     <string name="pref_swipe_dist_e_short">Short</string>
@@ -157,7 +171,12 @@
     <string name="clipboard_remove_confirm">Remove this clipboard item?</string>
     <string name="clipboard_remove_confirmed">Yes</string>
     <string name="toast_no_voice_input">No voice typing app installed</string>
-    <string name="pref_category_clipboard">📋 Clipboard</string>
+    <string name="pref_category_clipboard">Clipboard</string>
+    <string name="settings_search_hint">Search settings...</string>
+    <string name="settings_search_no_results">No settings found</string>
+    <string name="settings_search_no_results_sub">Try searching for keywords like layout, theme, height, sound...</string>
+    <string name="pref_clipboard_history_enabled">Enable clipboard history</string>
+    <string name="pref_clipboard_history_enabled_summary">Automatically save copied text and items to clipboard</string>
     <string name="pref_clipboard_history_duration">Clipboard memory duration</string>
     <string name="pref_clipboard_history_duration_1">At most 1 minute</string>
     <string name="pref_clipboard_history_duration_5">At most 5 minutes</string>
@@ -188,4 +207,12 @@
     <string name="pref_margin_bottom_summary">Adjust portrait &amp; landscape bottom spacing</string>
     <string name="pref_keyboard_height_summary">Adjust portrait &amp; landscape keyboard height</string>
     <string name="pref_horizontal_margin_summary">Adjust left and right side padding</string>
+    <string name="pref_voice_ai_punctuation_title">AI Voice Auto-Punctuation</string>
+    <string name="pref_voice_ai_punctuation_summary">Automatically add punctuation (। , ?) after voice typing without altering spoken words</string>
+    <string name="pref_voice_spoken_punctuation_title">Spoken Punctuation (Voice Commands)</string>
+    <string name="pref_voice_spoken_punctuation_summary">Convert spoken punctuation commands (like \'dari\', \'comma\', \'full stop\') into symbols</string>
+    <string name="voice_punctuation_checkbox_desc">Spoken punctuation toggle</string>
+    <string name="toast_voice_punct_enabled">Spoken punctuation enabled (। ,)</string>
+    <string name="toast_voice_punct_disabled">Spoken punctuation disabled</string>
+    <string name="voice_listening_hint">Listening… speak now</string>
 </resources>

@@ -1,53 +1,938 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:fitsSystemWindows="true">
-  <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:orientation="vertical">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/settings_bg"
+    android:fitsSystemWindows="true">
+
+  <!-- Sticky Top App Bar -->
+  <RelativeLayout
+      android:layout_width="match_parent"
+      android:layout_height="56dp"
+      android:background="@color/settings_appbar_bg"
+      android:paddingLeft="16dp"
+      android:paddingStart="16dp"
+      android:paddingRight="12dp"
+      android:paddingEnd="12dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+      <ImageView
+          android:layout_width="30dp"
+          android:layout_height="30dp"
+          android:src="@mipmap/ic_launcher"
+          android:contentDescription="@string/app_name_release"/>
+
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginLeft="10dp"
+          android:layout_marginStart="10dp"
+          android:text="TypoDev"
+          android:textSize="18.5sp"
+          android:textStyle="bold"
+          android:textColor="@color/settings_text_title"/>
+
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginLeft="8dp"
+          android:layout_marginStart="8dp"
+          android:text="KEYBOARD"
+          android:textSize="9.5sp"
+          android:textStyle="bold"
+          android:textColor="@color/settings_accent"
+          android:background="@drawable/settings_chip_bg"
+          android:paddingLeft="6dp"
+          android:paddingRight="6dp"
+          android:paddingTop="2dp"
+          android:paddingBottom="2dp"/>
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/btn_launcher_settings"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:padding="9dp"
+        android:src="@drawable/cog_outline"
+        android:tint="@color/settings_back_btn"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="Settings"/>
+  </RelativeLayout>
+
+  <View
+      android:layout_width="match_parent"
+      android:layout_height="0.6dp"
+      android:background="@color/settings_border"/>
+
+  <ScrollView
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_weight="1"
+      android:fillViewport="true"
+      android:scrollbars="none">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center"
-        android:paddingTop="28dp"
-        android:paddingBottom="16dp">
-      <ImageView
-          android:layout_width="72dp"
-          android:layout_height="72dp"
-          android:src="@mipmap/ic_launcher"
-          android:contentDescription="@string/app_name_release"/>
+        android:paddingBottom="48dp">
+
+      <!-- HERO BANNER CARD -->
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:gravity="center_horizontal"
+          android:layout_marginLeft="16dp"
+          android:layout_marginRight="16dp"
+          android:layout_marginTop="16dp"
+          android:paddingTop="22dp"
+          android:paddingBottom="22dp"
+          android:paddingLeft="20dp"
+          android:paddingRight="20dp"
+          android:background="@drawable/settings_hero_card_bg">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="TypoDev"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="TypoDev Keyboard"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/settings_text_title"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Type faster, write smarter • Banglish &amp; AI-Powered"
+            android:textSize="12.5sp"
+            android:textColor="@color/settings_text_subtitle"
+            android:gravity="center"/>
+
+        <!-- Dynamic Status Pill -->
+        <TextView
+            android:id="@+id/tv_launcher_status_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Checking status..."
+            android:textSize="11.5sp"
+            android:textStyle="bold"
+            android:textColor="@color/settings_accent"
+            android:background="@drawable/settings_hero_badge_bg"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"/>
+      </LinearLayout>
+
+      <!-- SECTION: ACTIVATION STEPS -->
       <TextView
+          android:id="@+id/tv_section_activation"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
-          android:text="@string/app_name_release"
-          android:textSize="24sp"
+          android:layout_marginLeft="24dp"
+          android:layout_marginStart="24dp"
+          android:layout_marginTop="20dp"
+          android:layout_marginBottom="8dp"
+          android:text="KEYBOARD ACTIVATION"
+          android:textSize="11.5sp"
           android:textStyle="bold"
-          android:textColor="?android:attr/textColorPrimary"
-          android:paddingTop="10dp"/>
+          android:letterSpacing="0.08"
+          android:textColor="@color/settings_text_section"/>
+
+      <LinearLayout
+          android:id="@+id/card_activation_steps"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:layout_marginLeft="16dp"
+          android:layout_marginRight="16dp"
+          android:background="@drawable/settings_group_bg">
+
+        <!-- STEP 1: Enable in Settings -->
+        <LinearLayout
+            android:id="@+id/row_step_enable"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="68dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <TextView
+              android:id="@+id/badge_step_1"
+              android:layout_width="32dp"
+              android:layout_height="32dp"
+              android:gravity="center"
+              android:text="1"
+              android:textSize="14sp"
+              android:textStyle="bold"
+              android:textColor="#FFFFFF"
+              android:background="@drawable/settings_fab_bg"/>
+
+          <LinearLayout
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:layout_marginLeft="14dp"
+              android:layout_marginStart="14dp"
+              android:layout_marginRight="10dp"
+              android:layout_marginEnd="10dp"
+              android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_step_1_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Enable in Settings"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="@color/settings_text_title"/>
+
+            <TextView
+                android:id="@+id/tv_step_1_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Enable TypoDev in system keyboards"
+                android:textSize="12sp"
+                android:textColor="@color/settings_text_subtitle"/>
+          </LinearLayout>
+
+          <Button
+              android:id="@+id/btn_step_enable"
+              android:layout_width="wrap_content"
+              android:layout_height="34dp"
+              android:minWidth="76dp"
+              android:paddingLeft="12dp"
+              android:paddingRight="12dp"
+              android:text="Enable"
+              android:textSize="12sp"
+              android:textStyle="bold"
+              android:textColor="#FFFFFF"
+              android:background="@drawable/settings_btn_accent_bg"/>
+
+          <TextView
+              android:id="@+id/tv_step_1_done"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:text="✓ Ready"
+              android:textSize="13sp"
+              android:textStyle="bold"
+              android:textColor="#34C759"
+              android:visibility="gone"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.6dp"
+            android:background="@color/settings_border"
+            android:layout_marginLeft="62dp"/>
+
+        <!-- STEP 2: Select Default -->
+        <LinearLayout
+            android:id="@+id/row_step_select"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="68dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <TextView
+              android:id="@+id/badge_step_2"
+              android:layout_width="32dp"
+              android:layout_height="32dp"
+              android:gravity="center"
+              android:text="2"
+              android:textSize="14sp"
+              android:textStyle="bold"
+              android:textColor="#FFFFFF"
+              android:background="@drawable/settings_fab_bg"/>
+
+          <LinearLayout
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:layout_marginLeft="14dp"
+              android:layout_marginStart="14dp"
+              android:layout_marginRight="10dp"
+              android:layout_marginEnd="10dp"
+              android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_step_2_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Switch Input Method"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="@color/settings_text_title"/>
+
+            <TextView
+                android:id="@+id/tv_step_2_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Choose TypoDev as your active keyboard"
+                android:textSize="12sp"
+                android:textColor="@color/settings_text_subtitle"/>
+          </LinearLayout>
+
+          <Button
+              android:id="@+id/btn_step_select"
+              android:layout_width="wrap_content"
+              android:layout_height="34dp"
+              android:minWidth="76dp"
+              android:paddingLeft="12dp"
+              android:paddingRight="12dp"
+              android:text="Select"
+              android:textSize="12sp"
+              android:textStyle="bold"
+              android:textColor="#FFFFFF"
+              android:background="@drawable/settings_btn_accent_bg"/>
+
+          <TextView
+              android:id="@+id/tv_step_2_done"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:text="✓ Active"
+              android:textSize="13sp"
+              android:textStyle="bold"
+              android:textColor="#34C759"
+              android:visibility="gone"/>
+        </LinearLayout>
+      </LinearLayout>
+
+      <!-- TUTORIAL CARD: 3 ANIMATIONS IN ONE HORIZONTAL ROW WITH RESULTS -->
+      <LinearLayout
+          android:id="@+id/card_tutorial"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          android:gravity="center"
+          android:layout_marginLeft="16dp"
+          android:layout_marginRight="16dp"
+          android:layout_marginTop="10dp"
+          android:paddingTop="8dp"
+          android:paddingBottom="8dp"
+          android:paddingLeft="6dp"
+          android:paddingRight="6dp"
+          android:background="@drawable/settings_group_bg"
+          android:visibility="gone">
+
+        <!-- ANIMATION 1: Corner Swipe -> 7 -->
+        <LinearLayout
+            android:id="@+id/row_anim_swipe"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:id="@+id/launcher_anim_swipe"
+              android:layout_width="55dp"
+              android:layout_height="66dp"
+              android:background="@drawable/doc_key_u"
+              android:src="@drawable/doc_anim_swipe"
+              android:scaleType="fitCenter"
+              android:contentDescription="Corner Swipe"/>
+
+          <TextView
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:layout_marginLeft="4dp"
+              android:layout_marginStart="4dp"
+              android:text="@string/launcher_anim_7"
+              android:textSize="15sp"
+              android:textStyle="bold"
+              android:textColor="@color/settings_text_title"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="0.6dp"
+            android:layout_height="36dp"
+            android:background="@color/settings_border"/>
+
+        <!-- ANIMATION 2: Circle Gesture -> G -->
+        <LinearLayout
+            android:id="@+id/row_anim_circle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:id="@+id/launcher_anim_circle"
+              android:layout_width="55dp"
+              android:layout_height="66dp"
+              android:background="@drawable/doc_key_g"
+              android:src="@drawable/doc_anim_circle"
+              android:scaleType="fitCenter"
+              android:contentDescription="Circle Gesture"/>
+
+          <TextView
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:layout_marginLeft="4dp"
+              android:layout_marginStart="4dp"
+              android:text="@string/launcher_anim_g"
+              android:textSize="15sp"
+              android:textStyle="bold"
+              android:textColor="@color/settings_text_title"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="0.6dp"
+            android:layout_height="36dp"
+            android:background="@color/settings_border"/>
+
+        <!-- ANIMATION 3: Round-Trip Swipe -> – -->
+        <LinearLayout
+            android:id="@+id/row_anim_round_trip"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:id="@+id/launcher_anim_round_trip"
+              android:layout_width="55dp"
+              android:layout_height="66dp"
+              android:background="@drawable/doc_key_g"
+              android:src="@drawable/doc_anim_round_trip"
+              android:scaleType="fitCenter"
+              android:contentDescription="Round-Trip Swipe"/>
+
+          <TextView
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:layout_marginLeft="4dp"
+              android:layout_marginStart="4dp"
+              android:text="@string/launcher_anim_dash"
+              android:textSize="15sp"
+              android:textStyle="bold"
+              android:textColor="@color/settings_text_title"/>
+        </LinearLayout>
+
+      </LinearLayout>
+
+      <!-- SECTION: INTERACTIVE TEST PAD -->
       <TextView
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
-          android:text="@string/app_tagline"
-          android:textSize="14sp"
-          android:textColor="?android:attr/textColorSecondary"
-          android:paddingTop="2dp"/>
+          android:layout_marginLeft="24dp"
+          android:layout_marginStart="24dp"
+          android:layout_marginTop="20dp"
+          android:layout_marginBottom="8dp"
+          android:text="TEST YOUR KEYBOARD"
+          android:textSize="11.5sp"
+          android:textStyle="bold"
+          android:letterSpacing="0.08"
+          android:textColor="@color/settings_text_section"/>
+
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:layout_marginLeft="16dp"
+          android:layout_marginRight="16dp"
+          android:background="@drawable/settings_group_bg"
+          android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tap below to open TypoDev and try typing:"
+            android:textSize="12.5sp"
+            android:textColor="@color/settings_text_subtitle"/>
+
+        <!-- Modern High-Contrast Typing Test Input Bar -->
+        <LinearLayout
+            android:id="@+id/container_tryhere_input"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/settings_test_input_bg"
+            android:paddingLeft="10dp"
+            android:paddingRight="8dp">
+
+          <LinearLayout
+              android:layout_width="32dp"
+              android:layout_height="32dp"
+              android:gravity="center"
+              android:background="@drawable/settings_input_icon_bg">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_pref_typing"
+                android:tint="@color/settings_accent"
+                android:contentDescription="Keyboard"/>
+          </LinearLayout>
+
+          <EditText
+              android:id="@+id/launcher_tryhere_area"
+              android:layout_width="0dp"
+              android:layout_height="match_parent"
+              android:layout_weight="1"
+              android:layout_marginLeft="10dp"
+              android:layout_marginStart="10dp"
+              android:hint="Tap here to test typing..."
+              android:textColor="@color/settings_text_title"
+              android:textColorHint="@color/settings_text_subtitle"
+              android:textSize="14sp"
+              android:background="@null"
+              android:inputType="text"
+              android:importantForAutofill="no"/>
+
+          <ImageView
+              android:id="@+id/btn_clear_tryhere"
+              android:layout_width="32dp"
+              android:layout_height="32dp"
+              android:padding="6dp"
+              android:src="@drawable/ic_clear"
+              android:tint="@color/settings_text_subtitle"
+              android:background="?android:attr/selectableItemBackgroundBorderless"
+              android:visibility="gone"
+              android:contentDescription="Clear"/>
+        </LinearLayout>
+
+        <!-- Dynamic Key Output Indicator Badge -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+          <TextView
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:text="KEY DETECTED:"
+              android:textSize="10.5sp"
+              android:textStyle="bold"
+              android:letterSpacing="0.06"
+              android:textColor="@color/settings_text_section"/>
+
+          <TextView
+              android:id="@+id/launcher_tryhere_text"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:layout_marginLeft="8dp"
+              android:layout_marginStart="8dp"
+              android:background="@drawable/settings_key_badge_bg"
+              android:paddingLeft="10dp"
+              android:paddingRight="10dp"
+              android:paddingTop="3dp"
+              android:paddingBottom="3dp"
+              android:text="Ready • Press any key"
+              android:textSize="12sp"
+              android:textStyle="bold"
+              android:textColor="@color/settings_accent"/>
+        </LinearLayout>
+      </LinearLayout>
+
+      <!-- SECTION: QUICK FEATURES & HUBS -->
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginLeft="24dp"
+          android:layout_marginStart="24dp"
+          android:layout_marginTop="20dp"
+          android:layout_marginBottom="8dp"
+          android:text="KEYBOARD FEATURES &amp; SETTINGS"
+          android:textSize="11.5sp"
+          android:textStyle="bold"
+          android:letterSpacing="0.08"
+          android:textColor="@color/settings_text_section"/>
+
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:layout_marginLeft="16dp"
+          android:layout_marginRight="16dp"
+          android:background="@drawable/settings_group_bg">
+
+        <!-- Theme Customizer -->
+        <LinearLayout
+            android:id="@+id/card_launcher_theme"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:layout_width="22dp"
+              android:layout_height="22dp"
+              android:src="@drawable/ic_pref_style"
+              android:tint="@color/settings_accent"
+              android:contentDescription="Theme"/>
+
+          <LinearLayout
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:layout_marginLeft="14dp"
+              android:layout_marginStart="14dp"
+              android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Themes &amp; Appearance"
+                android:textSize="14.5sp"
+                android:textStyle="bold"
+                android:textColor="@color/settings_text_title"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Colors, AMOLED dark &amp; key styles"
+                android:textSize="11.5sp"
+                android:textColor="@color/settings_text_subtitle"/>
+          </LinearLayout>
+
+          <ImageView
+              android:layout_width="16dp"
+              android:layout_height="16dp"
+              android:src="@drawable/ic_chevron_right"
+              android:tint="@color/settings_chevron"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="0.6dp" android:background="@color/settings_border" android:layout_marginLeft="52dp"/>
+
+        <!-- AI Assistant -->
+        <LinearLayout
+            android:id="@+id/card_launcher_ai"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:layout_width="22dp"
+              android:layout_height="22dp"
+              android:src="@drawable/ic_pref_ai"
+              android:tint="@color/settings_accent"
+              android:contentDescription="AI"/>
+
+          <LinearLayout
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:layout_marginLeft="14dp"
+              android:layout_marginStart="14dp"
+              android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AI Writing Assistant"
+                android:textSize="14.5sp"
+                android:textStyle="bold"
+                android:textColor="@color/settings_text_title"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rewrite, tone change &amp; translation"
+                android:textSize="11.5sp"
+                android:textColor="@color/settings_text_subtitle"/>
+          </LinearLayout>
+
+          <ImageView
+              android:layout_width="16dp"
+              android:layout_height="16dp"
+              android:src="@drawable/ic_chevron_right"
+              android:tint="@color/settings_chevron"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="0.6dp" android:background="@color/settings_border" android:layout_marginLeft="52dp"/>
+
+        <!-- Snippets Manager -->
+        <LinearLayout
+            android:id="@+id/card_launcher_snippets"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:layout_width="22dp"
+              android:layout_height="22dp"
+              android:src="@drawable/ic_clip_edit"
+              android:tint="@color/settings_accent"
+              android:contentDescription="Snippets"/>
+
+          <LinearLayout
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:layout_marginLeft="14dp"
+              android:layout_marginStart="14dp"
+              android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="My Snippets &amp; Shortcuts"
+                android:textSize="14.5sp"
+                android:textStyle="bold"
+                android:textColor="@color/settings_text_title"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Quick text abbreviations &amp; auto-replace"
+                android:textSize="11.5sp"
+                android:textColor="@color/settings_text_subtitle"/>
+          </LinearLayout>
+
+          <ImageView
+              android:layout_width="16dp"
+              android:layout_height="16dp"
+              android:src="@drawable/ic_chevron_right"
+              android:tint="@color/settings_chevron"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="0.6dp" android:background="@color/settings_border" android:layout_marginLeft="52dp"/>
+
+        <!-- Dictionaries -->
+        <LinearLayout
+            android:id="@+id/card_launcher_dicts"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:layout_width="22dp"
+              android:layout_height="22dp"
+              android:src="@drawable/ic_pref_globe"
+              android:tint="@color/settings_accent"
+              android:contentDescription="Dictionaries"/>
+
+          <LinearLayout
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:layout_marginLeft="14dp"
+              android:layout_marginStart="14dp"
+              android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dictionaries &amp; Wordlists"
+                android:textSize="14.5sp"
+                android:textStyle="bold"
+                android:textColor="@color/settings_text_title"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Offline language models &amp; dictionaries"
+                android:textSize="11.5sp"
+                android:textColor="@color/settings_text_subtitle"/>
+          </LinearLayout>
+
+          <ImageView
+              android:layout_width="16dp"
+              android:layout_height="16dp"
+              android:src="@drawable/ic_chevron_right"
+              android:tint="@color/settings_chevron"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="0.6dp" android:background="@color/settings_border" android:layout_marginLeft="52dp"/>
+
+        <!-- Keys & Symbols -->
+        <LinearLayout
+            android:id="@+id/card_launcher_keys"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:layout_width="22dp"
+              android:layout_height="22dp"
+              android:src="@drawable/ic_pref_key"
+              android:tint="@color/settings_accent"
+              android:contentDescription="Keys"/>
+
+          <LinearLayout
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:layout_marginLeft="14dp"
+              android:layout_marginStart="14dp"
+              android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Custom Keys &amp; Symbols"
+                android:textSize="14.5sp"
+                android:textStyle="bold"
+                android:textColor="@color/settings_text_title"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Top number row &amp; custom symbol popup"
+                android:textSize="11.5sp"
+                android:textColor="@color/settings_text_subtitle"/>
+          </LinearLayout>
+
+          <ImageView
+              android:layout_width="16dp"
+              android:layout_height="16dp"
+              android:src="@drawable/ic_chevron_right"
+              android:tint="@color/settings_chevron"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="0.6dp" android:background="@color/settings_border" android:layout_marginLeft="52dp"/>
+
+        <!-- All Settings -->
+        <LinearLayout
+            android:id="@+id/card_launcher_all_settings"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+          <ImageView
+              android:layout_width="22dp"
+              android:layout_height="22dp"
+              android:src="@drawable/ic_pref_behavior"
+              android:tint="@color/settings_accent"
+              android:contentDescription="Settings"/>
+
+          <LinearLayout
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:layout_marginLeft="14dp"
+              android:layout_marginStart="14dp"
+              android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="All Keyboard Settings"
+                android:textSize="14.5sp"
+                android:textStyle="bold"
+                android:textColor="@color/settings_text_title"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Haptics, sound, layouts &amp; full configuration"
+                android:textSize="11.5sp"
+                android:textColor="@color/settings_text_subtitle"/>
+          </LinearLayout>
+
+          <ImageView
+              android:layout_width="16dp"
+              android:layout_height="16dp"
+              android:src="@drawable/ic_chevron_right"
+              android:tint="@color/settings_chevron"/>
+        </LinearLayout>
+      </LinearLayout>
+
+
+
+      <!-- FOOTER -->
+      <TextView
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="28dp"
+          android:gravity="center"
+          android:text="TypoDev Keyboard • 100% Private\nNo keystrokes or data ever leave your device"
+          android:textSize="12sp"
+          android:textColor="@color/settings_text_subtitle"
+          android:lineSpacingExtra="3dp"/>
+
     </LinearLayout>
-    <TextView style="@style/paragraph" android:text="@string/launcher_description"/>
-    <Button style="@style/paragraph" android:text="@string/launcher_button_imesettings" android:onClick="launch_imesettings" android:layout_width="wrap_content"/>
-    <Button style="@style/paragraph" android:text="@string/launcher_button_imepicker" android:onClick="launch_imepicker" android:layout_width="wrap_content"/>
-    <Button style="@style/paragraph" android:text="@string/launcher_button_dictionaries" android:onClick="launch_dictionaries_activity" android:layout_width="wrap_content"/>
-    <LinearLayout style="@style/anim_box">
-      <ImageView style="@style/anim" android:id="@+id/launcher_anim_swipe" android:background="@drawable/doc_key_u" android:src="@drawable/doc_anim_swipe"/>
-      <TextView style="@style/anim_text" android:text="@string/launcher_anim_7"/>
-    </LinearLayout>
-    <LinearLayout style="@style/anim_box">
-      <ImageView style="@style/anim" android:id="@+id/launcher_anim_circle" android:background="@drawable/doc_key_g" android:src="@drawable/doc_anim_circle"/>
-      <TextView style="@style/anim_text" android:text="@string/launcher_anim_g"/>
-    </LinearLayout>
-    <LinearLayout style="@style/anim_box">
-      <ImageView style="@style/anim" android:id="@+id/launcher_anim_round_trip" android:background="@drawable/doc_key_g" android:src="@drawable/doc_anim_round_trip"/>
-      <TextView style="@style/anim_text" android:text="@string/launcher_anim_dash"/>
-    </LinearLayout>
-    <TextView android:id="@+id/launcher_tryhere_text" style="@style/paragraph" android:text="@string/launcher_tryhere"/>
-    <EditText android:id="@+id/launcher_tryhere_area" style="@style/paragraph" android:inputType="text" android:hint="@string/launcher_tryhere_hint" android:importantForAutofill="no"/>
-    <TextView style="@style/paragraph" android:text="@string/launcher_sourcecode"/>
-    <TextView style="@style/paragraph" android:text="@string/launcher_repo_url" android:autoLink="web" android:linksClickable="true"/>
-  </LinearLayout>
-</ScrollView>
+  </ScrollView>
+
+</LinearLayout>

@@ -7,7 +7,7 @@ Thanks for contributing :)
 The application uses Gradle and can be used with Android Studio, but using
 Android Studio is not required. The build dependencies are:
 - OpenJDK 17
-- Android SDK: build tools, platform `36`
+- Android SDK: build tools, platform `35`
 
 Python 3 is required to update generated files but not to build the app.
 
@@ -63,7 +63,7 @@ be installed at the same time.
 FAILURE: Build failed with an exception.
 * What went wrong:
 Execution failed for task ':installDebug'.
-> java.util.concurrent.ExecutionException: com.android.builder.testing.api.DeviceException: com.android.ddmlib.InstallException: INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package juloo.keyboard2.debug signatures do not match newer version; ignoring!
+> java.util.concurrent.ExecutionException: com.android.builder.testing.api.DeviceException: com.android.ddmlib.InstallException: INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package typodev.keyboard.debug signatures do not match newer version; ignoring!
 ```
 
 The application can't be "updated" because the temporary certificate has been
@@ -71,7 +71,7 @@ lost. The solution is to uninstall and install again.
 The application must be enabled again in the settings.
 
 ```sh
-adb uninstall juloo.keyboard2.debug
+adb uninstall typodev.keyboard.debug
 ./gradlew installDebug
 ```
 

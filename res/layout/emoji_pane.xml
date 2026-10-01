@@ -33,13 +33,13 @@
         android:textSize="13sp"/>
   </LinearLayout>
 
-  <juloo.keyboard2.EmojiGroupButtonsBar
+  <typodev.keyboard.EmojiGroupButtonsBar
       android:id="@+id/emoji_groups_bar"
       android:orientation="horizontal"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"/>
 
-  <juloo.keyboard2.EmojiGridView
+  <typodev.keyboard.EmojiGridView
       android:id="@+id/emoji_grid"
       android:layout_width="fill_parent"
       android:layout_height="@dimen/emoji_grid_height"
@@ -48,7 +48,7 @@
       android:columnWidth="45sp"
       android:background="?attr/colorKeyboard"/>
 
-  <juloo.keyboard2.Keyboard2View
+  <typodev.keyboard.Keyboard2View
       layout="@xml/emoji_bottom_row"
       android:layout_width="fill_parent"
       android:layout_height="wrap_content"

@@ -34,7 +34,7 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
-    - run: python3 srcs/compose/compile.py srcs/compose/{*.json,compose} > srcs/juloo.keyboard2/ComposeKeyData.java
+    - run: python3 srcs/compose/compile.py srcs/compose/{*.json,compose} > srcs/typodev.keyboard/ComposeKeyData.java
     - name: "Run 'gradle test' to update the generated files."
       run: git diff --exit-code
 

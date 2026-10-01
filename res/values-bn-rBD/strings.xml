@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="toolbar_more_tools">আরও টুল</string>
+    <string name="toolbar_back_to_keyboard">কীবোর্ডে ফিরুন</string>
+    <string name="theme_apply_failed">থিম প্রয়োগ করা যায়নি। আবার চেষ্টা করুন।</string>
     <string name="app_name_release">TypoDev</string>
     <string name="app_name_debug">TypoDev (ডিবাগ)</string>
     <string name="app_tagline">type faster, write smarter</string>
@@ -120,13 +123,13 @@
     <string name="clipboard_pin_heading">পিন করা</string>
     <string name="clipboard_remove_confirm">এই ক্লিপবোর্ডটি সরাবেন?</string>
     <string name="clipboard_remove_confirmed">হ্যা</string>
-    <string name="pref_category_suggestions">💡 শব্দ সাজেশন ও ডিকশনারি</string>
-    <string name="pref_category_clipboard">📋 ক্লিপবোর্ড</string>
-    <string name="pref_category_ai">✨ জেমিনি এআই অ্যাসিস্ট্যান্ট</string>
-    <string name="pref_category_about">ℹ️ কিবোর্ড টেস্ট ও তথ্য</string>
-    <string name="pref_get_api_key_title">🌐 ফ্রি জেমিনি এপিআই কি নিন</string>
+    <string name="pref_category_suggestions">শব্দ সাজেশন ও ডিকশনারি</string>
+    <string name="pref_category_clipboard">ক্লিপবোর্ড</string>
+    <string name="pref_category_ai">জেমিনি এআই অ্যাসিস্ট্যান্ট</string>
+    <string name="pref_category_about">কিবোর্ড টেস্ট ও তথ্য</string>
+    <string name="pref_get_api_key_title">ফ্রি জেমিনি এপিআই কি নিন</string>
     <string name="pref_get_api_key_summary">Google AI Studio থেকে সহজে ফ্রি API Key তৈরি করুন</string>
-    <string name="pref_test_keyboard_title">🧪 কিবোর্ড টেস্ট করুন</string>
+    <string name="pref_test_keyboard_title">কিবোর্ড টেস্ট করুন</string>
     <string name="pref_test_keyboard_summary">টাইপিং ও অঙ্গভঙ্গি পরীক্ষা করার জন্য টেস্ট এরিয়া ওপেন করুন</string>
     <string name="pref_about_app_title">TypoDev</string>
     <string name="pref_about_app_summary">type faster, write smarter • ভার্সন ২.১.০</string>
@@ -138,4 +141,17 @@
     <string name="pref_developer_mode_summary">HTML ক্লোজিং ট্যাগ ও কোডিং সিনট্যাক্স অটো-সাজেশন দেখান</string>
     <string name="pref_show_in_terminals_title">টার্মিনাল ও Termux-এ প্রদর্শন (📟)</string>
     <string name="pref_show_in_terminals_summary">Termux এবং টার্মিনাল অ্যাপসমূহে সাজেশন বার ও টুলবার দৃশ্যমান রাখুন</string>
+    <string name="pref_voice_ai_punctuation_title">ভয়েস এআই অটো-পাংচুয়েশন</string>
+    <string name="pref_voice_ai_punctuation_summary">ভয়েস টাইপিং শেষে স্বয়ংক্রিয়ভাবে দাঁড়ি (।), কমা (,) ও জ্যোতিচিহ্ন দিন (মূল শব্দ অপরিবর্তিত রেখে)</string>
+    <string name="pref_voice_spoken_punctuation_title">মুখে বলা দাঁড়ি-কমা (ভয়েস কমান্ড)</string>
+    <string name="pref_voice_spoken_punctuation_summary">মুখে দাঁড়ি, কমা বা প্রশ্নবোধক বললে স্বয়ংক্রিয়ভাবে জ্যোতিচিহ্ন বসান</string>
+    <string name="voice_punctuation_checkbox_desc">মুখে বলা দাঁড়ি-কমা চালু/বন্ধ করার টিক বক্স</string>
+    <string name="toast_voice_punct_enabled">মুখে বলা দাঁড়ি-কমা চালু হয়েছে (। ,)</string>
+    <string name="toast_voice_punct_disabled">মুখে বলা দাঁড়ি-কমা বন্ধ করা হয়েছে</string>
+    <string name="voice_listening_hint">শুনছি… কথা বলুন</string>
+    <string name="settings_search_hint">সেটিংস খুঁজুন...</string>
+    <string name="settings_search_no_results">কোনো সেটিংস পাওয়া যায়নি</string>
+    <string name="settings_search_no_results_sub">লেআউট, থিম, শব্দ, সাইজ ইত্যাদি লিখে খুঁজুন...</string>
+    <string name="pref_clipboard_history_enabled">ক্লিপবোর্ড ইতিহাস চালু রাখুন</string>
+    <string name="pref_clipboard_history_enabled_summary">কপি করা লেখা স্বয়ংক্রিয়ভাবে ক্লিপবোর্ডে সংরক্ষণ করুন</string>
 </resources>

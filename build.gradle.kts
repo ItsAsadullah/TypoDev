@@ -5,31 +5,34 @@ plugins {
   id("com.android.application") version "8.13.2"
 }
 
-layout.buildDirectory.set(file("D:/unexpected/build"))
-
 dependencies {
   // Following versions of androidx.window require sdk version 23
   implementation("androidx.window:window-java:1.4.0")
   implementation("androidx.core:core:1.16.0") // Version 1.17.0 available with sdk 36
   testImplementation("junit:junit:4.13.2")
+  testImplementation("org.json:json:20231013")
 }
 
 android {
-  namespace = "juloo.keyboard2"
+  namespace = "typodev.keyboard"
   compileSdkVersion = "android-35"
 
   defaultConfig {
-    applicationId = "juloo.keyboard2"
+    applicationId = "typodev.keyboard"
     minSdk = 21
     targetSdk = 35
     versionCode = 56
     versionName = "2.1.0"
   }
 
+  androidResources {
+    noCompress.addAll(listOf("ogg", "json", "ttf"))
+  }
+
   sourceSets {
     named("main") {
       manifest.srcFile("AndroidManifest.xml")
-      java.srcDirs("srcs/juloo.keyboard2", "vendor/cdict/java/juloo.cdict")
+      java.srcDirs("srcs/typodev.keyboard", "vendor/cdict/java/juloo.cdict")
       res.srcDirs("res", "build/generated-resources")
       assets.srcDirs("assets")
     }
@@ -41,7 +44,7 @@ android {
 
   externalNativeBuild {
     ndkBuild {
-      path = file("D:/unexpected/vendor/Android.mk")
+      path = file("vendor/Android.mk")
     }
   }
 
@@ -95,6 +98,12 @@ android {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
   }
+
+  lint {
+    // Untranslated strings use the default language; keep them visible without
+    // hiding compatibility or crash diagnostics behind translation failures.
+    warning.add("MissingTranslation")
+  }
 }
 
 
@@ -145,7 +154,7 @@ val genMethodXml by tasks.registering(Exec::class) {
 
 val checkKeyboardLayouts by tasks.registering(Exec::class) {
   inputs.dir(projectDir.resolve("srcs/layouts"))
-  inputs.file(projectDir.resolve("srcs/juloo.keyboard2/KeyValue.java"))
+  inputs.file(projectDir.resolve("srcs/typodev.keyboard/KeyValue.java"))
   outputs.file(projectDir.resolve("check_layout.output"))
   doFirst { println("\nChecking layouts") }
   workingDir = projectDir
@@ -154,12 +163,12 @@ val checkKeyboardLayouts by tasks.registering(Exec::class) {
 
 val compileComposeSequences by tasks.registering(Exec::class) {
   val `in` = projectDir.resolve("srcs/compose")
-  val out = projectDir.resolve("srcs/juloo.keyboard2/ComposeKeyData.java")
+  val out = projectDir.resolve("srcs/typodev.keyboard/ComposeKeyData.java")
   inputs.dir(`in`)
   outputs.file(out)
   doFirst { println("\nGenerating $out") }
   val sequences = `in`.listFiles { it: File ->
-    !it.name.endsWith(".py") && !it.name.endsWith(".md")
+    !it.name.endsWith(".py") && !it.name.endsWith(".md") && !it.name.startsWith(".") && it.name != "__pycache__"
   }!!.map { it.absolutePath }.toTypedArray()
   workingDir = projectDir
   commandLine("python", `in`.resolve("compile.py").absolutePath, *sequences)

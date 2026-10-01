@@ -1,119 +1,245 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#FF111827">
+    android:background="@color/settings_bg"
+    android:fitsSystemWindows="true">
 
-  <!-- Top App Bar -->
+  <!-- Main Column -->
   <LinearLayout
       android:layout_width="match_parent"
-      android:layout_height="56dp"
-      android:orientation="horizontal"
-      android:gravity="center_vertical"
-      android:background="#FF1A2233"
-      android:paddingLeft="8dp"
-      android:paddingRight="8dp">
+      android:layout_height="match_parent"
+      android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/btn_snippets_back"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:gravity="center"
-        android:text="←"
-        android:textSize="22sp"
-        android:textColor="#FFFFFF"
-        android:background="@android:color/transparent"/>
+    <!-- Sticky Top App Bar -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/settings_appbar_bg"
+        android:paddingLeft="12dp"
+        android:paddingStart="12dp"
+        android:paddingRight="16dp"
+        android:paddingEnd="16dp">
 
-    <TextView
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="📝 My Snippets"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:paddingLeft="8dp"/>
+      <ImageView
+          android:id="@+id/btn_snippets_back"
+          android:layout_width="40dp"
+          android:layout_height="40dp"
+          android:layout_alignParentLeft="true"
+          android:layout_alignParentStart="true"
+          android:layout_centerVertical="true"
+          android:padding="9dp"
+          android:src="@drawable/ic_ios_back"
+          android:tint="@color/settings_back_btn"
+          android:background="?android:attr/selectableItemBackgroundBorderless"
+          android:clickable="true"
+          android:focusable="true"
+          android:contentDescription="Back"/>
 
-    <TextView
-        android:id="@+id/snippet_count_badge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textColor="#88FFFFFF"
-        android:paddingRight="8dp"/>
-  </LinearLayout>
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_centerInParent="true"
+          android:layout_toLeftOf="@id/snippet_count_badge"
+          android:layout_toStartOf="@id/snippet_count_badge"
+          android:layout_toRightOf="@id/btn_snippets_back"
+          android:layout_toEndOf="@id/btn_snippets_back"
+          android:gravity="center"
+          android:singleLine="true"
+          android:ellipsize="end"
+          android:text="My Snippets"
+          android:textSize="18.5sp"
+          android:textStyle="bold"
+          android:textColor="@color/settings_text_title"/>
 
-  <!-- Search Bar -->
-  <LinearLayout
-      android:layout_width="match_parent"
-      android:layout_height="52dp"
-      android:orientation="horizontal"
-      android:gravity="center_vertical"
-      android:paddingLeft="12dp"
-      android:paddingRight="12dp"
-      android:paddingTop="8dp"
-      android:paddingBottom="4dp">
+      <TextView
+          android:id="@+id/snippet_count_badge"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_alignParentRight="true"
+          android:layout_alignParentEnd="true"
+          android:layout_centerVertical="true"
+          android:layout_marginRight="16dp"
+          android:layout_marginEnd="16dp"
+          android:singleLine="true"
+          android:maxLines="1"
+          android:ellipsize="end"
+          android:textSize="11.5sp"
+          android:textStyle="bold"
+          android:textColor="@color/settings_accent"
+          android:background="@drawable/settings_chip_bg"
+          android:paddingLeft="10dp"
+          android:paddingRight="10dp"
+          android:paddingTop="4dp"
+          android:paddingBottom="4dp"/>
+    </RelativeLayout>
 
-    <EditText
-        android:id="@+id/snippet_search"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:hint="🔍 Search snippets..."
-        android:textColorHint="#55FFFFFF"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:background="@drawable/snippet_search_bg"
-        android:paddingLeft="14dp"
-        android:paddingRight="14dp"
-        android:imeOptions="actionSearch"
-        android:inputType="text"
-        android:singleLine="true"/>
-  </LinearLayout>
+    <!-- Divider line under App Bar -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.6dp"
+        android:background="@color/settings_border"/>
 
-  <!-- Category Filter Tabs -->
-  <HorizontalScrollView
-      android:layout_width="match_parent"
-      android:layout_height="40dp"
-      android:scrollbars="none"
-      android:overScrollMode="never"
-      android:paddingLeft="8dp"
-      android:paddingRight="8dp">
+    <!-- Modern Search Bar (Positioned directly below app bar) -->
     <LinearLayout
-        android:id="@+id/snippet_category_tabs"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical"/>
-  </HorizontalScrollView>
+        android:gravity="center_vertical"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/settings_search_bar_bg"
+        android:paddingLeft="14dp"
+        android:paddingRight="12dp">
 
-  <!-- Divider -->
-  <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#22FFFFFF"/>
+      <ImageView
+          android:layout_width="18dp"
+          android:layout_height="18dp"
+          android:src="@drawable/ic_search"
+          android:tint="@color/settings_text_subtitle"
+          android:contentDescription="Search"/>
 
-  <!-- Empty state -->
-  <TextView
-      android:id="@+id/snippet_empty_text"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:text="No snippets yet.\nTap ＋ to add your first shortcut!"
-      android:textColor="#55FFFFFF"
-      android:textSize="14sp"
-      android:gravity="center"
-      android:paddingTop="48dp"
-      android:visibility="gone"/>
+      <EditText
+          android:id="@+id/snippet_search"
+          android:layout_width="0dp"
+          android:layout_height="match_parent"
+          android:layout_weight="1"
+          android:layout_marginLeft="10dp"
+          android:layout_marginStart="10dp"
+          android:hint="Search shortcuts, names, expansions..."
+          android:textColorHint="@color/settings_text_subtitle"
+          android:textColor="@color/settings_text_title"
+          android:textSize="13.5sp"
+          android:background="@null"
+          android:imeOptions="actionSearch"
+          android:inputType="text"
+          android:singleLine="true"/>
 
-  <!-- Snippet List -->
-  <ListView
-      android:id="@+id/snippet_list"
-      android:layout_width="match_parent"
-      android:layout_height="0dp"
-      android:layout_weight="1"
-      android:divider="#18FFFFFF"
-      android:dividerHeight="1dp"
-      android:scrollbars="none"
-      android:overScrollMode="never"/>
+      <ImageView
+          android:id="@+id/btn_clear_search"
+          android:layout_width="28dp"
+          android:layout_height="28dp"
+          android:padding="5dp"
+          android:src="@drawable/ic_clear"
+          android:tint="@color/settings_text_subtitle"
+          android:background="?android:attr/selectableItemBackgroundBorderless"
+          android:visibility="gone"
+          android:contentDescription="Clear"/>
+    </LinearLayout>
 
-  <!-- FAB placeholder (anchored bottom-right via FrameLayout wrapper in Activity) -->
+    <!-- Category Filter Tabs -->
+    <HorizontalScrollView
+        android:id="@+id/snippet_category_tabs_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="6dp">
 
-</LinearLayout>
+      <LinearLayout
+          android:id="@+id/snippet_category_tabs"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:orientation="horizontal"
+          android:gravity="center_vertical"/>
+    </HorizontalScrollView>
+
+    <!-- Section Label -->
+    <TextView
+        android:id="@+id/tv_snippets_section"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="24dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="6dp"
+        android:text="ALL SNIPPETS"
+        android:textSize="11.5sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:textColor="@color/settings_text_section"/>
+
+    <!-- Content Area: Empty state & List -->
+    <FrameLayout
+        android:id="@+id/snippet_content_frame"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+      <!-- Empty state -->
+      <LinearLayout
+          android:id="@+id/snippet_empty_container"
+          android:layout_width="match_parent"
+          android:layout_height="match_parent"
+          android:gravity="center"
+          android:orientation="vertical"
+          android:padding="24dp"
+          android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📝"
+            android:textSize="44sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="No Snippets Found"
+            android:textSize="16.5sp"
+            android:textStyle="bold"
+            android:textColor="@color/settings_text_title"/>
+
+        <TextView
+            android:id="@+id/snippet_empty_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="Tap ＋ to create your first shortcut expansion!"
+            android:textSize="13sp"
+            android:textColor="@color/settings_text_subtitle"/>
+      </LinearLayout>
+
+      <!-- Snippet List -->
+      <ListView
+          android:id="@+id/snippet_list"
+          android:layout_width="match_parent"
+          android:layout_height="match_parent"
+          android:divider="@null"
+          android:dividerHeight="0dp"
+          android:clipToPadding="false"
+          android:paddingTop="2dp"
+          android:paddingBottom="88dp"
+          android:scrollbars="none"
+          android:overScrollMode="never"/>
+    </FrameLayout>
+
+  </LinearLayout>
+
+  <!-- Floating Action Button (FAB) -->
+  <Button
+      android:id="@+id/btn_snippet_fab"
+      android:layout_width="56dp"
+      android:layout_height="56dp"
+      android:layout_gravity="bottom|end"
+      android:layout_marginRight="20dp"
+      android:layout_marginEnd="20dp"
+      android:layout_marginBottom="24dp"
+      android:text="＋"
+      android:textSize="24sp"
+      android:textStyle="bold"
+      android:textColor="#FFFFFF"
+      android:elevation="6dp"
+      android:background="@drawable/settings_fab_bg"/>
+
+</FrameLayout>

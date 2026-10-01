@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <item name="tag_card_bg" type="id"/>
+  <item name="toolbar_btn_ai" type="id"/>
+  <item name="toolbar_btn_autofill" type="id"/>
+  <item name="toolbar_btn_translate" type="id"/>
+  <item name="toolbar_btn_clipboard" type="id"/>
+  <item name="toolbar_btn_fancy" type="id"/>
+  <item name="toolbar_btn_dev" type="id"/>
+  <item name="toolbar_btn_more" type="id"/>
+  <item name="toolbar_btn_mic" type="id"/>
+  <item name="toolbar_btn_theme" type="id"/>
+  <item name="toolbar_btn_settings" type="id"/>
+  <item name="toolbar_btn_snippets" type="id"/>
+  <item name="toolbar_btn_haptic" type="id"/>
+  <item name="toolbar_btn_sound" type="id"/>
+  <item name="toolbar_btn_popup" type="id"/>
+  <item name="toolbar_btn_onehand" type="id"/>
+  <item name="keyboard_wrapper" type="id"/>
+  <item name="one_hand_left_panel" type="id"/>
+  <item name="one_hand_right_panel" type="id"/>
+  <item name="btn_one_hand_left_switch" type="id"/>
+  <item name="btn_one_hand_left_expand" type="id"/>
+  <item name="btn_one_hand_right_switch" type="id"/>
+  <item name="btn_one_hand_right_expand" type="id"/>
+</resources>
