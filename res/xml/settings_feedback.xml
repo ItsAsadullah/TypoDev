@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <PreferenceCategory
+      android:title="Typing Behavior"
+      android:layout="@layout/pref_category_header">
+    <SwitchPreference
+        android:key="autocapitalisation"
+        android:title="@string/pref_autocapitalisation_title"
+        android:summary="@string/pref_autocapitalisation_summary"
+        android:defaultValue="true"/>
+    <ListPreference
+        android:key="change_method_key_replacement"
+        android:title="@string/pref_change_method_key_replacement_title"
+        android:summary="%s"
+        android:entries="@array/pref_change_method_key_replacement_entries"
+        android:entryValues="@array/pref_change_method_key_replacement_values"
+        android:defaultValue="prev"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="Audio Click Feedback"
+      android:layout="@layout/pref_category_header">
+    <SwitchPreference
+        android:key="sound_on_keypress"
+        android:title="@string/pref_sound_on_keypress"
+        android:summary="@string/pref_sound_on_keypress_summary"
+        android:defaultValue="true"/>
+    <ListPreference
+        android:dependency="sound_on_keypress"
+        android:key="sound_effect_type"
+        android:title="@string/pref_sound_effect_type_title"
+        android:summary="%s"
+        android:defaultValue="default"
+        android:entries="@array/pref_sound_effect_type_entries"
+        android:entryValues="@array/pref_sound_effect_type_values"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:dependency="sound_on_keypress"
+        android:key="sound_volume"
+        android:title="@string/pref_sound_volume_title"
+        android:summary="%s%%"
+        android:defaultValue="60"
+        min="1"
+        max="100"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="Haptic Vibration"
+      android:layout="@layout/pref_category_header">
+    <SwitchPreference
+        android:key="vibrate_enabled"
+        android:title="Enable Haptic Feedback"
+        android:summary="Vibrate when keyboard keys and buttons are tapped"
+        android:defaultValue="true"/>
+    <SwitchPreference
+        android:dependency="vibrate_enabled"
+        android:key="vibrate_custom"
+        android:title="@string/pref_vibrate_custom"
+        android:defaultValue="false"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:dependency="vibrate_custom"
+        android:key="vibrate_duration"
+        android:title="@string/pref_vibrate_duration_title"
+        android:summary="%sms"
+        android:defaultValue="20"
+        min="0"
+        max="100"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="Numeric Entry Layout"
+      android:layout="@layout/pref_category_header">
+    <ListPreference
+        android:key="number_entry_layout"
+        android:title="@string/pref_number_entry_title"
+        android:summary="%s"
+        android:defaultValue="pin"
+        android:entries="@array/pref_number_entry_entries"
+        android:entryValues="@array/pref_number_entry_values"/>
+  </PreferenceCategory>
+
+</PreferenceScreen>

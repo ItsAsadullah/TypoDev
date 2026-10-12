@@ -1,0 +1,8 @@
+<resources>
+  <string name="numeric_numbers">Numbers</string>
+  <string name="numeric_calculator">Calculator</string>
+  <string name="numeric_hide">Hide keyboard</string>
+  <string name="numeric_clear">Clear calculation</string>
+  <string name="numeric_delete">Delete</string>
+  <string name="numeric_invalid_result">Invalid calculation or result unsupported by this field</string>
+</resources>

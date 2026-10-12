@@ -1,0 +1,5 @@
+Support languages: Lithuanian, Hungarian
+New layouts: Neo2
+
+Translation improvements
+Fix modifiers applied twice when typing quickly. Some other fixes.

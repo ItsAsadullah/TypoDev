@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <PreferenceCategory
+      android:title="Keyboard Testing"
+      android:layout="@layout/pref_category_header">
+    <Preference
+        android:key="pref_test_keyboard"
+        android:title="@string/pref_test_keyboard_title"
+        android:summary="@string/pref_test_keyboard_summary"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="Application Information"
+      android:layout="@layout/pref_category_header">
+    <Preference
+        android:key="pref_about_app"
+        android:title="@string/pref_about_app_title"
+        android:summary="@string/pref_about_app_summary"/>
+  </PreferenceCategory>
+
+</PreferenceScreen>

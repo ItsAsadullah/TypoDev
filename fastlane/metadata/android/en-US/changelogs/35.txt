@@ -1,0 +1,7 @@
+New layouts: Persian, Kurdish, Bengali Provat, Romanian, Czech
+New languages support: Icelandic
+Updated translations: Polish, Latvian, Russian, German, Vietnamese, Farsi, Brazilian, French, Simplified Chinese, Romanian
+
+Voice typing shortcut (can be disabled in settings).
+Improved vibration settings.
+Many bug fixes and improvements.

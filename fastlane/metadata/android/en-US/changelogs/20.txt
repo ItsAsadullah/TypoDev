@@ -1,0 +1,23 @@
+Quick fix release.
+
+Previously:
+
+Translations: Brazilian portuguese, Chinese-Simplified, Korean
+New layouts: Swedish, Korean
+
+Improved computation of the swipe gesture and fix unstoppable key-repeat on
+some devices.
+
+Moved keys away from the edges of the screen and other improvements to the layouts.
+
+Improved rendering of some symbols.
+
+Added more characters to the keyboard:
+- New combinations to Fn
+- Currency symbols
+- Added arrow and box symbols
+- F11 and F12.
+
+Option for making modifiers lockable.
+Fixes to the Spanish layout and other fixes.
+Many other fixes.

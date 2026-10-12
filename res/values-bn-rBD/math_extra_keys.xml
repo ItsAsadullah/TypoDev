@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="pref_math_extra_keys_title">গাণিতিক সিম্বল</string>
+  <string-array name="math_extra_key_descriptions">
+    <item>যোগ</item>
+    <item>বিয়োগ</item>
+    <item>গুণ</item>
+    <item>ভাগ</item>
+    <item>যোগ অথবা বিয়োগ</item>
+    <item>সমান</item>
+    <item>সমান নয়</item>
+    <item>প্রায় সমান</item>
+    <item>অভিন্ন</item>
+    <item>ছোট</item>
+    <item>বড়</item>
+    <item>ছোট অথবা সমান</item>
+    <item>বড় অথবা সমান</item>
+    <item>বর্গমূল</item>
+    <item>ঘনমূল</item>
+    <item>অসীম</item>
+    <item>পাই</item>
+    <item>সমষ্টি</item>
+    <item>গুণফল</item>
+    <item>সমাকলন</item>
+    <item>আংশিক অন্তরক</item>
+    <item>পরিবর্তন / ডেল্টা</item>
+    <item>গ্রেডিয়েন্ট / নাবলা</item>
+    <item>ডিগ্রি</item>
+    <item>বর্গ</item>
+    <item>ঘন</item>
+    <item>এক অর্ধাংশ</item>
+    <item>এক চতুর্থাংশ</item>
+    <item>তিন চতুর্থাংশ</item>
+    <item>শতাংশ</item>
+    <item>প্রতি হাজারে</item>
+    <item>সেটের সদস্য</item>
+    <item>সেটের সদস্য নয়</item>
+    <item>শূন্য সেট</item>
+    <item>সংযোগ</item>
+    <item>ছেদ</item>
+    <item>উপসেট</item>
+    <item>উপসেট অথবা সমান</item>
+    <item>সমানুপাতিক</item>
+    <item>কোণ</item>
+  </string-array>
+</resources>

@@ -1,0 +1,4 @@
+Spell checking and autocorrect are here !
+
+This releases comes with a very large number of improvements,
+support for more languages and new themes!

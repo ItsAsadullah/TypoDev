@@ -1,0 +1,5 @@
+New layouts: QWERTZ (Slovak)
+
+Bugs fixed.
+Updated translations.
+Tweaked themes and settings.

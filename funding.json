@@ -1,0 +1,42 @@
+{
+  "version": "v1.0.0",
+  "entity": {
+    "type": "individual",
+    "role": "owner",
+    "name": "Asadullah",
+    "description": "Owner and maintainer of TypoDev.",
+    "webpageUrl": {
+      "url": "https://github.com/ItsAsadullah"
+    }
+  },
+  "projects": [
+    {
+      "guid": "typodev",
+      "name": "TypoDev",
+      "description": "Lightweight, privacy-conscious Android keyboard with AI writing tools and multi-language suggestions.",
+      "webpageUrl": {
+        "url": "https://github.com/ItsAsadullah/TypoDev"
+      },
+      "repositoryUrl": {
+        "url": "https://github.com/ItsAsadullah/TypoDev"
+      },
+      "licenses": [
+        "spdx:GPL-3.0",
+        "spdx:CC0-1.0"
+      ],
+      "tags": [
+        "android",
+        "mobile",
+        "privacy",
+        "productivity",
+        "programming",
+        "user-experience"
+      ]
+    }
+  ],
+  "funding": {
+    "channels": [],
+    "plans": [],
+    "history": []
+  }
+}

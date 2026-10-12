@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="slash_generate">Generate · %1$s</string>
+  <string name="slash_save">Save · %1$s</string>
+  <string name="slash_dismiss">Dismiss AI command suggestions</string>
+  <string name="slash_need_text">Add text after the command, then tap Generate or press Enter.</string>
+  <string name="slash_need_key">Configure your AI provider and API key, then run the command again.</string>
+  <string name="slash_saved">Saved on this device</string>
+  <string name="slash_saved_notes">Saved notes</string>
+  <string name="slash_no_notes">No saved notes yet. Type /remember followed by your information, then tap Save.</string>
+  <string name="slash_delete_all">Delete all notes</string>
+  <string name="slash_delete_note">Delete note</string>
+  <string name="slash_copy_note">Copy note</string>
+  <string name="slash_note_error">Unable to save or read notes. At most 50 notes can be saved; delete a note if the list is full.</string>
+  <string name="slash_empty_result">No result was returned. Try again.</string>
+</resources>

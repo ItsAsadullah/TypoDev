@@ -1,0 +1,5 @@
+New layouts: Arabic, Devanagari
+
+Updated translations.
+Updated layouts.
+Bugs fixed.

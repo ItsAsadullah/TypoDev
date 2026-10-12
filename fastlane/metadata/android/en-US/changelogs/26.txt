@@ -1,0 +1,5 @@
+New supported languages: Hindi, Greek
+
+Disable fullscreen mode.
+Improvements to layouts and translations.
+Various fixes and improvements.

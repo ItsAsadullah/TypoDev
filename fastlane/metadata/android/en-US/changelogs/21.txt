@@ -1,0 +1,2 @@
+Fix compatibility with Android 6.
+Translation improvements.

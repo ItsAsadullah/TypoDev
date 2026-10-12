@@ -1,0 +1,3 @@
+<resources>
+  <string name="voice_language_unavailable">Your speech service does not support the selected language, or its language model is unavailable. Check the speech service language settings.</string>
+</resources>

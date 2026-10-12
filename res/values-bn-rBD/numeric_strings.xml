@@ -1,0 +1,8 @@
+<resources>
+  <string name="numeric_numbers">নাম্বার প্যাড</string>
+  <string name="numeric_calculator">ক্যালকুলেটর</string>
+  <string name="numeric_hide">কিবোর্ড লুকান</string>
+  <string name="numeric_clear">হিসাব মুছুন</string>
+  <string name="numeric_delete">মুছুন</string>
+  <string name="numeric_invalid_result">হিসাব ভুল অথবা এই ঘরে ফলাফলটি গ্রহণযোগ্য নয়</string>
+</resources>

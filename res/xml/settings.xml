@@ -1,0 +1,504 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+
+  <!-- 1. Keyboard Layout & Keys -->
+  <PreferenceCategory
+      android:title="@string/pref_category_layout"
+      android:layout="@layout/pref_category_header">
+    <typodev.keyboard.prefs.LayoutsPreference/>
+    <Preference
+        android:key="pref_symbol_customizer"
+        android:title="@string/pref_symbol_customizer_title"
+        android:summary="@string/pref_symbol_customizer_summary"/>
+    <PreferenceScreen
+        android:title="@string/pref_extra_keys_title"
+        android:summary="@string/pref_extra_keys_summary">
+      <Preference
+          android:key="pref_symbol_customizer_nested"
+          android:title="@string/pref_symbol_customizer_title"
+          android:summary="@string/pref_symbol_customizer_summary"/>
+      <PreferenceCategory
+          android:title="@string/pref_extra_keys_custom"
+          android:layout="@layout/pref_category_header">
+        <typodev.keyboard.prefs.CustomExtraKeysPreference/>
+      </PreferenceCategory>
+      <typodev.keyboard.prefs.MathExtraKeysPreference
+          android:title="@string/pref_math_extra_keys_title"
+          android:layout="@layout/pref_category_header"/>
+      <typodev.keyboard.prefs.ExtraKeysPreference android:title="@string/pref_extra_keys_internal"/>
+    </PreferenceScreen>
+    <ListPreference
+        android:key="number_row"
+        android:title="@string/pref_number_row_title"
+        android:summary="%s"
+        android:defaultValue="no_number_row"
+        android:entries="@array/pref_show_number_row_entries"
+        android:entryValues="@array/pref_show_number_row_values"/>
+    <ListPreference
+        android:key="show_numpad"
+        android:title="@string/pref_show_numpad_title"
+        android:summary="%s"
+        android:defaultValue="never"
+        android:entries="@array/pref_show_numpad_entries"
+        android:entryValues="@array/pref_show_numpad_values"/>
+    <ListPreference
+        android:key="numpad_layout"
+        android:title="@string/pref_numpad_layout"
+        android:summary="%s"
+        android:defaultValue="high_first"
+        android:entries="@array/pref_numpad_layout_entries"
+        android:entryValues="@array/pref_numpad_layout_values"/>
+    <ListPreference
+        android:key="split_layout"
+        android:title="@string/pref_split_layout"
+        android:summary="%s"
+        android:defaultValue="wide"
+        android:entries="@array/pref_split_layout_entries"
+        android:entryValues="@array/pref_split_layout_values"/>
+  </PreferenceCategory>
+
+  <!-- 2. AI Assistant (Gemini & OpenAI / DeepSeek / Groq) -->
+  <PreferenceCategory
+      android:title="@string/pref_category_ai"
+      android:layout="@layout/pref_category_header">
+    <ListPreference
+        android:key="pref_ai_provider"
+        android:title="Active AI Provider"
+        android:dialogTitle="Select Active AI Provider"
+        android:summary="%s"
+        android:defaultValue="gemini"
+        android:entries="@array/pref_ai_provider_entries"
+        android:entryValues="@array/pref_ai_provider_values"/>
+
+    <!-- Google Gemini -->
+    <EditTextPreference
+        android:key="gemini_api_key"
+        android:title="Gemini API Key"
+        android:dialogTitle="Google Gemini API Key"
+        android:summary="Enter your Google Gemini API key (tap to edit)"/>
+    <ListPreference
+        android:key="gemini_working_model"
+        android:title="Gemini AI Model"
+        android:dialogTitle="Select Gemini Model"
+        android:summary="%s"
+        android:defaultValue="gemini-2.0-flash"
+        android:entries="@array/pref_gemini_model_entries"
+        android:entryValues="@array/pref_gemini_model_values"/>
+    <Preference
+        android:key="pref_get_api_key"
+        android:title="@string/pref_get_api_key_title"
+        android:summary="@string/pref_get_api_key_summary"/>
+
+    <!-- OpenAI / DeepSeek / Groq -->
+    <EditTextPreference
+        android:key="openai_base_url"
+        android:title="Base URL (OpenAI / DeepSeek / Groq / Ollama)"
+        android:dialogTitle="API Base URL"
+        android:defaultValue="https://api.openai.com/v1"
+        android:summary="https://api.openai.com/v1"/>
+    <EditTextPreference
+        android:key="openai_api_key"
+        android:title="OpenAI / DeepSeek / Groq API Key"
+        android:dialogTitle="API Key"
+        android:summary="Enter your API key (sk-...)"/>
+    <ListPreference
+        android:key="openai_model"
+        android:title="OpenAI / DeepSeek Model"
+        android:dialogTitle="Select OpenAI / DeepSeek Model"
+        android:summary="%s"
+        android:defaultValue="gpt-4o-mini"
+        android:entries="@array/pref_openai_model_entries"
+        android:entryValues="@array/pref_openai_model_values"/>
+
+    <!-- Common Options -->
+    <SwitchPreference
+        android:key="pref_voice_spoken_punctuation"
+        android:title="@string/pref_voice_spoken_punctuation_title"
+        android:summary="@string/pref_voice_spoken_punctuation_summary"
+        android:defaultValue="true"/>
+    <SwitchPreference
+        android:key="pref_voice_ai_punctuation"
+        android:title="@string/pref_voice_ai_punctuation_title"
+        android:summary="@string/pref_voice_ai_punctuation_summary"
+        android:defaultValue="true"/>
+    <SwitchPreference
+        android:key="pref_ai_emojify"
+        android:title="Emoji Generation"
+        android:summary="Generate responses with emojis"
+        android:defaultValue="true"/>
+    <Preference
+        android:key="pref_open_ai_dialog"
+        android:title="⚙️ Quick AI Popup Settings"
+        android:summary="Open the compact popup dialog with presets and clipboard paste"/>
+  </PreferenceCategory>
+
+  <!-- 3. Suggestions & Dictionaries -->
+  <PreferenceCategory
+      android:title="@string/pref_category_suggestions"
+      android:layout="@layout/pref_category_header">
+    <SwitchPreference
+        android:key="suggestions"
+        android:title="@string/pref_suggestions_title"
+        android:summary="@string/pref_suggestions_summary"
+        android:defaultValue="true"/>
+    <SwitchPreference
+        android:key="space_bar_auto_complete"
+        android:title="@string/pref_space_bar_auto_complete_title"
+        android:summary="@string/pref_space_bar_auto_complete_summary"
+        android:defaultValue="false"/>
+    <SwitchPreference
+        android:key="developer_mode"
+        android:title="@string/pref_developer_mode_title"
+        android:summary="@string/pref_developer_mode_summary"
+        android:defaultValue="false"/>
+    <SwitchPreference
+        android:key="show_in_terminals"
+        android:title="@string/pref_show_in_terminals_title"
+        android:summary="@string/pref_show_in_terminals_summary"
+        android:defaultValue="false"/>
+    <Preference
+        android:key="pref_dictionaries_frostkeys"
+        android:title="📚 Dictionaries &amp; Wordlists (FrostKeys)"
+        android:summary="Download presets, import wordlists, or install offline dictionaries"/>
+    <SwitchPreference
+        android:key="pref_learning_enabled"
+        android:title="🧠 Adaptive Typing Learning"
+        android:summary="Learn from your typing patterns and accepted suggestions completely on-device"
+        android:defaultValue="true"/>
+    <Preference
+        android:key="pref_clear_learned_data"
+        android:title="🗑️ Clear Learned Words &amp; History"
+        android:summary="Reset all personalized typing history, learned words, and predictions"/>
+  </PreferenceCategory>
+
+  <!-- 4. Style & Appearance -->
+  <PreferenceCategory
+      android:title="@string/pref_category_style"
+      android:layout="@layout/pref_category_header">
+    <ListPreference
+        android:key="theme"
+        android:title="@string/pref_theme"
+        android:summary="%s"
+        android:defaultValue="system"
+        android:entries="@array/pref_theme_entries"
+        android:entryValues="@array/pref_theme_values"/>
+    <Preference
+        android:key="pref_theme_customizer"
+        android:title="🎨 Theme Customizer"
+        android:summary="Customize keys, Shift, Ctrl, Enter, Backspace, Space bar, background &amp; suggestions"/>
+    <SwitchPreference
+        android:key="popup_on_keypress"
+        android:title="Keypress Popup Preview"
+        android:summary="Show character preview popup bubble while typing keys"
+        android:defaultValue="false"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:key="label_brightness"
+        android:title="@string/pref_label_brightness"
+        android:summary="%s%%"
+        android:defaultValue="100"
+        min="50"
+        max="100"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:key="keyboard_opacity"
+        android:title="@string/pref_keyboard_opacity"
+        android:summary="%s%%"
+        android:defaultValue="100"
+        min="0"
+        max="100"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:key="key_opacity"
+        android:title="@string/pref_key_opacity"
+        android:summary="%s%%"
+        android:defaultValue="100"
+        min="0"
+        max="100"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:key="key_activated_opacity"
+        android:title="@string/pref_key_activated_opacity"
+        android:summary="%s%%"
+        android:defaultValue="100"
+        min="0"
+        max="100"/>
+    <PreferenceScreen
+        android:title="@string/pref_margin_bottom_title"
+        android:summary="@string/pref_margin_bottom_summary">
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="margin_bottom_portrait"
+          android:title="@string/pref_portrait"
+          android:summary="%sdp"
+          android:defaultValue="7"
+          min="0"
+          max="250"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="margin_bottom_landscape"
+          android:title="@string/pref_landscape"
+          android:summary="%sdp"
+          android:defaultValue="3"
+          min="0"
+          max="120"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="margin_bottom_portrait_unfolded"
+          android:title="@string/pref_portrait_unfolded"
+          android:summary="%sdp"
+          android:defaultValue="7"
+          min="0"
+          max="250"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="margin_bottom_landscape_unfolded"
+          android:title="@string/pref_landscape_unfolded"
+          android:summary="%sdp"
+          android:defaultValue="3"
+          min="0"
+          max="250"/>
+    </PreferenceScreen>
+    <PreferenceScreen
+        android:title="@string/pref_keyboard_height_title"
+        android:summary="@string/pref_keyboard_height_summary">
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="keyboard_height"
+          android:title="@string/pref_portrait"
+          android:summary="%s%%"
+          android:defaultValue="35"
+          min="10"
+          max="100"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="keyboard_height_landscape"
+          android:title="@string/pref_landscape"
+          android:summary="%s%%"
+          android:defaultValue="50"
+          min="20"
+          max="65"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="keyboard_height_unfolded"
+          android:title="@string/pref_portrait_unfolded"
+          android:summary="%s%%"
+          android:defaultValue="35"
+          min="10"
+          max="50"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="keyboard_height_landscape_unfolded"
+          android:title="@string/pref_landscape_unfolded"
+          android:summary="%s%%"
+          android:defaultValue="50"
+          min="20"
+          max="65"/>
+    </PreferenceScreen>
+    <PreferenceScreen
+        android:title="@string/pref_horizontal_margin_title"
+        android:summary="@string/pref_horizontal_margin_summary">
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="horizontal_margin_portrait"
+          android:title="@string/pref_portrait"
+          android:summary="%sdp"
+          android:defaultValue="3"
+          min="0"
+          max="30"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="horizontal_margin_landscape"
+          android:title="@string/pref_landscape"
+          android:summary="%sdp"
+          android:defaultValue="28"
+          min="0"
+          max="200"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="horizontal_margin_portrait_unfolded"
+          android:title="@string/pref_portrait_unfolded"
+          android:summary="%sdp"
+          android:defaultValue="3"
+          min="0"
+          max="30"/>
+      <typodev.keyboard.prefs.IntSlideBarPreference
+          android:key="horizontal_margin_landscape_unfolded"
+          android:title="@string/pref_landscape_unfolded"
+          android:summary="%sdp"
+          android:defaultValue="28"
+          min="0"
+          max="200"/>
+    </PreferenceScreen>
+    <typodev.keyboard.prefs.SlideBarPreference
+        android:key="character_size"
+        android:title="@string/pref_character_size_title"
+        android:summary="@string/pref_character_size_summary"
+        android:defaultValue="1.15"
+        min="0.75"
+        max="1.5"/>
+    <typodev.keyboard.prefs.SlideBarPreference
+        android:key="key_vertical_margin"
+        android:title="@string/pref_key_vertical_space"
+        android:summary="%s%%"
+        android:defaultValue="1.5"
+        min="0"
+        max="5"/>
+    <typodev.keyboard.prefs.SlideBarPreference
+        android:key="key_horizontal_margin"
+        android:title="@string/pref_key_horizontal_space"
+        android:summary="%s%%"
+        android:defaultValue="2"
+        min="0"
+        max="5"/>
+    <SwitchPreference
+        android:key="border_config"
+        android:title="@string/pref_border_config_title"
+        android:defaultValue="false"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:key="custom_border_radius"
+        android:title="@string/pref_corners_radius_title"
+        android:summary="%s%%"
+        android:defaultValue="0"
+        min="0"
+        max="100"
+        android:dependency="border_config"/>
+    <typodev.keyboard.prefs.SlideBarPreference
+        android:key="custom_border_line_width"
+        android:title="@string/pref_border_width_title"
+        android:summary="%sdp"
+        android:defaultValue="0"
+        min="0"
+        max="5"
+        android:dependency="border_config"/>
+  </PreferenceCategory>
+
+  <!-- 5. Typing & Gestures -->
+  <PreferenceCategory
+      android:title="@string/pref_category_typing"
+      android:layout="@layout/pref_category_header">
+    <ListPreference
+        android:key="swipe_dist"
+        android:title="@string/pref_swipe_dist_title"
+        android:summary="@string/pref_swipe_dist_summary"
+        android:defaultValue="15"
+        android:entries="@array/pref_swipe_dist_entries"
+        android:entryValues="@array/pref_swipe_dist_values"/>
+    <ListPreference
+        android:key="circle_sensitivity"
+        android:title="@string/pref_circle_sensitivity_title"
+        android:summary="%s"
+        android:defaultValue="2"
+        android:entries="@array/pref_circle_sensitivity_entries"
+        android:entryValues="@array/pref_circle_sensitivity_values"/>
+    <ListPreference
+        android:key="slider_sensitivity"
+        android:title="@string/pref_slider_sensitivity_title"
+        android:summary="%s"
+        android:defaultValue="30"
+        android:entries="@array/pref_slider_sensitivity_entries"
+        android:entryValues="@array/pref_slider_sensitivity_values"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:key="longpress_timeout"
+        android:title="@string/pref_long_timeout_title"
+        android:summary="%sms"
+        android:defaultValue="600"
+        min="50"
+        max="2000"/>
+    <SwitchPreference
+        android:key="keyrepeat_enabled"
+        android:title="@string/pref_keyrepeat_enabled"
+        android:defaultValue="true"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:key="longpress_interval"
+        android:dependency="keyrepeat_enabled"
+        android:title="@string/pref_long_interval_title"
+        android:summary="%sms"
+        android:defaultValue="25"
+        min="5"
+        max="100"/>
+    <SwitchPreference
+        android:key="lock_double_tap"
+        android:title="@string/pref_lock_double_tap_title"
+        android:summary="@string/pref_lock_double_tap_summary"
+        android:defaultValue="false"/>
+    <ListPreference
+        android:key="physical_keyboard_behavior"
+        android:title="@string/pref_physical_keyboard_behavior"
+        android:summary="%s"
+        android:defaultValue="hide"
+        android:entries="@array/pref_physical_keyboard_behavior_entries"
+        android:entryValues="@array/pref_physical_keyboard_behavior_values"/>
+  </PreferenceCategory>
+
+  <!-- 6. Behavior & Feedback -->
+  <PreferenceCategory
+      android:title="@string/pref_category_behavior"
+      android:layout="@layout/pref_category_header">
+    <SwitchPreference
+        android:key="autocapitalisation"
+        android:title="@string/pref_autocapitalisation_title"
+        android:summary="@string/pref_autocapitalisation_summary"
+        android:defaultValue="true"/>
+    <ListPreference
+        android:key="change_method_key_replacement"
+        android:title="@string/pref_change_method_key_replacement_title"
+        android:summary="%s"
+        android:entries="@array/pref_change_method_key_replacement_entries"
+        android:entryValues="@array/pref_change_method_key_replacement_values"
+        android:defaultValue="prev"/>
+    <SwitchPreference
+        android:key="vibrate_custom"
+        android:title="@string/pref_vibrate_custom"
+        android:defaultValue="false"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:dependency="vibrate_custom"
+        android:key="vibrate_duration"
+        android:title="@string/pref_vibrate_duration_title"
+        android:summary="%sms"
+        android:defaultValue="20"
+        min="0"
+        max="100"/>
+    <SwitchPreference
+        android:key="sound_on_keypress"
+        android:title="@string/pref_sound_on_keypress"
+        android:summary="@string/pref_sound_on_keypress_summary"
+        android:defaultValue="true"/>
+    <ListPreference
+        android:dependency="sound_on_keypress"
+        android:key="sound_effect_type"
+        android:title="@string/pref_sound_effect_type_title"
+        android:summary="%s"
+        android:defaultValue="default"
+        android:entries="@array/pref_sound_effect_type_entries"
+        android:entryValues="@array/pref_sound_effect_type_values"/>
+    <typodev.keyboard.prefs.IntSlideBarPreference
+        android:dependency="sound_on_keypress"
+        android:key="sound_volume"
+        android:title="@string/pref_sound_volume_title"
+        android:summary="%s%%"
+        android:defaultValue="60"
+        min="1"
+        max="100"/>
+    <ListPreference
+        android:key="number_entry_layout"
+        android:title="@string/pref_number_entry_title"
+        android:summary="%s"
+        android:defaultValue="pin"
+        android:entries="@array/pref_number_entry_entries"
+        android:entryValues="@array/pref_number_entry_values"/>
+  </PreferenceCategory>
+
+  <!-- 7. Clipboard -->
+  <PreferenceCategory
+      android:title="@string/pref_category_clipboard"
+      android:layout="@layout/pref_category_header">
+    <ListPreference
+        android:key="clipboard_history_duration"
+        android:title="@string/pref_clipboard_history_duration"
+        android:summary="%s"
+        android:defaultValue="5"
+        android:entries="@array/pref_clipboard_duration_entries"
+        android:entryValues="@array/pref_clipboard_duration_values"/>
+  </PreferenceCategory>
+
+  <!-- 8. Quick Actions & About -->
+  <PreferenceCategory
+      android:title="@string/pref_category_about"
+      android:layout="@layout/pref_category_header">
+    <Preference
+        android:key="pref_test_keyboard"
+        android:title="@string/pref_test_keyboard_title"
+        android:summary="@string/pref_test_keyboard_summary"/>
+    <Preference
+        android:key="pref_about_app"
+        android:title="@string/pref_about_app_title"
+        android:summary="@string/pref_about_app_summary"/>
+  </PreferenceCategory>
+
+</PreferenceScreen>

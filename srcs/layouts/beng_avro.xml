@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bengali Avro Phonetic layout: Latin QWERTY keys for Banglish phonetic typing with Bengali sound hints -->
+<keyboard name="বাংলা (অভ্র) - Avro Phonetic" script="bengali">
+  <row>
+    <key c="q" ne="ৎ" nw="!" se="1" sw="loc esc"/>
+    <key c="w" ne="ও" nw="\@" se="2" sw="~"/>
+    <key c="e" ne="এ" nw="\#" se="3"/>
+    <key c="r" ne="র" nw="$" se="4" sw="ড়" e="ঢ়"/>
+    <key c="t" ne="ত" nw="%" se="5" sw="ট" e="ঠ"/>
+    <key c="y" ne="য়" nw="^" se="6" sw="য"/>
+    <key c="u" ne="উ" nw="&amp;" se="7" sw="ঊ"/>
+    <key c="i" ne="ই" nw="*" se="8" sw="ঈ"/>
+    <key c="o" ne="অ" nw="(" se="9" sw="ঐ"/>
+    <key c="p" ne="প" nw=")" se="0" sw="ফ"/>
+  </row>
+  <row>
+    <key shift="0.5" c="a" ne="আ" nw="`" sw="loc tab"/>
+    <key c="s" ne="স" nw="“" se="”" sw="শ" e="ষ"/>
+    <key c="d" ne="দ" nw="‘" se="’" sw="ড" e="ঢ"/>
+    <key c="f" ne="ফ" sw="ভ"/>
+    <key c="g" ne="গ" nw="-" se="_" sw="ঘ"/>
+    <key c="h" ne="হ" nw="=" se="+" sw="ঃ"/>
+    <key c="j" ne="জ" nw="{" se="}" sw="ঝ" e="য"/>
+    <key c="k" ne="ক" nw="[" se="]" sw="খ"/>
+    <key c="l" ne="ল" nw="|" sw="\\"/>
+  </row>
+  <row>
+    <key width="1.5" role="action" c="shift" ne="loc capslock"/>
+    <key c="z" ne="য" sw="জ"/>
+    <key c="x" ne="ক্ষ" sw="জ্ঞ"/>
+    <key c="c" ne="চ" nw="&lt;" se="," sw="ছ"/>
+    <key c="v" ne="ভ" nw="&gt;" se="." sw="ব"/>
+    <key c="b" ne="ব" nw="\?" se="/" sw="৳" e="ভ"/>
+    <key c="n" ne="ন" nw=":" se=";" sw="ণ" e="ং"/>
+    <key c="m" ne="ম" nw="&quot;" se="'" sw="ঁ"/>
+    <key width="1.5" role="action" c="backspace" ne="delete"/>
+  </row>
+</keyboard>

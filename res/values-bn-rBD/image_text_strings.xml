@@ -1,0 +1,17 @@
+<resources>
+  <string name="image_text_title">ছবি থেকে লেখা</string>
+  <string name="image_text_description">ছবি তুলে বা গ্যালারি থেকে নিয়ে লেখা কপি করুন</string>
+  <string name="image_text_camera">ছবি তুলুন</string>
+  <string name="image_text_gallery">গ্যালারি থেকে নিন</string>
+  <string name="image_text_copy">লেখা কপি করুন</string>
+  <string name="image_text_reading">ছবি থেকে লেখা পড়া হচ্ছে…</string>
+  <string name="image_text_copied">লেখা কপি হয়েছে। চাইলে সংশোধন করে আবার কপি করুন।</string>
+  <string name="image_text_empty">পড়ার মতো লেখা পাওয়া যায়নি। আরও পরিষ্কার ছবি দিন।</string>
+  <string name="image_text_hint">ছবি থেকে পাওয়া লেখা এখানে দেখাবে</string>
+  <string name="image_text_failed">এই ছবিটি পড়া যায়নি। অন্য একটি ছবি দিন।</string>
+  <string name="image_text_camera_missing">ক্যামেরা খোলা যায়নি। গ্যালারি থেকে ছবি বেছে নিন।</string>
+  <string name="image_text_setup">ছবি থেকে লেখা পড়তে AI Settings-এ Gemini API key দিন।</string>
+  <string name="image_text_online">নির্বাচিত ছবিটি Gemini দিয়ে পড়া হবে। ইন্টারনেট প্রয়োজন।</string>
+  <string name="image_text_retry">আবার চেষ্টা করুন</string>
+  <string name="image_text_copy_failed">লেখা কপি হয়নি। কপি বাটনে ট্যাপ করে আবার চেষ্টা করুন।</string>
+</resources>

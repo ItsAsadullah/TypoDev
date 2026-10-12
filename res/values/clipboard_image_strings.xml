@@ -1,0 +1,12 @@
+<resources>
+  <string name="clipboard_add_image">Add image</string>
+  <string name="clipboard_screenshots">Save screenshots</string>
+  <string name="clipboard_screenshots_stop">Stop saving screenshots</string>
+  <string name="clipboard_screenshots_enabled">Screenshot saving enabled. Recent screenshots will appear in Images. Pin an image to keep it.</string>
+  <string name="clipboard_screenshot_permission">Allow photo access to save screenshots automatically, or choose a screenshot manually.</string>
+  <string name="clipboard_image_saved">Image saved to clipboard</string>
+  <string name="clipboard_image_failed">Could not save this image. Choose another image (up to 25 MB).</string>
+  <string name="clipboard_image_unsupported">This app does not support pasting images here.</string>
+  <string name="clipboard_auto_setting">Screenshot auto-save</string>
+  <string name="clipboard_auto_setting_summary">Save screenshots to the clipboard. Photo access is required; pin images to keep them.</string>
+</resources>

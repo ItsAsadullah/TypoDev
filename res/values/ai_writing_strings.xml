@@ -1,0 +1,20 @@
+<resources>
+  <string name="ai_writing_restore_draft">Return to last generated text</string>
+  <string name="ai_writing_restored_copy_only">Text field changed · Hold the result to copy</string>
+  <string name="ai_writing_title">Writing Tools</string>
+  <string name="ai_writing_back">Back to keyboard</string>
+  <string name="ai_writing_regenerate">Try again</string>
+  <string name="ai_writing_copy">Copy</string>
+  <string name="ai_writing_copied">Copied</string>
+  <string name="ai_writing_use">Insert</string>
+  <string name="ai_writing_previous">Previous result</string>
+  <string name="ai_writing_next">Next result</string>
+  <string name="ai_writing_loading">Preparing suggestions…</string>
+  <string name="ai_writing_wait">You can return to the keyboard to cancel</string>
+  <string name="ai_writing_page">%1$d / %2$d · Tap to apply · Hold to copy</string>
+  <string name="ai_writing_retry">Select Try again to get more suggestions</string>
+  <string name="ai_writing_incomplete">Three complete options were not returned. Please retry.</string>
+  <string name="ai_writing_editor_changed">The text or cursor changed. Open Writing Tools again before inserting.</string>
+  <string name="ai_magic_all_actions">Summary &amp; other AI actions</string>
+  <string name="ai_magic_all_actions_description">Summarize, translate, rewrite and more</string>
+</resources>

@@ -1,0 +1,904 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#111827">
+
+  <!-- Top App Header -->
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="56dp"
+      android:orientation="horizontal"
+      android:gravity="center_vertical"
+      android:paddingStart="16dp"
+      android:paddingEnd="16dp"
+      android:background="#182234">
+
+    <TextView
+        android:id="@+id/btn_back"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:text="←"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:clickable="true"
+        android:background="?android:attr/selectableItemBackgroundBorderless" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="8dp">
+
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="⌨️ Key Symbols &amp; Swipes"
+          android:textColor="#FFFFFF"
+          android:textSize="17sp"
+          android:textStyle="bold" />
+
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="Assign custom symbols &amp; special actions"
+          android:textColor="#94A3B8"
+          android:textSize="12sp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_save_top"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="💾 Save"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:background="#2563EB"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp" />
+  </LinearLayout>
+
+  <ScrollView
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+      <!-- Section 1: Choose Layout & Key -->
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="1. SELECT KEYBOARD LAYOUT &amp; KEY"
+          android:textColor="#60A5FA"
+          android:textSize="12sp"
+          android:textStyle="bold"
+          android:letterSpacing="0.08"
+          android:layout_marginBottom="8dp" />
+
+      <!-- Layout Selector Card -->
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:background="#1F2937"
+          android:padding="10dp"
+          android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SELECT LAYOUT TO PREVIEW &amp; CUSTOMIZE:"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <Spinner
+            android:id="@+id/spinner_layout_picker"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:background="#111827"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:spinnerMode="dropdown" />
+      </LinearLayout>
+
+      <!-- Live Interactive Keyboard Card (Full-width expanded keyboard) -->
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:background="#182234"
+          android:paddingStart="4dp"
+          android:paddingEnd="4dp"
+          android:paddingTop="8dp"
+          android:paddingBottom="8dp"
+          android:layout_marginBottom="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:layout_marginBottom="8dp">
+
+          <TextView
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:text="LIVE KEYBOARD (TAP KEY TO SELECT):"
+              android:textColor="#38BDF8"
+              android:textSize="11sp"
+              android:textStyle="bold" />
+
+          <TextView
+              android:id="@+id/txt_live_layout_name"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:text="QWERTY (US)"
+              android:textColor="#94A3B8"
+              android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Dynamic Live Keyboard Rows Container (Direct full width) -->
+        <LinearLayout
+            android:id="@+id/container_live_keyboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+      </LinearLayout>
+
+      <!-- Selected Key Banner & Custom Key Button -->
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          android:gravity="center_vertical"
+          android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/txt_selected_key_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Selected Key: [ Q ]"
+            android:textColor="#50FA7B"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/btn_custom_key_dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="+ Type Specific Key"
+            android:textColor="#93C5FD"
+            android:textSize="11sp"
+            android:background="#1E293B"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp" />
+      </LinearLayout>
+
+      <!-- Section 2: 3x3 Swipe Direction Compass Grid -->
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          android:gravity="center_vertical"
+          android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="2. SELECT SWIPE CORNER / POSITION"
+            android:textColor="#60A5FA"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hold &amp; Drag to Move / Swap"
+            android:textColor="#34D399"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+      </LinearLayout>
+
+      <!-- Compass Key Visualizer Card -->
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:background="#1F2937"
+          android:padding="12dp"
+          android:layout_marginBottom="16dp">
+
+        <!-- Compass Row 1: NW (1), N (7), NE (2) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+          <LinearLayout
+              android:id="@+id/cell_pos_1"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#283344"
+              android:clickable="true"
+              android:layout_marginEnd="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="↖ Top-Left"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#F3F4F6"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Empty]"
+                android:textColor="#6B7280"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+
+          <LinearLayout
+              android:id="@+id/cell_pos_7"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#283344"
+              android:clickable="true"
+              android:layout_marginStart="4dp"
+              android:layout_marginEnd="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="↑ Top"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_7"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#F3F4F6"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_7"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Empty]"
+                android:textColor="#6B7280"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+
+          <LinearLayout
+              android:id="@+id/cell_pos_2"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#283344"
+              android:clickable="true"
+              android:layout_marginStart="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="↗ Top-Right"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#F3F4F6"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Empty]"
+                android:textColor="#6B7280"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+        </LinearLayout>
+
+        <!-- Compass Row 2: W (5), Center (0), E (6) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+          <LinearLayout
+              android:id="@+id/cell_pos_5"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#283344"
+              android:clickable="true"
+              android:layout_marginEnd="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="← Left"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#F3F4F6"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Empty]"
+                android:textColor="#6B7280"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+
+          <LinearLayout
+              android:id="@+id/cell_pos_0"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#374151"
+              android:clickable="true"
+              android:layout_marginStart="4dp"
+              android:layout_marginEnd="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="• Main / Center"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Q"
+                android:textColor="#60A5FA"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Main]"
+                android:textColor="#60A5FA"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+
+          <LinearLayout
+              android:id="@+id/cell_pos_6"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#283344"
+              android:clickable="true"
+              android:layout_marginStart="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="→ Right"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#F3F4F6"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Empty]"
+                android:textColor="#6B7280"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+        </LinearLayout>
+
+        <!-- Compass Row 3: SW (3), S (8), SE (4) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+          <LinearLayout
+              android:id="@+id/cell_pos_3"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#283344"
+              android:clickable="true"
+              android:layout_marginEnd="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="↙ Bottom-Left"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#F3F4F6"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Empty]"
+                android:textColor="#6B7280"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+
+          <LinearLayout
+              android:id="@+id/cell_pos_8"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#283344"
+              android:clickable="true"
+              android:layout_marginStart="4dp"
+              android:layout_marginEnd="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="↓ Bottom"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_8"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#F3F4F6"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_8"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Empty]"
+                android:textColor="#6B7280"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+
+          <LinearLayout
+              android:id="@+id/cell_pos_4"
+              android:layout_width="0dp"
+              android:layout_height="72dp"
+              android:layout_weight="1"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#283344"
+              android:clickable="true"
+              android:layout_marginStart="4dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="↘ Bottom-Right"
+                android:textColor="#9CA3AF"
+                android:textSize="10sp" />
+            <TextView
+                android:id="@+id/txt_pos_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#F3F4F6"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txt_status_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[Empty]"
+                android:textColor="#6B7280"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+          </LinearLayout>
+        </LinearLayout>
+
+        <!-- Clear Button right under 3x3 Swipe Compass -->
+        <Button
+            android:id="@+id/btn_clear_slot"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="12dp"
+            android:text="🗑 Clear Selected Corner (Stash to Reserved)"
+            android:textColor="#F87171"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="#283344" />
+      </LinearLayout>
+
+      <!-- RESERVED / CLEARED KEYS SHELF CARD -->
+      <LinearLayout
+          android:id="@+id/card_reserved_keys"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:background="#1E293B"
+          android:padding="12dp"
+          android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+          <TextView
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:text="RESERVED / CLEARED KEYS"
+              android:textColor="#F59E0B"
+              android:textSize="12sp"
+              android:textStyle="bold"
+              android:letterSpacing="0.05" />
+
+          <Button
+              android:id="@+id/btn_clear_all_reserved"
+              android:layout_width="wrap_content"
+              android:layout_height="28dp"
+              android:text="✕ Discard All"
+              android:textColor="#F87171"
+              android:textSize="10sp"
+              android:background="#334155"
+              android:paddingStart="8dp"
+              android:paddingEnd="8dp"
+              android:visibility="gone" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txt_reserved_keys_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Keys cleared from the keyboard are kept here. Tap any key &amp; corner above, then tap a reserved key below to move it there!"
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
+            android:layout_marginBottom="8dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+          <LinearLayout
+              android:id="@+id/container_reserved_keys"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:gravity="center_vertical" />
+        </HorizontalScrollView>
+      </LinearLayout>
+
+      <!-- Section 3: Symbol Assignment Studio -->
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="3. ASSIGN SYMBOL TO SELECTED CORNER"
+          android:textColor="#60A5FA"
+          android:textSize="12sp"
+          android:textStyle="bold"
+          android:letterSpacing="0.08"
+          android:layout_marginBottom="8dp" />
+
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:background="#1F2937"
+          android:padding="12dp"
+          android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/txt_target_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Target: Key [ Q ]  •  Top-Left (↖)"
+            android:textColor="#FBBF24"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Quick Symbol Palette Category: Active Extra Keys -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ACTIVE EXTRA KEYS:"
+            android:textColor="#10B981"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="10dp">
+          <LinearLayout
+              android:id="@+id/palette_active_extra_keys"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Quick Symbol Palette Category 0: Special Actions -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SPECIAL ACTIONS:"
+            android:textColor="#38BDF8"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="10dp">
+          <LinearLayout
+              android:id="@+id/palette_special_actions"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Quick Symbol Palette Category: All Extra Keys from Add Keys -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ALL EXTRA KEYS &amp; SYMBOLS:"
+            android:textColor="#A78BFA"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="10dp">
+          <LinearLayout
+              android:id="@+id/palette_all_extra_keys"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Quick Symbol Palette Category 1: Currencies -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CURRENCY SYMBOLS:"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:layout_marginBottom="4dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="8dp">
+          <LinearLayout
+              android:id="@+id/palette_currency"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Quick Symbol Palette Category 2: Math & Punctuation -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PUNCTUATION &amp; MATH:"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:layout_marginBottom="4dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="8dp">
+          <LinearLayout
+              android:id="@+id/palette_math"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Quick Symbol Palette Category 3: Bengali Numerals & Marks -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BENGALI NUMERALS &amp; MARKS:"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:layout_marginBottom="4dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="8dp">
+          <LinearLayout
+              android:id="@+id/palette_bengali"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Quick Symbol Palette Category 4: Tech & Symbols -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SPECIAL &amp; TECH SYMBOLS:"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:layout_marginBottom="4dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="12dp">
+          <LinearLayout
+              android:id="@+id/palette_tech"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Custom Input & Set Button -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+          <EditText
+              android:id="@+id/edt_symbol_input"
+              android:layout_width="0dp"
+              android:layout_height="44dp"
+              android:layout_weight="1"
+              android:background="#111827"
+              android:textColor="#FFFFFF"
+              android:textColorHint="#6B7280"
+              android:hint="Type or paste any symbol/emoji"
+              android:textSize="15sp"
+              android:gravity="center_vertical"
+              android:paddingStart="12dp"
+              android:paddingEnd="12dp"
+              android:layout_marginEnd="8dp" />
+
+          <Button
+              android:id="@+id/btn_assign_symbol"
+              android:layout_width="wrap_content"
+              android:layout_height="44dp"
+              android:text="Set Symbol"
+              android:textColor="#FFFFFF"
+              android:textSize="13sp"
+              android:textStyle="bold"
+              android:background="#059669"
+              android:paddingStart="16dp"
+              android:paddingEnd="16dp" />
+        </LinearLayout>
+      </LinearLayout>
+
+      <!-- Section 4: Active Custom Mappings List -->
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          android:gravity="center_vertical"
+          android:layout_marginBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="ACTIVE CUSTOM KEY MAPPINGS"
+            android:textColor="#60A5FA"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <Button
+            android:id="@+id/btn_reset_all"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="↺ Reset All"
+            android:textColor="#F87171"
+            android:textSize="11sp"
+            android:background="#1E293B"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp" />
+      </LinearLayout>
+
+      <LinearLayout
+          android:id="@+id/container_active_mappings"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:layout_marginBottom="24dp" />
+
+      <!-- Bottom Save & Apply Button -->
+      <Button
+          android:id="@+id/btn_save_bottom"
+          android:layout_width="match_parent"
+          android:layout_height="48dp"
+          android:text="💾 Save &amp; Apply Changes to Keyboard"
+          android:textColor="#FFFFFF"
+          android:textSize="15sp"
+          android:textStyle="bold"
+          android:background="#2563EB"
+          android:layout_marginBottom="32dp" />
+    </LinearLayout>
+  </ScrollView>
+</LinearLayout>

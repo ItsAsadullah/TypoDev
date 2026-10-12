@@ -1,0 +1,11 @@
+New languages: Portuguese, Russian, Spanish
+New layouts: Dvorak, Russian Jcuken, Spanish Qwerty
+
+Added the Meta key (the equivalent of the Win on Windows)
+Added ordinal symbols on the number pane
+Better position for the arrow keys
+Improvements to some of the symbols
+Improvements to the layouts
+Improvements to the key-repeat for arrows
+Fixed Shift+Arrows for selecting text
+Fixed dark theme bugs on Xiaomi phones

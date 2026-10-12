@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <PreferenceCategory
+      android:title="Dictionaries &amp; Wordlists"
+      android:layout="@layout/pref_category_header">
+    <Preference
+        android:key="pref_dictionaries_frostkeys"
+        android:title="📚 Dictionaries &amp; Wordlists (FrostKeys)"
+        android:summary="Download presets, import wordlists, or install offline dictionaries"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="Suggestions &amp; Prediction"
+      android:layout="@layout/pref_category_header">
+    <SwitchPreference
+        android:key="suggestions"
+        android:title="@string/pref_suggestions_title"
+        android:summary="@string/pref_suggestions_summary"
+        android:defaultValue="true"/>
+    <SwitchPreference
+        android:key="space_bar_auto_complete"
+        android:title="@string/pref_space_bar_auto_complete_title"
+        android:summary="@string/pref_space_bar_auto_complete_summary"
+        android:defaultValue="false"/>
+    <SwitchPreference
+        android:key="developer_mode"
+        android:title="@string/pref_developer_mode_title"
+        android:summary="@string/pref_developer_mode_summary"
+        android:defaultValue="false"/>
+    <SwitchPreference
+        android:key="show_in_terminals"
+        android:title="@string/pref_show_in_terminals_title"
+        android:summary="@string/pref_show_in_terminals_summary"
+        android:defaultValue="false"/>
+  </PreferenceCategory>
+
+  <PreferenceCategory
+      android:title="Adaptive On-Device Learning"
+      android:layout="@layout/pref_category_header">
+    <SwitchPreference
+        android:key="pref_learning_enabled"
+        android:title="🧠 Adaptive Typing Learning"
+        android:summary="Learn from your typing patterns and accepted suggestions completely on-device"
+        android:defaultValue="true"/>
+    <Preference
+        android:key="pref_clear_learned_data"
+        android:title="🗑️ Clear Learned Words &amp; History"
+        android:summary="Reset all personalized typing history, learned words, and predictions"/>
+  </PreferenceCategory>
+
+</PreferenceScreen>

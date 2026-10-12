@@ -1,0 +1,3 @@
+<resources>
+  <string name="voice_language_unavailable">ফোনের স্পিচ সার্ভিস নির্বাচিত ভাষা সমর্থন করছে না, অথবা ভাষার মডেল পাওয়া যাচ্ছে না। স্পিচ সার্ভিসের ভাষা সেটিংস দেখুন।</string>
+</resources>

@@ -1,0 +1,31 @@
+<resources>
+  <string name="clipboard_recent_screenshot">সাম্প্রতিক স্ক্রিনশট যোগ করুন</string>
+  <string name="clipboard_recent_missing">দেখার অনুমতি আছে এমন স্ক্রিনশট পাওয়া যায়নি। গ্যালারি থেকে বেছে নিন।</string>
+  <string name="clipboard_title">ক্লিপবোর্ড</string>
+  <string name="clipboard_search_hint">লেখা বা শর্টকাট খুঁজুন</string>
+  <string name="clipboard_capture_now">স্ক্রিনশট নিন</string>
+  <string name="clipboard_auto_on">স্ক্রিনশট অটো-সেভ: চালু</string>
+  <string name="clipboard_auto_off">স্ক্রিনশট অটো-সেভ: বন্ধ</string>
+  <string name="clipboard_auto_permission">স্ক্রিনশট অটো-সেভ: ছবির অনুমতি দিন</string>
+  <string name="clipboard_empty_images">এখনও কোনো ছবি সেভ হয়নি</string>
+  <string name="clipboard_empty_images_help">স্ক্রিনশট নিন অথবা ছবি বেছে নিন। স্থায়ীভাবে রাখতে ছবিটি পিন করুন।</string>
+  <string name="clipboard_empty_search">মিলছে এমন ক্লিপ পাওয়া যায়নি</string>
+  <string name="clipboard_empty_shortcuts">লেখার ক্লিপে শর্টকাট যোগ করলে এখানে দেখা যাবে। শর্টকাট লিখে সাজেশন থেকে লেখাটি নিতে পারবেন।</string>
+  <string name="clipboard_shortcut_title">ক্লিপবোর্ড শর্টকাট</string>
+  <string name="clipboard_shortcut_hint">শর্টকাট, যেমন salaam</string>
+  <string name="clipboard_shortcut_help">২–৩২টি অক্ষর, সংখ্যা বা আন্ডারস্কোর ব্যবহার করুন। লিখলে সাজেশনে এই লেখা দেখাবে। সেভ করলে ক্লিপটিও পিন হবে। শর্টকাট মুছতে খালি রাখুন।</string>
+  <string name="clipboard_shortcut_save">শর্টকাট সেভ করুন</string>
+  <string name="clipboard_shortcut_saved">শর্টকাট সেভ হয়েছে</string>
+  <string name="clipboard_shortcut_invalid">২–৩২টি অক্ষর, সংখ্যা বা আন্ডারস্কোর দিন এবং আগে ব্যবহার হয়নি এমন শর্টকাট বেছে নিন।</string>
+  <string name="clipboard_add_shortcut">শর্টকাট যোগ করুন</string>
+  <string name="clipboard_edit_shortcut">শর্টকাট বদলান</string>
+  <string name="clipboard_undo_delete">%1$dটি সরানো হয়েছে · আনডো (৩ সেকেন্ড)</string>
+  <string name="clipboard_visual_search">ভিজ্যুয়াল সার্চ · Google Lens</string>
+  <string name="clipboard_web_search">ওয়েব সার্চ</string>
+  <string name="clipboard_undo_card">আনডো</string>
+  <string name="clipboard_lens_choose">Google Lens পাওয়া যায়নি। শেয়ার মেনু থেকে ছবি সার্চের অ্যাপ বেছে নিন।</string>
+  <string name="clipboard_search_unavailable">সার্চ খোলার উপযুক্ত অ্যাপ পাওয়া যায়নি।</string>
+  <string name="clipboard_ai_image_comments">AI বিশ্লেষণ ও কমেন্ট</string>
+  <string name="clipboard_ai_image_loading">নির্বাচিত ছবিটি প্রস্তুত করা হচ্ছে…</string>
+  <string name="clipboard_ai_key_required">ছবি বিশ্লেষণের জন্য Writing Settings-এ আপনার API key যোগ করুন।</string>
+</resources>

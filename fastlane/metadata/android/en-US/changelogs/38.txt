@@ -1,0 +1,5 @@
+The custom vibration setting is back.
+Allow to hide the keyboard switching key.
+Fixed modifier keys in some development apps.
+Updated translations.
+Bug fixes and general improvements.

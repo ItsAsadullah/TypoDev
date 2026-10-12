@@ -1,0 +1,131 @@
+package typodev.keyboard;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Build.VERSION;
+import android.preference.PreferenceManager;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
+public final class DirectBootAwarePreferences
+{
+  public static boolean isUserUnlocked(Context context)
+  {
+    if (VERSION.SDK_INT < 24) return true;
+    android.os.UserManager manager = (android.os.UserManager)context.getSystemService(Context.USER_SERVICE);
+    return manager != null && manager.isUserUnlocked();
+  }
+
+  /* On API >= 24, preferences are read from the device protected storage. This
+   * storage is less protected than the default, no personnal or sensitive
+   * information is stored there (only the keyboard settings). This storage is
+   * accessible during boot and allow the keyboard to read its settings and
+   * allow typing the storage password. */
+  public static SharedPreferences get_shared_preferences(Context context)
+  {
+    if (VERSION.SDK_INT < 24)
+      return PreferenceManager.getDefaultSharedPreferences(context);
+    SharedPreferences prefs = get_protected_prefs(context);
+    removeProtectedSecrets(prefs);
+    check_need_migration(context, prefs);
+    return prefs;
+  }
+
+  /* Copy shared preferences to device protected storage. Not using
+   * [Context.moveSharedPreferencesFrom] because the settings activity still
+   * use [PreferenceActivity], which can't work on a non-default shared
+   * preference file. */
+  public static void copy_preferences_to_protected_storage(Context context,
+      SharedPreferences src)
+  {
+    if (VERSION.SDK_INT >= 24)
+      copy_shared_preferences(src, get_protected_prefs(context));
+  }
+
+  /** Load the default preferences. */
+  static SharedPreferences get_protected_prefs(Context context)
+  {
+    String pref_name = context.getPackageName() + "_preferences";
+    return get_protected_prefs(context, pref_name);
+  }
+
+  /** Load the specified preferences. */
+  public static SharedPreferences get_protected_prefs(Context context,
+      String pref_name)
+  {
+    if (VERSION.SDK_INT >= 24)
+      context = context.createDeviceProtectedStorageContext();
+    return context.getSharedPreferences(pref_name, Context.MODE_PRIVATE);
+  }
+
+  static void check_need_migration(Context app_context,
+      SharedPreferences protected_prefs)
+  {
+    if (!protected_prefs.getBoolean("need_migration", true))
+      return;
+    SharedPreferences prefs;
+    try
+    {
+      prefs = PreferenceManager.getDefaultSharedPreferences(app_context);
+    }
+    catch (Exception e)
+    {
+      // Device is locked, migrate later.
+      return;
+    }
+    prefs.edit().putBoolean("need_migration", false).apply();
+    copy_shared_preferences(prefs, protected_prefs);
+  }
+
+  static void copy_shared_preferences(SharedPreferences src, SharedPreferences dst)
+  {
+    SharedPreferences.Editor e = dst.edit();
+    Map<String, Object> entries = new HashMap<>(src.getAll());
+    Map<String, ?> previous = dst.getAll();
+    // The IME saves its active layout in device-protected storage, while
+    // settings/clipboard updates come from the default preferences. Keep the
+    // IME's selection when copying that potentially stale snapshot. Indices
+    // only remain meaningful while the configured layout list is unchanged.
+    Object layouts = entries.get("layouts");
+    if (layouts != null && layouts.equals(previous.get("layouts")))
+    {
+      for (String key : new String[] { "current_layout_portrait", "current_layout_landscape" })
+        if (previous.containsKey(key))
+          entries.put(key, previous.get(key));
+    }
+    // Mirror removals too: otherwise reset settings and deleted symbol mappings
+    // survive indefinitely in the keyboard's device-protected copy.
+    for (String k : previous.keySet())
+      if (!entries.containsKey(k) || isSecret(k))
+        e.remove(k);
+    for (String k : entries.keySet())
+    {
+      if (isSecret(k)) continue;
+      Object v = entries.get(k);
+      if (v instanceof Boolean)
+        e.putBoolean(k, (Boolean)v);
+      else if (v instanceof Float)
+        e.putFloat(k, (Float)v);
+      else if (v instanceof Integer)
+        e.putInt(k, (Integer)v);
+      else if (v instanceof Long)
+        e.putLong(k, (Long)v);
+      else if (v instanceof String)
+        e.putString(k, (String)v);
+      else if (v instanceof Set)
+        e.putStringSet(k, new HashSet<String>((Set<String>)v));
+    }
+    e.apply();
+  }
+
+  private static boolean isSecret(String key) {
+    return "gemini_api_key".equals(key) || "openai_api_key".equals(key);
+  }
+
+  private static void removeProtectedSecrets(SharedPreferences prefs) {
+    if (prefs.contains("gemini_api_key") || prefs.contains("openai_api_key"))
+      prefs.edit().remove("gemini_api_key").remove("openai_api_key").apply();
+  }
+}

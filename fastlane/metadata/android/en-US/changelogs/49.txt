@@ -1,0 +1,4 @@
+Better support for foldable devices
+Added layouts
+Improved selection mode
+Bug fixes and many other improvements

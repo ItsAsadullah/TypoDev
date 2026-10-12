@@ -1,0 +1,31 @@
+<resources>
+  <string name="clipboard_recent_screenshot">Add recent screenshot</string>
+  <string name="clipboard_recent_missing">No accessible screenshot found. Choose it from your photos.</string>
+  <string name="clipboard_title">Clipboard</string>
+  <string name="clipboard_search_hint">Search text or shortcut</string>
+  <string name="clipboard_capture_now">Take screenshot</string>
+  <string name="clipboard_auto_on">Screenshot auto-save: On</string>
+  <string name="clipboard_auto_off">Screenshot auto-save: Off</string>
+  <string name="clipboard_auto_permission">Screenshot auto-save: Allow photo access</string>
+  <string name="clipboard_empty_images">No images saved yet</string>
+  <string name="clipboard_empty_images_help">Take a screenshot or choose an image below. Pin images to keep them.</string>
+  <string name="clipboard_empty_search">No matching clips</string>
+  <string name="clipboard_empty_shortcuts">Your shortcuts will appear here. Add a shortcut to any text clip to find it while typing.</string>
+  <string name="clipboard_shortcut_title">Clipboard shortcut</string>
+  <string name="clipboard_shortcut_hint">Shortcut, e.g. salaam</string>
+  <string name="clipboard_shortcut_help">Use 2–32 letters, numbers or underscores. Typing the shortcut shows this text in suggestions. Saving also pins the clip. Leave blank to remove its shortcut.</string>
+  <string name="clipboard_shortcut_save">Save shortcut</string>
+  <string name="clipboard_shortcut_saved">Shortcut saved</string>
+  <string name="clipboard_shortcut_invalid">Use 2–32 letters, numbers or underscores, and choose a shortcut that is not already used.</string>
+  <string name="clipboard_add_shortcut">Add shortcut</string>
+  <string name="clipboard_edit_shortcut">Edit shortcut</string>
+  <string name="clipboard_undo_delete">%1$d removed · Undo (3 seconds)</string>
+  <string name="clipboard_visual_search">Visual search · Google Lens</string>
+  <string name="clipboard_web_search">Search the web</string>
+  <string name="clipboard_undo_card">UNDO DELETE</string>
+  <string name="clipboard_lens_choose">Google Lens is unavailable. Choose an image search app from the share menu.</string>
+  <string name="clipboard_search_unavailable">No app is available to open this search.</string>
+  <string name="clipboard_ai_image_comments">AI analyze &amp; comment</string>
+  <string name="clipboard_ai_image_loading">Preparing selected image…</string>
+  <string name="clipboard_ai_key_required">Add your API key in Writing Settings to analyze images.</string>
+</resources>

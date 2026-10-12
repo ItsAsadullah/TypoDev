@@ -1,0 +1,6 @@
+<resources>
+  <string name="ai_capture_countdown">৩ সেকেন্ড পরে ক্যাপচার হবে। পোস্টটি স্ক্রিনে রাখুন।</string>
+  <string name="ai_capture_session_title">রাইটিং টুলের স্ক্রিন ক্যাপচার চালু আছে</string>
+  <string name="ai_capture_session_message">আবার ক্যাপচারে নতুন অনুমতি লাগবে না। ৫ মিনিট ব্যবহার না করলে বন্ধ হবে।</string>
+  <string name="ai_capture_stop">ক্যাপচার বন্ধ করুন</string>
+</resources>

@@ -1,0 +1,12 @@
+<resources>
+  <string name="clipboard_add_image">ছবি যোগ করুন</string>
+  <string name="clipboard_screenshots">স্ক্রিনশট সেভ করুন</string>
+  <string name="clipboard_screenshots_stop">স্ক্রিনশট সেভ বন্ধ করুন</string>
+  <string name="clipboard_screenshots_enabled">স্ক্রিনশট সেভ চালু হয়েছে। সাম্প্রতিক স্ক্রিনশট Images-এ পাবেন। স্থায়ীভাবে রাখতে ছবিটি পিন করুন।</string>
+  <string name="clipboard_screenshot_permission">অটোমেটিক স্ক্রিনশট সেভ করতে ছবির অনুমতি দিন, অথবা নিজে স্ক্রিনশট বেছে নিন।</string>
+  <string name="clipboard_image_saved">ক্লিপবোর্ডে ছবি সেভ হয়েছে</string>
+  <string name="clipboard_image_failed">ছবিটি সেভ হয়নি। অন্য ছবি বেছে নিন (সর্বোচ্চ ২৫ এমবি)।</string>
+  <string name="clipboard_image_unsupported">এই অ্যাপের এই জায়গায় ছবি পেস্ট করা যায় না।</string>
+  <string name="clipboard_auto_setting">স্ক্রিনশট অটো-সেভ</string>
+  <string name="clipboard_auto_setting_summary">স্ক্রিনশট ক্লিপবোর্ডে সেভ করুন। ছবির অনুমতি প্রয়োজন; স্থায়ী রাখতে ছবি পিন করুন।</string>
+</resources>
