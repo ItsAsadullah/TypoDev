@@ -15,6 +15,8 @@ public class VoiceLanguageResolverTest {
   @Test public void preservesBengaliAndEnglishRecognition() {
     assertEquals("bn-BD", VoiceLanguageResolver.resolve("bengali", "Bengali"));
     assertEquals("bn-BD", VoiceLanguageResolver.resolve(null, "বাংলা"));
+    assertEquals("bn-BD", VoiceLanguageResolver.resolve("latin", "Avro (অভ্র)"));
+    assertEquals("bn-BD", VoiceLanguageResolver.resolve("latin", "Provat (প্রভাত)"));
     assertEquals("en-US", VoiceLanguageResolver.resolve("latin", "QWERTY"));
     assertEquals("en-US", VoiceLanguageResolver.resolve(null, null));
   }

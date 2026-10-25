@@ -45,6 +45,7 @@ import typodev.keyboard.KeyValue;
 import typodev.keyboard.Logs;
 import typodev.keyboard.Pointers;
 import typodev.keyboard.R;
+import typodev.keyboard.ai.SlashCommand;
 import typodev.keyboard.voice.VoiceSpectrumButton;
 
 public class CandidatesView extends LinearLayout
@@ -70,6 +71,11 @@ public class CandidatesView extends LinearLayout
   private ImageView _btn_toolbar_toggle;
   private HorizontalScrollView _suggestions_scroll;
   private LinearLayout _suggestions_container;
+  private HorizontalScrollView _slash_scroll;
+  private LinearLayout _slash_row;
+  private String _slash_render_key, _dismissed_slash;
+  private long _slash_session = -1;
+  private SlashCommand.Input _slash_input;
   private TextView _emoji_view;
   private View _toolbar_scroll;
   private View _autofill_scroll;
@@ -182,6 +188,8 @@ public class CandidatesView extends LinearLayout
     _btn_toolbar_toggle = (ImageView)findViewById(R.id.btn_toolbar_toggle);
     _suggestions_scroll = (HorizontalScrollView)findViewById(R.id.suggestions_scroll);
     _suggestions_container = (LinearLayout)findViewById(R.id.suggestions_container);
+    _slash_scroll = (HorizontalScrollView)findViewById(R.id.slash_commands_scroll);
+    _slash_row = (LinearLayout)findViewById(R.id.slash_commands_row);
     if (_suggestions_scroll != null)
     {
       _suggestions_scroll.setClipChildren(true);
@@ -828,10 +836,7 @@ public class CandidatesView extends LinearLayout
 
   private void update_view_visibility(boolean hasSuggestions)
   {
-    if (_clipboard_suggestion_container != null && _clipboard_suggestion_container.getVisibility() == View.VISIBLE) {
-      hideOtherClipboardToolbarViews();
-      return;
-    }
+    if (_slash_scroll != null) _slash_scroll.setVisibility(View.GONE);
     if (_dictionary_switch_button != null) _dictionary_switch_button.setVisibility(View.GONE);
     if (_lang_name_view != null) _lang_name_view.setVisibility(View.GONE);
 
@@ -843,6 +848,8 @@ public class CandidatesView extends LinearLayout
       }
       else
       {
+        if (_clipboard_suggestion_container != null) _clipboard_suggestion_container.setVisibility(View.GONE);
+        if (_ai_comments_scroll != null) _ai_comments_scroll.setVisibility(View.GONE);
         if (_btn_toolbar_toggle != null) _btn_toolbar_toggle.setVisibility(View.GONE);
         if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.GONE);
         if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.GONE);
@@ -862,6 +869,11 @@ public class CandidatesView extends LinearLayout
     {
       if (_voice_live_container != null) _voice_live_container.setVisibility(View.GONE);
       if (_btn_voice_punct_container != null) _btn_voice_punct_container.setVisibility(View.GONE);
+    }
+
+    if (_clipboard_suggestion_container != null && _clipboard_suggestion_container.getVisibility() == View.VISIBLE) {
+      hideOtherClipboardToolbarViews();
+      return;
     }
 
     if (_btn_toolbar_toggle != null)
@@ -933,6 +945,15 @@ public class CandidatesView extends LinearLayout
       if (_password_autofill_scroll != null) _password_autofill_scroll.setVisibility(View.GONE);
     }
 
+    if (showSlashCommands())
+    {
+      if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.GONE);
+      if (_suggestions_container != null) _suggestions_container.setVisibility(View.GONE);
+      if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.GONE);
+      if (_clipboard_suggestion_container != null) _clipboard_suggestion_container.setVisibility(View.GONE);
+      return;
+    }
+
     if (_toolbar_open)
     {
       if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.GONE);
@@ -978,6 +999,7 @@ public class CandidatesView extends LinearLayout
 
   public void onTextOrSelectionChanged()
   {
+    if (_keyboard2 != null) _keyboard2.updateSlashCandidateVisibility();
     if (_is_voice_typing_active)
     {
       if (!typodev.keyboard.voice.OfflineVoiceTypingService.isListening())
@@ -1017,6 +1039,59 @@ public class CandidatesView extends LinearLayout
     updateMagicButtonVisibility();
     updateClipboardSuggestionChip();
     update_view_visibility(_has_suggestions);
+  }
+
+  private boolean showSlashCommands()
+  {
+    if (_keyboard2 == null || _slash_scroll == null || _slash_row == null
+        || (_autofill_scroll != null && _autofill_scroll.getVisibility() == View.VISIBLE)) return false;
+    _slash_input = _keyboard2.getSlashCommandInput();
+    long session = _keyboard2.getInputSessionId();
+    if (session != _slash_session) {
+      _slash_session = session; _dismissed_slash = null; _slash_render_key = null;
+    }
+    if (_slash_input == null) { _dismissed_slash = null; _slash_render_key = null; return false; }
+    if (_slash_input.raw.equals(_dismissed_slash)) return false;
+    _dismissed_slash = null;
+    String key = _slash_input.prefix + ":" + !_slash_input.argument.isEmpty()
+        + ":" + _keyboard2.getColorKey() + ":" + _keyboard2.getColorLabel();
+    if (!key.equals(_slash_render_key)) {
+      _slash_render_key = key;
+      _slash_row.removeAllViews();
+      _slash_scroll.scrollTo(0, 0);
+      for (SlashCommand command : _slash_input.suggestions()) {
+        String label = command.token();
+        if (!_slash_input.argument.isEmpty()) label = getContext().getString(
+            command == SlashCommand.REMEMBER ? R.string.slash_save : R.string.slash_generate, label);
+        addSlashChip(label, () -> _keyboard2.chooseSlashCommand(_slash_input, command, _slash_session));
+      }
+      if (_slash_input.command == SlashCommand.REMEMBER)
+        addSlashChip(getContext().getString(R.string.slash_saved_notes), () -> _keyboard2.showSavedSlashNotes());
+      TextView close = addSlashChip("×", () -> {
+        _dismissed_slash = _slash_input.raw;
+        update_view_visibility(_has_suggestions);
+      });
+      close.setContentDescription(getContext().getString(R.string.slash_dismiss));
+    }
+    _slash_scroll.setVisibility(View.VISIBLE);
+    return true;
+  }
+
+  private TextView addSlashChip(String text, Runnable action)
+  {
+    TextView chip = new TextView(getContext());
+    float density = getResources().getDisplayMetrics().density;
+    chip.setText(text); chip.setTextSize(13); chip.setSingleLine(true);
+    chip.setTextColor(_keyboard2.getColorLabel());
+    chip.setGravity(Gravity.CENTER);
+    chip.setPadding(Math.round(10 * density), 0, Math.round(10 * density), 0);
+    chip.setBackground(createThemedRippleDrawable(_keyboard2.getColorKey(), _keyboard2.getColorKeyActivated(), 16 * density));
+    chip.setFocusable(true);
+    chip.setOnClickListener(v -> action.run());
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-2, -1);
+    params.setMarginEnd(Math.round(4 * density));
+    _slash_row.addView(chip, params);
+    return chip;
   }
 
   public void updateMagicButtonVisibility()
@@ -2111,6 +2186,10 @@ public class CandidatesView extends LinearLayout
     if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.GONE);
     if (_btn_toolbar_toggle != null) _btn_toolbar_toggle.setVisibility(View.GONE);
     if (_autofill_scroll != null) _autofill_scroll.setVisibility(View.GONE);
+    if (_password_autofill_scroll != null) _password_autofill_scroll.setVisibility(View.GONE);
+    if (_clipboard_suggestion_container != null) _clipboard_suggestion_container.setVisibility(View.GONE);
+    if (_slash_scroll != null) _slash_scroll.setVisibility(View.GONE);
+    if (_ai_comments_scroll != null) _ai_comments_scroll.setVisibility(View.GONE);
     if (_dictionary_switch_button != null) _dictionary_switch_button.setVisibility(View.GONE);
     if (_lang_name_view != null) _lang_name_view.setVisibility(View.GONE);
   }

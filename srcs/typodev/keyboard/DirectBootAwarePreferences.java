@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Build.VERSION;
 import android.preference.PreferenceManager;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -27,6 +28,7 @@ public final class DirectBootAwarePreferences
     if (VERSION.SDK_INT < 24)
       return PreferenceManager.getDefaultSharedPreferences(context);
     SharedPreferences prefs = get_protected_prefs(context);
+    removeProtectedSecrets(prefs);
     check_need_migration(context, prefs);
     return prefs;
   }
@@ -77,68 +79,53 @@ public final class DirectBootAwarePreferences
     copy_shared_preferences(prefs, protected_prefs);
   }
 
-  private static boolean isProtectedRuntimeKey(String k)
-  {
-    return "current_layout_portrait".equals(k)
-        || "current_layout_landscape".equals(k)
-        || "version".equals(k);
-  }
-
   static void copy_shared_preferences(SharedPreferences src, SharedPreferences dst)
   {
     SharedPreferences.Editor e = dst.edit();
-    Map<String, ?> entries = src.getAll();
-    Map<String, ?> dstEntries = dst.getAll();
-    boolean changed = false;
+    Map<String, Object> entries = new HashMap<>(src.getAll());
+    Map<String, ?> previous = dst.getAll();
+    // The IME saves its active layout in device-protected storage, while
+    // settings/clipboard updates come from the default preferences. Keep the
+    // IME's selection when copying that potentially stale snapshot. Indices
+    // only remain meaningful while the configured layout list is unchanged.
+    Object layouts = entries.get("layouts");
+    if (layouts != null && layouts.equals(previous.get("layouts")))
+    {
+      for (String key : new String[] { "current_layout_portrait", "current_layout_landscape" })
+        if (previous.containsKey(key))
+          entries.put(key, previous.get(key));
+    }
     // Mirror removals too: otherwise reset settings and deleted symbol mappings
     // survive indefinitely in the keyboard's device-protected copy.
-    // Never remove runtime layout state keys that are persisted directly to protected prefs.
-    for (String k : dstEntries.keySet())
-    {
-      if (!entries.containsKey(k) && !isProtectedRuntimeKey(k))
-      {
+    for (String k : previous.keySet())
+      if (!entries.containsKey(k) || isSecret(k))
         e.remove(k);
-        changed = true;
-      }
-    }
     for (String k : entries.keySet())
     {
+      if (isSecret(k)) continue;
       Object v = entries.get(k);
-      Object existing = dstEntries.get(k);
-      if (java.util.Objects.equals(v, existing))
-        continue;
       if (v instanceof Boolean)
-      {
         e.putBoolean(k, (Boolean)v);
-        changed = true;
-      }
       else if (v instanceof Float)
-      {
         e.putFloat(k, (Float)v);
-        changed = true;
-      }
       else if (v instanceof Integer)
-      {
         e.putInt(k, (Integer)v);
-        changed = true;
-      }
       else if (v instanceof Long)
-      {
         e.putLong(k, (Long)v);
-        changed = true;
-      }
       else if (v instanceof String)
-      {
         e.putString(k, (String)v);
-        changed = true;
-      }
       else if (v instanceof Set)
-      {
         e.putStringSet(k, new HashSet<String>((Set<String>)v));
-        changed = true;
-      }
     }
-    if (changed)
-      e.apply();
+    e.apply();
+  }
+
+  private static boolean isSecret(String key) {
+    return "gemini_api_key".equals(key) || "openai_api_key".equals(key);
+  }
+
+  private static void removeProtectedSecrets(SharedPreferences prefs) {
+    if (prefs.contains("gemini_api_key") || prefs.contains("openai_api_key"))
+      prefs.edit().remove("gemini_api_key").remove("openai_api_key").apply();
   }
 }

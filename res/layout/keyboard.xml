@@ -160,6 +160,22 @@
     </HorizontalScrollView>
 
     <HorizontalScrollView
+        android:id="@+id/slash_commands_scroll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        android:visibility="gone">
+      <LinearLayout
+          android:id="@+id/slash_commands_row"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:orientation="horizontal"
+          android:gravity="center_vertical" />
+    </HorizontalScrollView>
+
+    <HorizontalScrollView
         android:id="@+id/suggestions_scroll"
         android:layout_width="0dp"
         android:layout_height="match_parent"

@@ -38,7 +38,7 @@ public final class ClipboardImageStore {
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
   private final Handler main = new Handler(Looper.getMainLooper());
   private final List<Runnable> listeners = new CopyOnWriteArrayList<>();
-  private final java.util.Set<String> pending = new java.util.HashSet<>();
+  private final java.util.Map<String, List<ImportCallback>> pending = new java.util.HashMap<>();
   private final Runnable scan = () -> scanScreenshots();
 
   public static synchronized ClipboardImageStore get(Context context) {
@@ -141,7 +141,7 @@ public final class ClipboardImageStore {
     new File(directory, e.optString("file") + ".png").delete();
     save();
   }
-  private void save() { if (prefs != null) prefs.edit().putString("entries", index.serialize()).commit(); }
+  private void save() { if (prefs != null) prefs.edit().putString("entries", index.serialize()).apply(); }
   public void addListener(Runnable listener) { listeners.add(listener); }
   public void removeListener(Runnable listener) { listeners.remove(listener); }
   private void changed() { for (Runnable listener : listeners) main.post(listener); }
@@ -168,32 +168,40 @@ public final class ClipboardImageStore {
   }
 
   public void importImage(Uri source, ImportCallback callback) {
-    if (!initialize()) {
+    if (source == null || !initialize()) {
       if (callback != null) main.post(() -> callback.onComplete(false));
       return;
     }
     String key = source.toString();
     synchronized (this) {
-      if (contains(key) || pending.contains(key)) {
+      if (contains(key)) {
         if (callback != null) main.post(() -> callback.onComplete(true));
         return;
       }
-      pending.add(key);
+      List<ImportCallback> waiting = pending.get(key);
+      if (waiting != null) {
+        if (callback != null) waiting.add(callback);
+        return;
+      }
+      waiting = new ArrayList<>();
+      if (callback != null) waiting.add(callback);
+      pending.put(key, waiting);
     }
     worker.execute(() -> {
       boolean success = copyImage(source);
+      List<ImportCallback> waiting;
       synchronized (this) {
-        pending.remove(key);
+        waiting = pending.remove(key);
         if (success) prefs.edit().putBoolean("seen:" + key, true).apply();
       }
       if (success) changed();
-      if (callback != null) main.post(() -> callback.onComplete(success));
+      for (ImportCallback completion : waiting) main.post(() -> completion.onComplete(success));
     });
   }
 
   public void importCopiedImage(Uri source) { importCopiedImage(source, false); }
   public void importCopiedImage(Uri source, boolean freshCopy) {
-    if (initialize() && (freshCopy || !prefs.getBoolean("seen:" + source.toString(), false))) importImage(source, null);
+    if (source != null && initialize() && (freshCopy || !prefs.getBoolean("seen:" + source.toString(), false))) importImage(source, null);
   }
 
   public void importCapture(byte[] jpeg, ImportCallback callback) {
@@ -319,7 +327,6 @@ public final class ClipboardImageStore {
     if (enabled) { scanScreenshots(); importLatestScreenshot(success -> { }); }
   }
   public void scanScreenshots() {
-    Config config = Config.globalConfig();
     if (!screenshotsEnabled() || !hasPhotoAccess()) return;
     worker.execute(() -> {
       if (!screenshotsEnabled()) return;
@@ -357,7 +364,8 @@ public final class ClipboardImageStore {
     });
   }
 
-  static boolean isScreenshot(String name) {
+  public static boolean isScreenshot(String name) {
+    if (name == null) return false;
     String normalized = name.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "").replace(" ", "");
     return normalized.contains("screenshot") || normalized.contains("screencapture")
         || normalized.contains("স্ক্রিনশট") || normalized.contains("لقطةشاشة")

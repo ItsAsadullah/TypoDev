@@ -255,6 +255,7 @@ public class BanglishUserDictionary
     File file = new File(_context.getFilesDir(), STORE_FILE);
     if (!file.exists()) return;
 
+    boolean purgedCorrupted = false;
     try (FileInputStream fis = new FileInputStream(file);
          BufferedReader br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8)))
     {
@@ -289,9 +290,17 @@ public class BanglishUserDictionary
             }
             list.add(new Entry(bangla, freq, time));
           }
+          else
+          {
+            purgedCorrupted = true;
+          }
         }
       }
     }
     catch (Throwable ignored) {}
+    if (purgedCorrupted)
+    {
+      scheduleSave();
+    }
   }
 }

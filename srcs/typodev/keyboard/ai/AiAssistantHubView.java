@@ -57,10 +57,26 @@ public final class AiAssistantHubView
     });
 
     View writing = view.findViewById(R.id.card_action_writing);
+    View imageText = view.findViewById(R.id.card_action_image_text);
+    if (imageText != null) {
+      imageText.setOnClickListener(v -> {
+        if (!ensureApiKey(context, keyboard2)) return;
+        keyboard2.closeMagicTools();
+        context.startActivity(new android.content.Intent(context, ImageTextActivity.class)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+      });
+    }
     if (writing != null) {
       writing.setOnClickListener(v -> {
         keyboard2.closeMagicTools();
         keyboard2.startWritingTools(false);
+      });
+    }
+    View aiActions = view.findViewById(R.id.card_action_ai_actions);
+    if (aiActions != null) {
+      aiActions.setOnClickListener(v -> {
+        keyboard2.closeMagicTools();
+        keyboard2.showAiPane();
       });
     }
 
@@ -238,10 +254,12 @@ public final class AiAssistantHubView
       params.bottomMargin = Math.round(8 * density);
       button.setLayoutParams(params);
     }
-    for (int id : new int[] {R.id.card_action_writing, R.id.card_action_copied_reply,
+    for (int id : new int[] {R.id.card_action_writing, R.id.card_action_math_solver,
+        R.id.card_action_ai_actions, R.id.card_action_copied_reply,
         R.id.card_action_screen_scan, R.id.card_action_screenshot,
-        R.id.card_action_gallery, R.id.card_action_autocomplete}) {
+        R.id.card_action_gallery, R.id.card_action_autocomplete, R.id.card_action_image_text}) {
       View action = view.findViewById(id);
+      if (action == null) continue;
       GradientDrawable surface = new GradientDrawable();
       surface.setColor(keyboard2.getColorKey());
       surface.setCornerRadius(12 * density);

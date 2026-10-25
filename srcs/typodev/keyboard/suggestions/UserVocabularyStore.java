@@ -205,6 +205,7 @@ public class UserVocabularyStore
     List<Candidate> results = new ArrayList<>();
     for (WordStats ws : _words.values())
     {
+      if (isSkipLearningWord(ws.word)) continue;
       String wLower = ws.word.toLowerCase(Locale.ROOT);
       if (wLower.startsWith(cleanPrefix))
       {
@@ -329,6 +330,7 @@ public class UserVocabularyStore
     File file = new File(_context.getFilesDir(), STORE_FILE_NAME);
     if (!file.exists()) return;
 
+    boolean purgedCorrupted = false;
     try (FileInputStream fis = new FileInputStream(file);
          BufferedReader br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8)))
     {
@@ -338,7 +340,12 @@ public class UserVocabularyStore
         String[] parts = line.split("\t");
         if (parts.length >= 5)
         {
-          String w = parts[0];
+          String w = cleanWord(parts[0]);
+          if (w.length() <= 1 || isSkipLearningWord(w))
+          {
+            purgedCorrupted = true;
+            continue;
+          }
           int freq = Integer.parseInt(parts[1]);
           long lastUsed = Long.parseLong(parts[2]);
           int rej = Integer.parseInt(parts[3]);
@@ -348,6 +355,10 @@ public class UserVocabularyStore
       }
     }
     catch (Exception ignored) {}
+    if (purgedCorrupted)
+    {
+      scheduleSave();
+    }
   }
 
   private static String cleanWord(String raw)
@@ -369,20 +380,65 @@ public class UserVocabularyStore
     return w;
   }
 
-  private static boolean isSkipLearningWord(String w)
+  public static boolean isSkipLearningWord(String w)
   {
-    // Skip URLs, emails, purely numeric tokens
-    if (w.startsWith("http://") || w.startsWith("https://") || w.contains("@") || w.contains("://"))
+    if (w == null || w.isEmpty()) return true;
+    // Skip URLs, emails, slash commands, or corrupted mixed-script/hex tokens
+    if (w.startsWith("http://") || w.startsWith("https://") || w.contains("@") || w.contains("://")
+        || w.startsWith("/") || isCorruptedMixedToken(w))
       return true;
     boolean hasLetter = false;
+    int digitCount = 0;
     for (int i = 0; i < w.length(); i++)
     {
-      if (Character.isLetter(w.charAt(i)))
+      char c = w.charAt(i);
+      if (Character.isDigit(c) || (c >= '0' && c <= '9') || (c >= '\u09E6' && c <= '\u09EF'))
+      {
+        digitCount++;
+      }
+      else if (Character.isLetter(c) || (c >= '\u0980' && c <= '\u09FF'))
       {
         hasLetter = true;
-        break;
       }
     }
+    if (digitCount >= 2)
+    {
+      return true;
+    }
     return !hasLetter;
+  }
+
+  public static boolean isCorruptedMixedToken(String w)
+  {
+    if (w == null || w.isEmpty()) return false;
+    boolean hasBengali = false;
+    boolean hasLatin = false;
+    int digitCount = 0;
+    for (int i = 0; i < w.length(); i++)
+    {
+      char c = w.charAt(i);
+      if (c >= '\u0980' && c <= '\u09FF')
+      {
+        if (c >= '\u09E6' && c <= '\u09EF') digitCount++;
+        else hasBengali = true;
+      }
+      else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
+      {
+        hasLatin = true;
+      }
+      else if (Character.isDigit(c) || (c >= '0' && c <= '9'))
+      {
+        digitCount++;
+      }
+    }
+    if (hasBengali && (hasLatin || digitCount > 0))
+    {
+      return true;
+    }
+    if (hasLatin && digitCount >= 2)
+    {
+      return true;
+    }
+    return false;
   }
 }

@@ -107,6 +107,14 @@ public final class CurrentlyTypedWord
     _w_cursor = 0;
   }
 
+  public void reset_after_composing(String lastCompletedWord)
+  {
+    _w.setLength(0);
+    _w_cursor = 0;
+    if (lastCompletedWord != null && !lastCompletedWord.isEmpty())
+      _last_completed_word = lastCompletedWord;
+  }
+
   public void selection_updated(int oldSelStart, int newSelStart, int newSelEnd)
   {
     // Avoid the expensive [refresh_current_word] call when [typed] was called
@@ -122,10 +130,18 @@ public final class CurrentlyTypedWord
     }
     else if (newSelStart != _cursor)
     {
-      _w_cursor += newSelStart - _cursor;
-      _cursor = newSelStart;
-      if (_w_cursor < -_w.length() || _w_cursor > 0)
+      if (_ic != null)
+      {
+        _cursor = newSelStart;
         refresh_current_word();
+      }
+      else
+      {
+        _w_cursor += newSelStart - _cursor;
+        _cursor = newSelStart;
+        if (_w_cursor < -_w.length() || _w_cursor > 0)
+          refresh_current_word();
+      }
     }
   }
 

@@ -591,7 +591,7 @@ public class GeminiAiService
   /** Worked math needs more room than a short keyboard writing suggestion. */
   public static void processMathPrompt(final Context context, final String promptText, final AiCallback callback)
   {
-    processPromptWithImage(context, promptText, null, null, 8192, callback);
+    processPromptWithImage(context, promptText, null, null, 0.3f, 8192, callback);
   }
 
   public static void processPromptWithImage(
@@ -601,12 +601,18 @@ public class GeminiAiService
       final String mimeType,
       final AiCallback callback)
   {
-    processPromptWithImage(context, promptText, imageBytes, mimeType, 1024, callback);
+    processPromptWithImage(context, promptText, imageBytes, mimeType,
+        imageBytes != null ? 0.7f : 0.3f, 1024, callback);
+  }
+
+  public static void extractImageText(Context context, byte[] image, AiCallback callback) {
+    processPromptWithImage(context, ImageTextExtractor.PROMPT, image, "image/jpeg", 0f, 8192, callback);
   }
 
   private static void processPromptWithImage(
       final Context context, final String promptText, final byte[] imageBytes,
-      final String mimeType, final int maxOutputTokens, final AiCallback callback)
+      final String mimeType, final float temperature, final int maxOutputTokens,
+      final AiCallback callback)
   {
     if (AiProvider.Manager.getActiveProviderType(context) == AiProvider.ProviderType.OPENAI_COMPATIBLE)
     {
@@ -739,7 +745,7 @@ public class GeminiAiService
 
               // GenerationConfig to speed up response and save tokens (FrostKeys style)
               JSONObject genConfig = new JSONObject();
-              genConfig.put("temperature", imageBytes != null ? 0.7 : 0.3);
+              genConfig.put("temperature", temperature);
               genConfig.put("maxOutputTokens", maxOutputTokens);
               requestBody.put("generationConfig", genConfig);
 

@@ -94,6 +94,7 @@ public class Keyboard2 extends InputMethodService
   private Receiver _receiver = null;
   private Handler _handler;
   private long _inputSessionId = 0;
+  private boolean _slashEnterHandled;
   private long _inlineResponseId = 0;
   private typodev.keyboard.ai.AiWritingResultsView _writing_results;
   private typodev.keyboard.ai.AiWritingDraft _lastWritingDraft;
@@ -258,8 +259,7 @@ public class Keyboard2 extends InputMethodService
   {
     InputConnection connection = getCurrentInputConnection();
     if (connection == null) return;
-    String key = typodev.keyboard.ai.GeminiAiService.getApiKey(this);
-    if (key == null || key.trim().isEmpty()) { showAiPane(); return; }
+    if (!typodev.keyboard.ai.AiProvider.Manager.hasConfiguredApiKey(this)) { showAiPane(); return; }
     connection.finishComposingText();
     CharSequence selected = connection.getSelectedText(0);
     CharSequence content = selected != null && selected.length() > 0
@@ -276,6 +276,92 @@ public class Keyboard2 extends InputMethodService
   public long getInputSessionId()
   {
     return _inputSessionId;
+  }
+
+  public typodev.keyboard.ai.SlashCommand.Input getSlashCommandInput()
+  {
+    if (_writing_results != null || _magic_tools_pane != null || _math_solver != null || isToolsPaneVisible()
+        || isAiPaneVisible() || isFancyPaneVisible() || _isEmojiSearchMode || _isAiSettingsOpen
+        || _isTranslateMode || _isAddClipMode
+        || typodev.keyboard.voice.OfflineVoiceTypingService.isListening()
+        || getCurrentInputConnection() != getTargetAppInputConnection()
+        || !typodev.keyboard.ai.SlashCommandEditor.eligible(getCurrentInputEditorInfo())) return null;
+    return typodev.keyboard.ai.SlashCommandEditor.read(getTargetAppInputConnection());
+  }
+
+  /** Refresh just visibility while typing; do not reset dictionaries or candidate state. */
+  public void updateSlashCandidateVisibility()
+  {
+    if (_candidates_view == null || _config == null || _writing_results != null
+        || _magic_tools_pane != null || _math_solver != null || isToolsPaneVisible() || isAiPaneVisible()
+        || isFancyPaneVisible() || _isEmojiSearchMode || _isAiSettingsOpen) return;
+    boolean normal = _config.suggestions_enabled && _config.editor_config.should_show_candidates_view
+        && !_config.split_layout;
+    _candidates_view.setVisibility(normal || getSlashCommandInput() != null ? View.VISIBLE : View.GONE);
+  }
+
+  public void chooseSlashCommand(typodev.keyboard.ai.SlashCommand.Input expected,
+      typodev.keyboard.ai.SlashCommand selected, long session)
+  {
+    typodev.keyboard.ai.SlashCommand.Input current = getSlashCommandInput();
+    if (session != _inputSessionId || current == null || expected == null || !current.raw.equals(expected.raw)
+        || !current.suggestions().contains(selected)) return;
+    if (current.argument.isEmpty())
+      typodev.keyboard.ai.SlashCommandEditor.complete(getTargetAppInputConnection(), current, selected);
+    else runSlashCommand(current.choose(selected));
+    if (_candidates_view != null) _candidates_view.onTextOrSelectionChanged();
+  }
+
+  public boolean runSlashCommand()
+  {
+    typodev.keyboard.ai.SlashCommand.Input input = getSlashCommandInput();
+    if (input == null || input.command == null) return false;
+    runSlashCommand(input);
+    return true;
+  }
+
+  private void runSlashCommand(typodev.keyboard.ai.SlashCommand.Input input)
+  {
+    // Complete Avro's composing word before handing its text to a panel or local storage.
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
+    if (!typodev.keyboard.ai.SlashCommandEditor.matches(getTargetAppInputConnection(), input)) return;
+    if (input.command == typodev.keyboard.ai.SlashCommand.REMEMBER)
+    {
+      if (input.argument.isEmpty()) { showSavedSlashNotes(); return; }
+      try {
+        new typodev.keyboard.ai.SavedNoteStore(this).save(input.argument);
+        typodev.keyboard.ai.SlashCommandEditor.remove(getTargetAppInputConnection(), input);
+        android.widget.Toast.makeText(this, R.string.slash_saved, android.widget.Toast.LENGTH_SHORT).show();
+      } catch (RuntimeException failure) {
+        android.widget.Toast.makeText(this, R.string.slash_note_error, android.widget.Toast.LENGTH_LONG).show();
+      }
+      if (_candidates_view != null) _candidates_view.onTextOrSelectionChanged();
+      return;
+    }
+    if (input.argument.isEmpty()) {
+      android.widget.Toast.makeText(this, R.string.slash_need_text, android.widget.Toast.LENGTH_SHORT).show();
+      return;
+    }
+    if (!typodev.keyboard.ai.AiProvider.Manager.hasConfiguredApiKey(this)) {
+      android.widget.Toast.makeText(this, R.string.slash_need_key, android.widget.Toast.LENGTH_LONG).show();
+      showAiPane();
+      return;
+    }
+    if (_keyboard_container_view == null) return;
+    int height = getTargetPaneHeight();
+    closeWritingResults();
+    resetTransientPanes();
+    _writing_results = new typodev.keyboard.ai.AiWritingResultsView(_keyboard_container_view.getContext(), this);
+    _keyboard_container_view.addView(_writing_results,
+        new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
+    if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
+    _writing_results.startCommand(input);
+  }
+
+  public void showSavedSlashNotes()
+  {
+    typodev.keyboard.ai.SavedNotesDialog.show(this, this);
   }
 
   private void finishInputSession()
@@ -1832,9 +1918,9 @@ public class Keyboard2 extends InputMethodService
       return;
     }
     boolean should_show =
-      _config.suggestions_enabled
+      getSlashCommandInput() != null || (_config.suggestions_enabled
       && _config.editor_config.should_show_candidates_view
-      && !_config.split_layout;
+      && !_config.split_layout);
     if (should_show)
     {
       _candidates_view.refresh_config(_config);
@@ -2162,7 +2248,7 @@ public class Keyboard2 extends InputMethodService
     if (_candidates_view != null && oldSelStart >= 0 && oldSelEnd >= 0
         && (oldSelStart != newSelStart || oldSelEnd != newSelEnd))
       _candidates_view.dismissClipboardPreview();
-    if (!_isTranslateMode)
+    if (!_isTranslateMode && !typodev.keyboard.voice.OfflineVoiceTypingService.isListening())
     {
       _keyeventhandler.selection_updated(oldSelStart, newSelStart, newSelEnd, candidatesStart, candidatesEnd);
     }
@@ -2187,6 +2273,10 @@ public class Keyboard2 extends InputMethodService
   @Override
   public boolean onKeyDown(int keyCode, KeyEvent event)
   {
+    if (keyCode == KeyEvent.KEYCODE_ENTER && event.hasNoModifiers()) {
+      if (_slashEnterHandled) return true;
+      if (runSlashCommand()) { _slashEnterHandled = true; return true; }
+    }
     if (keyCode == KeyEvent.KEYCODE_BACK)
     {
       if (_math_solver != null) { closeMathSolver(); return true; }
@@ -2259,13 +2349,25 @@ public class Keyboard2 extends InputMethodService
   }
 
   @Override
+  public boolean onKeyUp(int keyCode, KeyEvent event)
+  {
+    if (keyCode == KeyEvent.KEYCODE_ENTER && _slashEnterHandled) {
+      _slashEnterHandled = false;
+      return true;
+    }
+    return super.onKeyUp(keyCode, event);
+  }
+
+  @Override
   public void onSharedPreferenceChanged(SharedPreferences _prefs, String _key)
   {
     try
     {
       if ("pref_dismissed_clipboard_clips".equals(_key)
           || "need_migration".equals(_key)
-          || "emoji_last_use".equals(_key))
+          || "emoji_last_use".equals(_key)
+          || "pref_voice_spoken_punctuation".equals(_key)
+          || "pref_voice_ai_punctuation".equals(_key))
       {
         return;
       }
@@ -2323,6 +2425,12 @@ public class Keyboard2 extends InputMethodService
     start_activity(DictionariesActivity.class);
   }
 
+  /** Called from [onClick] attributes. */
+  public void launch_dictionaries_activity(View v)
+  {
+    launch_dictionaries_activity();
+  }
+
   void start_activity(Class cls)
   {
     Intent intent = new Intent(this, cls);
@@ -2334,6 +2442,12 @@ public class Keyboard2 extends InputMethodService
   public class Receiver implements KeyEventHandler.IReceiver,
          KeyValue.Stateful.Symbol_provider, DictionarySwitcher.Callback
   {
+    @Override public boolean isSlashCommandTokenActive() {
+      typodev.keyboard.ai.SlashCommand.Input input = getSlashCommandInput();
+      return input != null && !input.hasDelimiter;
+    }
+    @Override public boolean runSlashCommand() { return Keyboard2.this.runSlashCommand(); }
+
     @Override
     public void showMathSolver(String mathProblem)
     {
@@ -2405,6 +2519,7 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case ACTION:
+          if (Keyboard2.this.runSlashCommand()) break;
           InputConnection conn = getCurrentInputConnection();
           if (conn != null)
             conn.performEditorAction(_config.editor_config.actionId);
@@ -2616,7 +2731,20 @@ public class Keyboard2 extends InputMethodService
   {
     try
     {
-      KeyboardData layout = current_layout_unmodified();
+      if (_config != null && (_config.is_bengali_mode || _config.is_avro_mode))
+      {
+        return "bn-BD";
+      }
+      KeyboardData layout = null;
+      if (_config != null && _config.layouts != null && !_config.layouts.isEmpty())
+      {
+        int layout_i = _config.get_current_layout();
+        if (layout_i < 0 || layout_i >= _config.layouts.size())
+          layout_i = 0;
+        layout = _config.layouts.get(layout_i);
+      }
+      if (layout == null)
+        layout = _localeTextLayout != null ? _localeTextLayout : current_layout_unmodified();
       return typodev.keyboard.voice.VoiceLanguageResolver.resolve(
           layout == null ? null : layout.script, layout == null ? null : layout.name);
     }

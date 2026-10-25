@@ -826,6 +826,10 @@ public final class Suggestions
       {
         if (c != null && c.word != null)
         {
+          if (!_clipboardShortcutTexts.contains(c.word)
+              && c.source != Candidate.Source.SNIPPET
+              && UserVocabularyStore.isCorruptedMixedToken(c.word))
+            continue;
           if (!bengaliMode && containsBengaliChar(c.word) && !_clipboardShortcutTexts.contains(c.word))
             continue;
           if (blockedStore.isBlocked(c.word))

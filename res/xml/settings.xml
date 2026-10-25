@@ -22,6 +22,9 @@
           android:layout="@layout/pref_category_header">
         <typodev.keyboard.prefs.CustomExtraKeysPreference/>
       </PreferenceCategory>
+      <typodev.keyboard.prefs.MathExtraKeysPreference
+          android:title="@string/pref_math_extra_keys_title"
+          android:layout="@layout/pref_category_header"/>
       <typodev.keyboard.prefs.ExtraKeysPreference android:title="@string/pref_extra_keys_internal"/>
     </PreferenceScreen>
     <ListPreference

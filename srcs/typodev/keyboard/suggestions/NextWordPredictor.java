@@ -539,8 +539,15 @@ public class NextWordPredictor
     {
       SharedPreferences prefs = _context.getSharedPreferences(PREF_LEARNED_BIGRAMS, Context.MODE_PRIVATE);
       Map<String, ?> all = prefs.getAll();
+      boolean purgedCorrupted = false;
       for (Map.Entry<String, ?> entry : all.entrySet())
       {
+        String key = entry.getKey();
+        if (!isValidLearnedPhrase(key))
+        {
+          purgedCorrupted = true;
+          continue;
+        }
         if (entry.getValue() instanceof String)
         {
           String raw = (String) entry.getValue();
@@ -550,14 +557,39 @@ public class NextWordPredictor
             List<String> list = new ArrayList<>();
             for (String s : split)
             {
-              if (!s.trim().isEmpty()) list.add(s.trim());
+              String trimmed = s.trim();
+              if (!trimmed.isEmpty())
+              {
+                if (isValidLearnedPhrase(trimmed)) list.add(trimmed);
+                else purgedCorrupted = true;
+              }
             }
             if (!list.isEmpty())
             {
-              _learnedBigrams.put(entry.getKey(), list);
+              _learnedBigrams.put(key, list);
             }
           }
         }
+      }
+      if (purgedCorrupted)
+      {
+        SharedPreferences.Editor edit = prefs.edit();
+        edit.clear();
+        for (Map.Entry<String, List<String>> e : _learnedBigrams.entrySet())
+        {
+          List<String> list = e.getValue();
+          if (list != null && !list.isEmpty())
+          {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < list.size(); i++)
+            {
+              if (i > 0) sb.append(",");
+              sb.append(list.get(i));
+            }
+            edit.putString(e.getKey(), sb.toString());
+          }
+        }
+        edit.apply();
       }
     }
     catch (Exception ignored) {}
@@ -695,6 +727,20 @@ public class NextWordPredictor
     }
   }
 
+  private static boolean isValidLearnedPhrase(String phrase)
+  {
+    if (phrase == null || phrase.trim().isEmpty()) return false;
+    String[] words = phrase.trim().split("\\s+");
+    for (String w : words)
+    {
+      if (w.isEmpty() || UserVocabularyStore.isSkipLearningWord(w))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private void learnPhrase(String trigger, String nextWord)
   {
     if (trigger == null || nextWord == null) return;
@@ -703,6 +749,7 @@ public class NextWordPredictor
     String cleanTrigger = cleanWord(trigger);
     String cleanNext = nextWord.trim();
     if (cleanTrigger.isEmpty() || cleanNext.isEmpty()) return;
+    if (!isValidLearnedPhrase(cleanTrigger) || !isValidLearnedPhrase(cleanNext)) return;
 
     List<String> list = _learnedBigrams.get(cleanTrigger);
     if (list == null)

@@ -44,6 +44,7 @@ import typodev.keyboard.KeyValue;
 import typodev.keyboard.R;
 import typodev.keyboard.Utils;
 import typodev.keyboard.ai.AiSettingsDialog;
+import typodev.keyboard.ai.AiProvider;
 import typodev.keyboard.ai.GeminiAiService;
 import typodev.keyboard.translate.TranslationEngine;
 
@@ -82,6 +83,7 @@ public class ClipboardPaneView extends LinearLayout
   private Keyboard2 _keyboard;
   private boolean _readingAiImage;
   private long _aiImageRequest;
+  private long _aiTextRequest;
   private ClipboardHistoryService _historyService;
   private PinnedClipboardStore _pinnedStore;
   private ClipboardImageStore _imageStore;
@@ -1862,7 +1864,9 @@ public class ClipboardPaneView extends LinearLayout
     boolean hasBengali = containsBengali(item.content);
     String src = hasBengali ? "bn" : "en";
     String target = hasBengali ? "en" : "bn";
-    Toast.makeText(context, "Translating (" + src.toUpperCase() + " → " + target.toUpperCase() + ")...", Toast.LENGTH_SHORT).show();
+    Toast.makeText(context, "Translating (" + src.toUpperCase(Locale.ROOT) + " → " + target.toUpperCase(Locale.ROOT) + ")...", Toast.LENGTH_SHORT).show();
+    final long request = ++_aiTextRequest;
+    final long session = _keyboard == null ? -1 : _keyboard.getInputSessionId();
 
     TranslationEngine.translate(context, item.content, src, target, new TranslationEngine.TranslationCallback()
     {
@@ -1874,7 +1878,8 @@ public class ClipboardPaneView extends LinearLayout
           @Override
           public void run()
           {
-            showAiResultDialog("Translation (" + (isOffline ? "Offline" : "Online") + ")", translatedText);
+            if (isCurrentAiTextRequest(request, session))
+              showAiResultDialog("Translation (" + (isOffline ? "Offline" : "Online") + ")", translatedText);
           }
         });
       }
@@ -1887,7 +1892,8 @@ public class ClipboardPaneView extends LinearLayout
           @Override
           public void run()
           {
-            Toast.makeText(context, "Translation error: " + error, Toast.LENGTH_SHORT).show();
+            if (isCurrentAiTextRequest(request, session))
+              Toast.makeText(context, "Translation error: " + error, Toast.LENGTH_SHORT).show();
           }
         });
       }
@@ -1897,12 +1903,11 @@ public class ClipboardPaneView extends LinearLayout
   private void performAiAction(final ClipboardItem item, final GeminiAiService.Action action, final String promptOverride, final String title)
   {
     final Context context = getContext();
-    String key = GeminiAiService.getApiKey(context);
-    if (key == null || key.trim().isEmpty())
+    if (!AiProvider.Manager.hasConfiguredApiKey(context))
     {
       AlertDialog d = new AlertDialog.Builder(context)
           .setTitle("AI Setup Required")
-          .setMessage("Please enter your free Google Gemini API Key in AI Settings to use AI features.")
+          .setMessage("Please configure your selected AI provider in AI Settings.")
           .setPositiveButton("Settings", new DialogInterface.OnClickListener()
           {
             @Override
@@ -1922,7 +1927,9 @@ public class ClipboardPaneView extends LinearLayout
 
     Toast.makeText(context, "Processing with AI...", Toast.LENGTH_SHORT).show();
 
-    GeminiAiService.AiCallback callback = new GeminiAiService.AiCallback()
+    final long request = ++_aiTextRequest;
+    final long session = _keyboard == null ? -1 : _keyboard.getInputSessionId();
+    AiProvider.Callback callback = new AiProvider.Callback()
     {
       @Override
       public void onSuccess(final String result)
@@ -1932,7 +1939,7 @@ public class ClipboardPaneView extends LinearLayout
           @Override
           public void run()
           {
-            showAiResultDialog(title, result);
+            if (isCurrentAiTextRequest(request, session)) showAiResultDialog(title, result);
           }
         });
       }
@@ -1945,7 +1952,8 @@ public class ClipboardPaneView extends LinearLayout
           @Override
           public void run()
           {
-            Toast.makeText(context, "AI Error: " + error, Toast.LENGTH_SHORT).show();
+            if (isCurrentAiTextRequest(request, session))
+              Toast.makeText(context, "AI Error: " + error, Toast.LENGTH_SHORT).show();
           }
         });
       }
@@ -1953,12 +1961,20 @@ public class ClipboardPaneView extends LinearLayout
 
     if (action != null)
     {
-      GeminiAiService.processText(context, item.content, action, callback);
+      String prompt = action.getPrompt() + "\n" + typodev.keyboard.ai.AiWritingPrompts.GROUNDING_RULES;
+      prompt += GeminiAiService.isEmojifyEnabled(context)
+          ? "\nUse fitting emojis naturally." : "\nDo not include emojis.";
+      AiProvider.Manager.getActiveProvider(context).generate(context, prompt, item.content, callback);
     }
     else if (promptOverride != null)
     {
-      GeminiAiService.processPrompt(context, promptOverride, callback);
+      AiProvider.Manager.getActiveProvider(context).generate(context, promptOverride, "", callback);
     }
+  }
+
+  private boolean isCurrentAiTextRequest(long request, long session) {
+    return request == _aiTextRequest && isAttachedToWindow() && isShown()
+        && _keyboard != null && session == _keyboard.getInputSessionId();
   }
 
   /**
@@ -1967,6 +1983,8 @@ public class ClipboardPaneView extends LinearLayout
    */
   private void showAiResultDialog(String title, final String resultText)
   {
+    final long session = _keyboard == null ? -1 : _keyboard.getInputSessionId();
+    final InputConnection target = _keyboard == null ? null : _keyboard.getTargetAppInputConnection();
     final Context context = getContext();
     final float density = getResources().getDisplayMetrics().density;
     final DialogTheme.Palette palette = DialogTheme.getPalette(context);
@@ -2034,6 +2052,8 @@ public class ClipboardPaneView extends LinearLayout
       public void onClick(View v)
       {
         if (dialogHolder[0] != null) dialogHolder[0].dismiss();
+        if (_keyboard == null || session != _keyboard.getInputSessionId()
+            || target == null || target != _keyboard.getTargetAppInputConnection()) return;
         if (_isMultiPasteMode)
         {
           ClipboardHistoryService.paste(resultText + " ");
@@ -2274,11 +2294,17 @@ public class ClipboardPaneView extends LinearLayout
   @Override
   protected void onDetachedFromWindow()
   {
+    _aiTextRequest++;
     if (_historyService != null) _historyService.remove_on_clipboard_history_change(this);
     _imageStore.removeListener(_imageChanged);
     cancelHold(); finishPreview(); dismissInlineMenu();
     _aiImageRequest++; _readingAiImage = false;
     super.onDetachedFromWindow();
+  }
+
+  @Override protected void onVisibilityChanged(View changedView, int visibility) {
+    super.onVisibilityChanged(changedView, visibility);
+    if (changedView == this && visibility != VISIBLE) _aiTextRequest++;
   }
 
   private void selectAllClips()

@@ -1,0 +1,17 @@
+<resources>
+  <string name="image_text_title">Text from image</string>
+  <string name="image_text_description">Take a photo or choose an image to copy its text</string>
+  <string name="image_text_camera">Take photo</string>
+  <string name="image_text_gallery">Choose from gallery</string>
+  <string name="image_text_copy">Copy text</string>
+  <string name="image_text_reading">Reading text from image…</string>
+  <string name="image_text_copied">Text copied. You can edit it and copy again.</string>
+  <string name="image_text_empty">No readable text found. Try a clearer photo.</string>
+  <string name="image_text_hint">Extracted text will appear here</string>
+  <string name="image_text_failed">Unable to read this image. Choose another photo.</string>
+  <string name="image_text_camera_missing">Unable to open the camera. Try choosing an image from your gallery.</string>
+  <string name="image_text_setup">Add a Gemini API key in AI Settings to read text from images.</string>
+  <string name="image_text_online">Uses Gemini to read the selected image. Internet required.</string>
+  <string name="image_text_retry">Retry</string>
+  <string name="image_text_copy_failed">Unable to copy text. Tap Copy text to try again.</string>
+</resources>

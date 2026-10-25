@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="slash_generate">তৈরি করুন · %1$s</string>
+  <string name="slash_save">সেভ করুন · %1$s</string>
+  <string name="slash_dismiss">AI কমান্ড সাজেশন বন্ধ করুন</string>
+  <string name="slash_need_text">কমান্ডের পরে টেক্সট লিখে তৈরি করুন বা Enter চাপুন।</string>
+  <string name="slash_need_key">AI Provider ও API key সেট করে কমান্ডটি আবার চালান।</string>
+  <string name="slash_saved">এই ডিভাইসে সেভ হয়েছে</string>
+  <string name="slash_saved_notes">সেভ করা নোট</string>
+  <string name="slash_no_notes">এখনো কোনো নোট নেই। /remember-এর পরে তথ্য লিখে সেভ করুন।</string>
+  <string name="slash_delete_all">সব নোট মুছুন</string>
+  <string name="slash_delete_note">নোট মুছুন</string>
+  <string name="slash_copy_note">নোট কপি করুন</string>
+  <string name="slash_note_error">নোট সেভ বা পড়া যায়নি। সর্বোচ্চ ৫০টি নোট রাখা যায়; তালিকা পূর্ণ হলে একটি নোট মুছুন।</string>
+  <string name="slash_empty_result">কোনো ফল পাওয়া যায়নি। আবার চেষ্টা করুন।</string>
+</resources>

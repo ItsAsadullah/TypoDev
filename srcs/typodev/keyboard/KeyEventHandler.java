@@ -135,11 +135,11 @@ public final class KeyEventHandler
     if (isAvroComposingActive())
     {
       InputConnection conn = _recv.getCurrentInputConnection();
+      String textToCommit = (_avroCurrentBangla != null && !_avroCurrentBangla.isEmpty())
+          ? _avroCurrentBangla
+          : _avroComposingLatin.toString();
       if (conn != null)
       {
-        String textToCommit = (_avroCurrentBangla != null && !_avroCurrentBangla.isEmpty())
-            ? _avroCurrentBangla
-            : _avroComposingLatin.toString();
         conn.commitText(textToCommit, 1);
         conn.finishComposingText();
       }
@@ -147,6 +147,7 @@ public final class KeyEventHandler
       _avroCurrentBangla = "";
       _pendingAvroComposingEcho = false;
       _expectedAvroCursorDelta = 0;
+      _typedword.reset_after_composing(textToCommit.trim());
     }
   }
 
@@ -331,6 +332,7 @@ public final class KeyEventHandler
       _avroCurrentBangla = "";
       _pendingAvroComposingEcho = false;
       _expectedAvroCursorDelta = 0;
+      _typedword.reset_after_composing(text.trim());
       last_replaced_word = null;
       last_replacement_word_len = 0;
       _next_last_action = LastAction.SUGGESTION_ENTERED;
@@ -1060,6 +1062,9 @@ public final class KeyEventHandler
       }
       _avroComposingLatin.setLength(0);
       _avroCurrentBangla = "";
+      _pendingAvroComposingEcho = false;
+      _expectedAvroCursorDelta = 0;
+      _typedword.reset_after_composing(wordToCommit.trim());
       last_replaced_word = null;
       last_replacement_word_len = 0;
 
@@ -1101,8 +1106,9 @@ public final class KeyEventHandler
     else
     {
       String currentWord = _typedword.get();
+      int relCursor = _typedword.cursor_relative();
       send_text(" ");
-      if (currentWord != null && !currentWord.trim().isEmpty())
+      if (relCursor == 0 && currentWord != null && !currentWord.trim().isEmpty())
       {
         String clean = currentWord.trim();
         if (canLearnFromEditor() && _suggestions != null && _suggestions.getContext() != null)
@@ -1145,6 +1151,7 @@ public final class KeyEventHandler
           conn.finishComposingText();
         }
         _avroCurrentBangla = "";
+        _typedword.reset_after_composing(null);
         if (_suggestions != null)
         {
           _suggestions.clear();

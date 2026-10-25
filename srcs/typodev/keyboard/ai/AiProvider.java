@@ -128,12 +128,18 @@ public interface AiProvider
           || !GeminiAiService.getGeminiApiKey(context).isEmpty();
     }
 
+    private static float sanitizeTemperature(float temp)
+    {
+      if (Float.isNaN(temp) || Float.isInfinite(temp)) return 0.7f;
+      return Math.max(0f, Math.min(2f, temp));
+    }
+
     public static float getTemperature(Context context)
     {
       SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
       try
       {
-        return Float.parseFloat(prefs.getString(PREF_AI_TEMPERATURE, "0.7"));
+        return sanitizeTemperature(Float.parseFloat(prefs.getString(PREF_AI_TEMPERATURE, "0.7")));
       }
       catch (Exception ignored)
       {
@@ -145,7 +151,7 @@ public interface AiProvider
     {
       PreferenceManager.getDefaultSharedPreferences(context)
           .edit()
-          .putString(PREF_AI_TEMPERATURE, String.valueOf(temp))
+          .putString(PREF_AI_TEMPERATURE, String.valueOf(sanitizeTemperature(temp)))
           .apply();
     }
   }

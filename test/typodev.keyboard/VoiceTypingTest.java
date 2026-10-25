@@ -129,5 +129,23 @@ public class VoiceTypingTest
   @Test public void acceptsEquivalentBengaliUnicodeWithoutTranslating() {
     assertTrue(typodev.keyboard.voice.VoicePunctuationHelper.preservesSpokenWords("দ্বিতীয় দিন", "দ্বিতীয় দিন।"));
   }
+
+  @Test public void autoDetectsBengaliAndEnglishQuestionsInInstantFormatting() {
+    assertEquals("তুমি কেমন আছো?",
+        typodev.keyboard.voice.VoicePunctuationHelper.applyInstantFormatting("তুমি কেমন আছো", "bn-BD"));
+    assertEquals("আপনি কি যাবেন?",
+        typodev.keyboard.voice.VoicePunctuationHelper.applyInstantFormatting("আপনি কি যাবেন", "bn-BD"));
+    assertEquals("how are you doing today?",
+        typodev.keyboard.voice.VoicePunctuationHelper.applyInstantFormatting("how are you doing today", "en-US"));
+  }
+
+  @Test public void rejectsCorruptedMixedScriptAndHexSuffixTokensFromSuggestions() {
+    assertTrue(typodev.keyboard.suggestions.UserVocabularyStore.isCorruptedMixedToken("আমাদের4650059ff"));
+    assertTrue(typodev.keyboard.suggestions.UserVocabularyStore.isCorruptedMixedToken("ফিচার4650059ff"));
+    assertFalse(typodev.keyboard.suggestions.UserVocabularyStore.isCorruptedMixedToken("আমাদের"));
+    assertFalse(typodev.keyboard.suggestions.UserVocabularyStore.isCorruptedMixedToken("ফিচার"));
+    assertFalse(typodev.keyboard.suggestions.BanglishEngine.isBengaliScript("আমাদের4650059ff"));
+    assertTrue(typodev.keyboard.suggestions.BanglishEngine.isBengaliScript("আমাদের"));
+  }
 }
 

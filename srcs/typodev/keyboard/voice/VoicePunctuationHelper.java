@@ -27,6 +27,10 @@ public class VoicePunctuationHelper
   private static final Pattern PATTERN_EXTRA_SPACES = Pattern.compile("[ \\t]+");
   private static final Pattern PATTERN_SPACE_BEFORE_PUNCT = Pattern.compile("[\\p{Zs}\\t]+([।.,!?:;])");
   private static final Pattern PATTERN_SPACE_AFTER_PUNCT = Pattern.compile("([।,!?:;])([\\p{L}\\p{N}])");
+  private static final Pattern PATTERN_BN_QUESTION_WORD = Pattern.compile(
+      "(?:^|[\\s,;:—\\-])(কি|কী|কেন|কখন|কোথায়|কোথায়|কীভাবে|কিভাবে|কেমন|কোন|কোনটা|কত|কাদের|কার|কাকে|নাকি|কিনা|কবে|কিসে|কিসের)(?=$|[\\s,;:—\\-])");
+  private static final Pattern PATTERN_EN_QUESTION_START = Pattern.compile(
+      "(?i)^(?:(what|why|when|where|who|whom|whose|which|how)\\b|(is|are|am|was|were|do|does|did|can|could|will|would|shall|should|may|might|must|have|has|had|aren't|isn't|don't|doesn't|didn't|won't|wouldn't|can't|couldn't|shouldn't)\\s+(you|he|she|it|we|they|there|this|that|these|those|anyone|anybody|someone|somebody|everybody|everyone|i)\\b)");
 
   public static boolean isVoiceSpokenPunctuationEnabled(Context context)
   {
@@ -153,11 +157,52 @@ public class VoicePunctuationHelper
       if (!hasTerminalPunct)
       {
         boolean isBn = isBengali(formatted, langCode);
-        formatted = formatted + (isBn ? "।" : ".");
+        String lastClause = extractLastClause(formatted);
+        if (isQuestionClause(lastClause, isBn))
+        {
+          formatted = formatted + "?";
+        }
+        else
+        {
+          formatted = formatted + (isBn ? "।" : ".");
+        }
       }
     }
 
     return formatted;
+  }
+
+  private static String extractLastClause(String text)
+  {
+    if (text == null || text.isEmpty()) return "";
+    int lastSplit = -1;
+    for (int i = text.length() - 1; i >= 0; i--)
+    {
+      char c = text.charAt(i);
+      if (c == '।' || c == '.' || c == '?' || c == '!' || c == '؟' || c == '\n')
+      {
+        lastSplit = i;
+        break;
+      }
+    }
+    return (lastSplit >= 0 && lastSplit + 1 < text.length())
+        ? text.substring(lastSplit + 1).trim()
+        : text.trim();
+  }
+
+  private static boolean isQuestionClause(String clause, boolean isBn)
+  {
+    if (clause == null || clause.trim().isEmpty()) return false;
+    String trimmed = clause.trim();
+    if (PATTERN_BN_QUESTION_WORD.matcher(trimmed).find())
+    {
+      return true;
+    }
+    if (PATTERN_EN_QUESTION_START.matcher(trimmed).find())
+    {
+      return true;
+    }
+    return false;
   }
 
   private static boolean isBengali(String text, String langCode)

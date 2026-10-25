@@ -30,6 +30,7 @@ public class OfflineVoiceTypingService
   private static SpeechRecognizer _speechRecognizer = null;
   private static boolean _isListening = false;
   private static String _lastPartialText = "";
+  private static String _lastStablePartialText = "";
   private static final StringBuilder _sessionCommittedText = new StringBuilder();
   private static Keyboard2 _activeKeyboard = null;
   private static Context _appContext = null;
@@ -39,7 +40,7 @@ public class OfflineVoiceTypingService
   private static Runnable _restartRunnable;
 
   private static Handler _handler = null;
-  private static final long INACTIVITY_TIMEOUT_MS = 5000; // 5 seconds of silence
+  private static final long INACTIVITY_TIMEOUT_MS = 30000; // 30 seconds of continuous silence
   private static int _emptyTimeoutCount = 0;
 
   private static final Runnable _inactivityRunnable = new Runnable()
@@ -186,11 +187,20 @@ public class OfflineVoiceTypingService
 
     if (context == null || keyboard == null) return;
     cancelListening();
+    if (keyboard.getKeyEventHandler() != null)
+    {
+      try
+      {
+        keyboard.getKeyEventHandler().commitAvroComposing();
+      }
+      catch (Throwable ignored) {}
+    }
     _appContext = context.getApplicationContext();
     _activeKeyboard = keyboard;
     _activeInputConnection = keyboard.getCurrentInputConnection();
     _activeInputSession = keyboard.getInputSessionId();
     _lastPartialText = "";
+    _lastStablePartialText = "";
     _sessionCommittedText.setLength(0);
     _emptyTimeoutCount = 0;
     _isListening = true;
@@ -248,14 +258,10 @@ public class OfflineVoiceTypingService
     {
       intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.getPackageName());
     }
-    // Allow continuous speech flow without premature timeout on breathing pauses
-    intent.putExtra("android.speech.extras.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 1500L);
-    intent.putExtra("android.speech.extras.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 1000L);
-    intent.putExtra("android.speech.extras.SPEECH_INPUT_MINIMUM_LENGTH_MILLIS", 15000L);
     return intent;
   }
 
-  private static String extractTextFromBundle(Bundle bundle)
+  private static String extractStableTextFromBundle(Bundle bundle)
   {
     if (bundle == null) return null;
 
@@ -268,7 +274,7 @@ public class OfflineVoiceTypingService
         String first = matches.get(0);
         if (first != null && !first.trim().isEmpty())
         {
-          return first;
+          return first.trim();
         }
       }
     }
@@ -283,7 +289,7 @@ public class OfflineVoiceTypingService
         CharSequence first = cseqList.get(0);
         if (first != null && !first.toString().trim().isEmpty())
         {
-          return first.toString();
+          return first.toString().trim();
         }
       }
     }
@@ -295,12 +301,17 @@ public class OfflineVoiceTypingService
       String[] strArray = bundle.getStringArray(SpeechRecognizer.RESULTS_RECOGNITION);
       if (strArray != null && strArray.length > 0 && strArray[0] != null && !strArray[0].trim().isEmpty())
       {
-        return strArray[0];
+        return strArray[0].trim();
       }
     }
     catch (Throwable ignored) {}
 
-    // 4. UNSTABLE_TEXT (real-time live streaming in Google Voice Typing dictation)
+    return null;
+  }
+
+  private static String extractUnstableTextFromBundle(Bundle bundle)
+  {
+    if (bundle == null) return null;
     try
     {
       ArrayList<String> unstable = bundle.getStringArrayList("android.speech.extra.UNSTABLE_TEXT");
@@ -309,18 +320,40 @@ public class OfflineVoiceTypingService
         String first = unstable.get(0);
         if (first != null && !first.trim().isEmpty())
         {
-          return first;
+          return first.trim();
         }
       }
       CharSequence cs = bundle.getCharSequence("android.speech.extra.UNSTABLE_TEXT");
       if (cs != null && !cs.toString().trim().isEmpty())
       {
-        return cs.toString();
+        return cs.toString().trim();
       }
     }
     catch (Throwable ignored) {}
-
     return null;
+  }
+
+  private static String extractTextFromBundle(Bundle bundle)
+  {
+    return extractTextFromBundle(bundle, true);
+  }
+
+  private static String extractTextFromBundle(Bundle bundle, boolean includeUnstable)
+  {
+    if (bundle == null) return null;
+    String stable = extractStableTextFromBundle(bundle);
+    if (!includeUnstable)
+    {
+      return stable;
+    }
+    String unstable = extractUnstableTextFromBundle(bundle);
+    if (stable != null && !stable.isEmpty() && unstable != null && !unstable.isEmpty())
+    {
+      if (stable.endsWith(unstable)) return stable;
+      return stable + " " + unstable;
+    }
+    if (stable != null && !stable.isEmpty()) return stable;
+    return unstable;
   }
 
   private static void startRecognizerInternal(final Context context)
@@ -357,6 +390,7 @@ public class OfflineVoiceTypingService
       public void onReadyForSpeech(Bundle params)
       {
         if (!isCurrent()) return;
+        resetInactivityTimer();
         if (_activeKeyboard != null && _activeKeyboard.getCandidatesView() != null)
         {
           _activeKeyboard.getCandidatesView().onVoiceReadyForSpeech();
@@ -375,6 +409,10 @@ public class OfflineVoiceTypingService
       public void onRmsChanged(float rmsdB)
       {
         if (!isCurrent()) return;
+        if (rmsdB > 3.5f)
+        {
+          resetInactivityTimer();
+        }
         if (_isListening && _activeKeyboard != null && _activeKeyboard.getCandidatesView() != null)
         {
           _activeKeyboard.getCandidatesView().onVoiceRmsChanged(rmsdB);
@@ -393,12 +431,17 @@ public class OfflineVoiceTypingService
         if (!isCurrent()) return;
         if (partialResults != null && _isListening)
         {
-          String text = extractTextFromBundle(partialResults);
+          String langCode = (_activeKeyboard != null) ? _activeKeyboard.getCurrentLanguageCode() : "bn-BD";
+          String stable = extractStableTextFromBundle(partialResults);
+          if (stable != null && !stable.trim().isEmpty())
+          {
+            _lastStablePartialText = VoicePunctuationHelper.applyVoiceCommands(_appContext, stable, langCode);
+          }
+          String text = extractTextFromBundle(partialResults, true);
           if (text != null && !text.trim().isEmpty())
           {
             _emptyTimeoutCount = 0;
             resetInactivityTimer();
-            String langCode = (_activeKeyboard != null) ? _activeKeyboard.getCurrentLanguageCode() : "bn-BD";
             String processed = VoicePunctuationHelper.applyVoiceCommands(_appContext, text, langCode);
             _lastPartialText = processed;
             // Real-time live update into the editor field as composing text
@@ -420,10 +463,12 @@ public class OfflineVoiceTypingService
       {
         if (!isCurrent()) return;
 
-        String recognizedText = extractTextFromBundle(results);
+        String recognizedText = extractTextFromBundle(results, false);
         if (recognizedText == null || recognizedText.trim().isEmpty())
         {
-          recognizedText = _lastPartialText;
+          recognizedText = !_lastStablePartialText.trim().isEmpty()
+              ? _lastStablePartialText
+              : _lastPartialText;
         }
 
         if (recognizedText != null && !recognizedText.trim().isEmpty())
@@ -432,6 +477,10 @@ public class OfflineVoiceTypingService
           resetInactivityTimer();
           String langCode = (_activeKeyboard != null) ? _activeKeyboard.getCurrentLanguageCode() : "bn-BD";
           String processed = VoicePunctuationHelper.applyVoiceCommands(_appContext, recognizedText, langCode);
+          if (VoicePunctuationHelper.isVoiceSpokenPunctuationEnabled(_appContext))
+          {
+            processed = VoicePunctuationHelper.applyInstantFormatting(processed, langCode);
+          }
           if (_activeKeyboard != null)
           {
             _activeKeyboard.commitVoiceSegment(processed);
@@ -446,6 +495,7 @@ public class OfflineVoiceTypingService
           }
           _sessionCommittedText.append(processed);
           _lastPartialText = "";
+          _lastStablePartialText = "";
         }
 
         // Fast ultra-low-latency restart so following speech is never dropped
@@ -462,11 +512,19 @@ public class OfflineVoiceTypingService
           case SpeechRecognizer.ERROR_NO_MATCH:
           case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
             // Natural pause in speech: commit any existing partial text and resume listening fast
-            if (!_lastPartialText.trim().isEmpty() && _activeKeyboard != null)
+            String fallbackText = !_lastStablePartialText.trim().isEmpty()
+                ? _lastStablePartialText
+                : _lastPartialText;
+            if (!fallbackText.trim().isEmpty() && _activeKeyboard != null)
             {
               _emptyTimeoutCount = 0;
+              resetInactivityTimer();
               String langCode = _activeKeyboard.getCurrentLanguageCode();
-              String processed = VoicePunctuationHelper.applyVoiceCommands(_appContext, _lastPartialText, langCode);
+              String processed = VoicePunctuationHelper.applyVoiceCommands(_appContext, fallbackText, langCode);
+              if (VoicePunctuationHelper.isVoiceSpokenPunctuationEnabled(_appContext))
+              {
+                processed = VoicePunctuationHelper.applyInstantFormatting(processed, langCode);
+              }
               _activeKeyboard.commitVoiceSegment(processed);
               if (_activeKeyboard.getCandidatesView() != null)
               {
@@ -478,6 +536,7 @@ public class OfflineVoiceTypingService
               }
               _sessionCommittedText.append(processed);
               _lastPartialText = "";
+              _lastStablePartialText = "";
               fastRestartListening();
             }
             else
@@ -487,7 +546,7 @@ public class OfflineVoiceTypingService
                 try { _activeInputConnection.finishComposingText(); } catch (Throwable ignored) {}
               }
               _emptyTimeoutCount++;
-              if (_emptyTimeoutCount >= 2 || (_sessionCommittedText.length() > 0 && _emptyTimeoutCount >= 1))
+              if (_emptyTimeoutCount >= 6)
               {
                 stopListening();
               }
@@ -539,7 +598,21 @@ public class OfflineVoiceTypingService
             break;
 
           case SpeechRecognizer.ERROR_CLIENT:
-            // Client side cancel; ignore if still listening or stopped
+            // Recover gracefully if still listening so transient client state does not kill the mic
+            if (_isListening && isCurrent())
+            {
+              postDelayedToMain(new Runnable()
+              {
+                @Override
+                public void run()
+                {
+                  if (generation == _recognizerGeneration && isCurrentInput() && _isListening && _appContext != null)
+                  {
+                    startRecognizerInternal(_appContext);
+                  }
+                }
+              }, 120);
+            }
             break;
 
           default:
@@ -586,7 +659,6 @@ public class OfflineVoiceTypingService
         {
           try
           {
-            _speechRecognizer.cancel();
             Intent intent = createSpeechIntent(_activeKeyboard, _appContext);
             _speechRecognizer.startListening(intent);
             return;
@@ -603,8 +675,8 @@ public class OfflineVoiceTypingService
         }
       }
     };
-    // 35ms breather allows audio buffer recycling without missing user's subsequent words
-    postDelayedToMain(_restartRunnable, 35);
+    // 50ms breather allows audio buffer recycling without missing user's subsequent words
+    postDelayedToMain(_restartRunnable, 50);
   }
 
   private static boolean isCurrentInput()
@@ -624,6 +696,7 @@ public class OfflineVoiceTypingService
     }
     VoicePermissionActivity.cancelPendingRequest();
     _lastPartialText = "";
+    _lastStablePartialText = "";
     _sessionCommittedText.setLength(0);
     stopListening();
   }
@@ -666,10 +739,17 @@ public class OfflineVoiceTypingService
     Context ctx = _appContext;
 
     // Commit any uncommitted partial segment
-    if (currentInput && !_lastPartialText.trim().isEmpty() && kb != null)
+    String pendingPartial = !_lastStablePartialText.trim().isEmpty()
+        ? _lastStablePartialText
+        : _lastPartialText;
+    if (currentInput && !pendingPartial.trim().isEmpty() && kb != null)
     {
       String langCode = kb.getCurrentLanguageCode();
-      String processed = VoicePunctuationHelper.applyVoiceCommands(ctx, _lastPartialText, langCode);
+      String processed = VoicePunctuationHelper.applyVoiceCommands(ctx, pendingPartial, langCode);
+      if (VoicePunctuationHelper.isVoiceSpokenPunctuationEnabled(ctx))
+      {
+        processed = VoicePunctuationHelper.applyInstantFormatting(processed, langCode);
+      }
       kb.commitVoiceSegment(processed);
       if (_sessionCommittedText.length() > 0)
       {
@@ -677,6 +757,7 @@ public class OfflineVoiceTypingService
       }
       _sessionCommittedText.append(processed);
       _lastPartialText = "";
+      _lastStablePartialText = "";
     }
 
     destroyRecognizer();
@@ -706,6 +787,7 @@ public class OfflineVoiceTypingService
     _activeInputConnection = null;
     _appContext = null;
     _lastPartialText = "";
+    _lastStablePartialText = "";
   }
 
   private static void destroyRecognizer()

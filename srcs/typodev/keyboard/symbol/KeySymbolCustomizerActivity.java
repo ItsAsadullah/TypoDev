@@ -651,7 +651,7 @@ public class KeySymbolCustomizerActivity extends Activity
       String firstKey = findFirstKeyInLayout(mActiveKeyboardData);
       if (firstKey != null)
       {
-        mSelectedKey = firstKey.toLowerCase().trim();
+        mSelectedKey = firstKey.toLowerCase(java.util.Locale.ROOT).trim();
       }
     }
 
@@ -1035,14 +1035,14 @@ public class KeySymbolCustomizerActivity extends Activity
       if (base.equalsIgnoreCase("tab")) return "⇥ Tab";
       if (base.equalsIgnoreCase("esc")) return "Esc";
       if (base.equalsIgnoreCase("space")) return "␣ Space";
-      return base.toUpperCase();
+      return base.toUpperCase(java.util.Locale.ROOT);
     }
     return "";
   }
 
   private void selectKey(String keyName)
   {
-    mSelectedKey = keyName.toLowerCase().trim();
+    mSelectedKey = keyName.toLowerCase(java.util.Locale.ROOT).trim();
     renderLiveKeyboard();
     updateCompassGrid();
   }
@@ -1210,7 +1210,7 @@ public class KeySymbolCustomizerActivity extends Activity
     }
 
     if (mBtnClearAllReserved != null) mBtnClearAllReserved.setVisibility(View.VISIBLE);
-    String displayKey = mSelectedKey.equals("space") ? "Space" : mSelectedKey.toUpperCase();
+    String displayKey = mSelectedKey.equals("space") ? "Space" : mSelectedKey.toUpperCase(java.util.Locale.ROOT);
     if (mTxtReservedKeysHint != null)
     {
       mTxtReservedKeysHint.setText("Tap a reserved key below to place on Key [" + displayKey + "] (" + CustomSymbolStore.getPosIcon(mSelectedPos) + "). Tap ✕ to discard.");
@@ -1368,7 +1368,7 @@ public class KeySymbolCustomizerActivity extends Activity
 
   private void updateCompassGrid()
   {
-    String displayKey = mSelectedKey.equals("space") ? "Space" : mSelectedKey.toUpperCase();
+    String displayKey = mSelectedKey.equals("space") ? "Space" : mSelectedKey.toUpperCase(java.util.Locale.ROOT);
     if (mTxtSelectedKeyBadge != null)
     {
       mTxtSelectedKeyBadge.setText("Selected Key: [ " + displayKey + " ]");
@@ -1506,7 +1506,7 @@ public class KeySymbolCustomizerActivity extends Activity
     }
 
     String label = CustomSymbolStore.getFriendlyActionLabel(symbol);
-    Toast.makeText(this, "Set " + label + " to Key [" + mSelectedKey.toUpperCase() + "] (" + CustomSymbolStore.getPosIcon(mSelectedPos) + ")", Toast.LENGTH_SHORT).show();
+    Toast.makeText(this, "Set " + label + " to Key [" + mSelectedKey.toUpperCase(java.util.Locale.ROOT) + "] (" + CustomSymbolStore.getPosIcon(mSelectedPos) + ")", Toast.LENGTH_SHORT).show();
     mActiveKeyboardData = LayoutModifier.apply_custom_symbols(mBaseKeyboardData, mMappings);
     renderLiveKeyboard();
     updateCompassGrid();
@@ -1559,12 +1559,12 @@ public class KeySymbolCustomizerActivity extends Activity
     {
       mMappings.add(new CustomSymbolStore.Mapping(mSelectedKey, mSelectedPos, CustomSymbolStore.SYMBOL_EMPTY));
       String reservedMsg = (codeToReserve != null) ? " & reserved [" + CustomSymbolStore.getFriendlyActionLabel(codeToReserve) + "]" : "";
-      Toast.makeText(this, "Cleared" + reservedMsg + " from Key [" + mSelectedKey.toUpperCase() + "]", Toast.LENGTH_SHORT).show();
+      Toast.makeText(this, "Cleared" + reservedMsg + " from Key [" + mSelectedKey.toUpperCase(java.util.Locale.ROOT) + "]", Toast.LENGTH_SHORT).show();
     }
     else if (removedExistingCustom)
     {
       String reservedMsg = (codeToReserve != null) ? " & reserved [" + CustomSymbolStore.getFriendlyActionLabel(codeToReserve) + "]" : "";
-      Toast.makeText(this, "Cleared" + reservedMsg + " on Key [" + mSelectedKey.toUpperCase() + "]", Toast.LENGTH_SHORT).show();
+      Toast.makeText(this, "Cleared" + reservedMsg + " on Key [" + mSelectedKey.toUpperCase(java.util.Locale.ROOT) + "]", Toast.LENGTH_SHORT).show();
     }
     else
     {
@@ -1626,7 +1626,7 @@ public class KeySymbolCustomizerActivity extends Activity
       row.setLayoutParams(lp);
 
       TextView txtKey = new TextView(this);
-      String displayKey = m.baseKey.equals("space") ? "Space" : m.baseKey.toUpperCase();
+      String displayKey = m.baseKey.equals("space") ? "Space" : m.baseKey.toUpperCase(java.util.Locale.ROOT);
       txtKey.setText("Key [ " + displayKey + " ]");
       txtKey.setTextColor(Color.parseColor("#60A5FA"));
       txtKey.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);

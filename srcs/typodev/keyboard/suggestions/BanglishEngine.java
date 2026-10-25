@@ -48,11 +48,18 @@ public class BanglishEngine {
 
     public static boolean isBengaliScript(String text) {
         if (text == null || text.isEmpty()) return false;
+        boolean hasBengaliLetter = false;
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (c >= 0x0980 && c <= 0x09FF) return true;
+            if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+                || (c >= 0x09E6 && c <= 0x09EF)) {
+                return false;
+            }
+            if (c >= 0x0980 && c <= 0x09FF) {
+                hasBengaliLetter = true;
+            }
         }
-        return false;
+        return hasBengaliLetter;
     }
 
     private static boolean isConsonant(char ch) {

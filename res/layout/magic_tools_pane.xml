@@ -58,11 +58,25 @@
    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Draft a comment from a photo" android:textColor="#94A3B8" android:textSize="12sp"/>
   </LinearLayout>
  </LinearLayout>
+ <LinearLayout android:id="@+id/card_action_ai_actions" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:padding="8dp" android:gravity="center_vertical" android:background="?android:attr/selectableItemBackground" android:clickable="true" android:focusable="true">
+  <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_ai_edit" android:importantForAccessibility="no"/>
+  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingStart="12dp">
+   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ai_magic_all_actions" android:textSize="14sp" android:textStyle="bold"/>
+   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ai_magic_all_actions_description" android:textSize="12sp"/>
+  </LinearLayout>
+ </LinearLayout>
  <LinearLayout android:id="@+id/card_action_autocomplete" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:padding="8dp" android:gravity="center_vertical" android:background="?android:attr/selectableItemBackground" android:clickable="true" android:focusable="true">
   <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_toolbar_magic" android:tint="#38BDF8" android:importantForAccessibility="no"/>
   <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingStart="12dp">
    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Continue writing" android:textColor="#F1F5F9" android:textSize="14sp" android:textStyle="bold"/>
    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Choose how to continue your text" android:textColor="#94A3B8" android:textSize="12sp"/>
+  </LinearLayout>
+ </LinearLayout>
+ <LinearLayout android:id="@+id/card_action_image_text" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:padding="8dp" android:gravity="center_vertical" android:background="?android:attr/selectableItemBackground" android:clickable="true" android:focusable="true">
+  <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_ai_gallery" android:importantForAccessibility="no"/>
+  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingStart="12dp">
+   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/image_text_title" android:textSize="14sp" android:textStyle="bold"/>
+   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/image_text_description" android:textSize="12sp"/>
   </LinearLayout>
  </LinearLayout>
  </LinearLayout></ScrollView>

@@ -12,6 +12,10 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/>
 
   <application android:label="@string/app_name" android:allowBackup="false" android:fullBackupContent="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:hardwareAccelerated="false" android:largeHeap="true">
+    <activity android:name="typodev.keyboard.ai.ImageTextActivity"
+              android:theme="@style/SnippetManagerTheme" android:exported="false"
+              android:configChanges="orientation|screenSize|keyboardHidden"
+              android:windowSoftInputMode="stateAlwaysHidden|adjustResize" />
     <service android:name=".autofill.TypoDevAutofillService"
              android:enabled="@bool/otp_autofill_supported"
              android:label="@string/otp_autofill_title"

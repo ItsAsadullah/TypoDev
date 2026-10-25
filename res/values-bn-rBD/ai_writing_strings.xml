@@ -15,4 +15,6 @@
   <string name="ai_writing_retry">Select Try again to get more suggestions</string>
   <string name="ai_writing_incomplete">Three complete options were not returned. Please retry.</string>
   <string name="ai_writing_editor_changed">The text or cursor changed. Open Writing Tools again before inserting.</string>
+  <string name="ai_magic_all_actions">সামারি ও অন্যান্য AI অপশন</string>
+  <string name="ai_magic_all_actions_description">সামারি, অনুবাদ, রিরাইট ও আরও অপশন</string>
 </resources>

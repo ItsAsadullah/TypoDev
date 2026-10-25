@@ -8,6 +8,17 @@ import static org.junit.Assert.*;
 
 public class CustomSymbolStoreTest
 {
+  @Test public void mappingKeysRemainStableInTurkishLocale() {
+    java.util.Locale original = java.util.Locale.getDefault();
+    try {
+      java.util.Locale.setDefault(new java.util.Locale("tr", "TR"));
+      CustomSymbolStore.Mapping upper = new CustomSymbolStore.Mapping("I", 1, "×");
+      CustomSymbolStore.Mapping lower = new CustomSymbolStore.Mapping("i", 1, "÷");
+      assertEquals("i", upper.baseKey);
+      assertEquals(upper, lower);
+      assertEquals(upper.hashCode(), lower.hashCode());
+    } finally { java.util.Locale.setDefault(original); }
+  }
   @Test
   public void testMappingSerialization()
   {
