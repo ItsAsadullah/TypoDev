@@ -1332,6 +1332,42 @@ public class Keyboard2 extends InputMethodService
     return _config != null && _config.one_hand_enabled;
   }
 
+  public boolean isFocusModeActive()
+  {
+    return _config != null && _config.focus_mode;
+  }
+
+  public void toggleFocusMode()
+  {
+    if (_config == null) return;
+    setFocusMode(!_config.focus_mode);
+  }
+
+  public void setFocusMode(boolean enabled)
+  {
+    if (_config == null) return;
+    _config.focus_mode = enabled;
+    try
+    {
+      SharedPreferences defPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+      defPrefs.edit().putBoolean("pref_focus_mode", _config.focus_mode).apply();
+
+      SharedPreferences protPrefs = DirectBootAwarePreferences.get_shared_preferences(this);
+      protPrefs.edit().putBoolean("pref_focus_mode", _config.focus_mode).apply();
+
+      DirectBootAwarePreferences.copy_preferences_to_protected_storage(this, defPrefs);
+    }
+    catch (Throwable ignored) {}
+
+    if (_keyboard_layout_view != null)
+    {
+      _keyboard_layout_view.invalidate();
+    }
+    typodev.keyboard.suggestions.ToolbarToolsManager.getInstance(this).notifyListeners();
+    if (_candidates_view != null)
+      _candidates_view.rebuildToolbarButtons();
+  }
+
   public void toggleOneHandMode()
   {
     if (_config == null) return;

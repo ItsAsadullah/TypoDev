@@ -687,6 +687,7 @@ public class ToolsGridPaneView extends LinearLayout implements ToolbarToolsManag
     if ("translate".equals(toolId)) return (_keyboard != null && _keyboard.isTranslateBarOpen());
     if ("dev".equals(toolId)) return cfg.developer_mode;
     if ("one_hand".equals(toolId)) return (_keyboard != null && _keyboard.isOneHandModeActive());
+    if ("focus".equals(toolId)) return (_keyboard != null ? _keyboard.isFocusModeActive() : cfg.focus_mode);
     if ("haptic".equals(toolId)) return cfg.vibrate_enabled;
     if ("sound".equals(toolId)) return cfg.sound_on_keypress;
     if ("popup".equals(toolId)) return cfg.popup_on_keypress;

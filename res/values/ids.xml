@@ -14,6 +14,7 @@
   <item name="toolbar_btn_haptic" type="id"/>
   <item name="toolbar_btn_sound" type="id"/>
   <item name="toolbar_btn_popup" type="id"/>
+  <item name="toolbar_btn_focus" type="id"/>
   <item name="toolbar_btn_onehand" type="id"/>
   <item name="keyboard_wrapper" type="id"/>
   <item name="one_hand_left_panel" type="id"/>

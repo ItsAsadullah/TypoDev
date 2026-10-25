@@ -50,6 +50,7 @@ public class ToolbarToolsManager
       new ToolItem("clipboard", R.drawable.ic_toolbar_clipboard, "Clipboard", R.id.toolbar_btn_clipboard),
       new ToolItem("fancy",     R.drawable.ic_toolbar_fancy,     "Styles",    R.id.toolbar_btn_fancy),
       new ToolItem("one_hand",  R.drawable.ic_toolbar_onehand,   "One Hand",  R.id.toolbar_btn_onehand),
+      new ToolItem("focus",     R.drawable.ic_toolbar_focus,     "Focus Mode", R.id.toolbar_btn_focus),
       new ToolItem("haptic",    R.drawable.ic_toolbar_haptic,    "Haptic",    R.id.toolbar_btn_haptic),
       new ToolItem("sound",     R.drawable.ic_toolbar_sound,     "Sound",     R.id.toolbar_btn_sound),
       new ToolItem("popup",     R.drawable.ic_toolbar_popup,     "Key Popup", R.id.toolbar_btn_popup),
@@ -353,6 +354,32 @@ public class ToolbarToolsManager
           boolean isNowOneHand = keyboard.isOneHandModeActive();
           String oneHandMsg = isNowOneHand ? "One-Handed Mode: ON" : "One-Handed Mode: OFF";
           Toast.makeText(context, oneHandMsg, Toast.LENGTH_SHORT).show();
+          notifyListeners();
+          break;
+        case "focus":
+          Config cfgFocus = Config.globalConfig();
+          if (keyboard != null)
+          {
+            keyboard.toggleFocusMode();
+          }
+          else if (cfgFocus != null)
+          {
+            cfgFocus.focus_mode = !cfgFocus.focus_mode;
+            try
+            {
+              SharedPreferences defPrefs = PreferenceManager.getDefaultSharedPreferences(context);
+              defPrefs.edit().putBoolean("pref_focus_mode", cfgFocus.focus_mode).apply();
+
+              SharedPreferences protPrefs = DirectBootAwarePreferences.get_shared_preferences(context);
+              protPrefs.edit().putBoolean("pref_focus_mode", cfgFocus.focus_mode).apply();
+
+              DirectBootAwarePreferences.copy_preferences_to_protected_storage(context, defPrefs);
+            }
+            catch (Throwable ignored) {}
+          }
+          boolean isNowFocus = (keyboard != null) ? keyboard.isFocusModeActive() : (cfgFocus != null && cfgFocus.focus_mode);
+          String focusMsg = isNowFocus ? "Focus Mode: ON" : "Focus Mode: OFF";
+          Toast.makeText(context, focusMsg, Toast.LENGTH_SHORT).show();
           notifyListeners();
           break;
         case "haptic":

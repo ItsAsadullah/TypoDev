@@ -600,6 +600,10 @@ public class CandidatesView extends LinearLayout
       {
         isActive = true;
       }
+      else if ("focus".equals(tool.id) && ((_keyboard2 != null && _keyboard2.isFocusModeActive()) || (activeCfg != null && activeCfg.focus_mode)))
+      {
+        isActive = true;
+      }
       else if ("haptic".equals(tool.id) && activeCfg != null && activeCfg.vibrate_enabled)
       {
         isActive = true;

@@ -885,19 +885,36 @@ public class Keyboard2View extends View
         boolean isBottomLeft = isCtrlKey(k) || (rIdx == rowCount - 1 && kIdx == 0);
         boolean isBottomRight = isEnterKey(k) || (rIdx == rowCount - 1 && kIdx == keyCount - 1);
         drawKeyFrame(canvas, x, y, keyW, keyH, tc_key, isBottomLeft, isBottomRight);
+        boolean focusMode = (_config != null && _config.focus_mode);
         if (k.role == KeyboardData.Key.Role.Space_bar)
         {
           drawSpaceBarLabel(canvas, k, x, y, keyW, keyH, isKeyDown, tc_key);
         }
         else if (k.keys[0] != null)
-          drawLabel(canvas, k.keys[0], keyW / 2f + x, y, keyW, keyH, isKeyDown, tc_key, k);
-
-        for (int i = 1; i < 9; i++)
         {
-          if (k.keys[i] != null)
-            drawSubLabel(canvas, k.keys[i], x, y, keyW, keyH, i, isKeyDown, tc_key, isBottomLeft, isBottomRight, k);
+          drawLabel(canvas, k.keys[0], keyW / 2f + x, y, keyW, keyH, isKeyDown, tc_key, k);
         }
-        drawIndication(canvas, k, x, y, keyW, keyH, _tc);
+        else if (focusMode)
+        {
+          for (int i = 1; i < 9; i++)
+          {
+            if (k.keys[i] != null)
+            {
+              drawLabel(canvas, k.keys[i], keyW / 2f + x, y, keyW, keyH, isKeyDown, tc_key, k);
+              break;
+            }
+          }
+        }
+
+        if (!focusMode)
+        {
+          for (int i = 1; i < 9; i++)
+          {
+            if (k.keys[i] != null)
+              drawSubLabel(canvas, k.keys[i], x, y, keyW, keyH, i, isKeyDown, tc_key, isBottomLeft, isBottomRight, k);
+          }
+          drawIndication(canvas, k, x, y, keyW, keyH, _tc);
+        }
         x += _keyWidth * k.width;
       }
       y += row.height * _tc.row_height;

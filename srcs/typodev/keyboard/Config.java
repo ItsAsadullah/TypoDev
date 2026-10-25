@@ -89,6 +89,7 @@ public final class Config
   public boolean show_in_terminals;
   public boolean physical_keyboard_hide;
   public boolean popup_on_keypress;
+  public boolean focus_mode = false;
 
   // Dynamically set
   /** Configuration options implied by the connected editor. */
@@ -241,6 +242,7 @@ public final class Config
     show_in_terminals = _prefs.getBoolean("show_in_terminals", false);
     physical_keyboard_hide = _prefs.getString("physical_keyboard_behavior", "hide").equals("hide");
     popup_on_keypress = _prefs.getBoolean("popup_on_keypress", false);
+    focus_mode = _prefs.getBoolean("pref_focus_mode", false);
     float screen_width_dp = dm.widthPixels / dm.density;
     wide_screen = screen_width_dp >= WIDE_DEVICE_THRESHOLD;
     split_layout = get_split_layout();

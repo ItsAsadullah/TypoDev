@@ -93,6 +93,25 @@ public class LayoutPersistenceTest
     assertFalse(keyboard.contains("custom_symbols"));
   }
 
+  @Test public void focusModeToolIsRegisteredInAllTools()
+  {
+    boolean foundFocus = false;
+    for (typodev.keyboard.suggestions.ToolbarToolsManager.ToolItem item :
+        typodev.keyboard.suggestions.ToolbarToolsManager.ALL_TOOLS)
+    {
+      if ("focus".equals(item.id) && "Focus Mode".equals(item.label))
+      {
+        foundFocus = true;
+        break;
+      }
+    }
+    assertTrue("Focus Mode must be present in ALL_TOOLS", foundFocus);
+    Config cfg = new Config();
+    assertFalse("Focus Mode should be off by default", cfg.focus_mode);
+    cfg.focus_mode = true;
+    assertTrue(cfg.focus_mode);
+  }
+
   private static final class MemoryPreferences implements SharedPreferences
   {
     private final Map<String, Object> values = new HashMap<>();
