@@ -112,6 +112,98 @@ public class LayoutPersistenceTest
     assertTrue(cfg.focus_mode);
   }
 
+  @Test public void focusModeKeepsBengaliSubKeysAndRemovesExtraSymbols() throws Exception
+  {
+    String[] keptBengali = { "আ", "অ", "ভ", "খ", "থ", "ৎ", "ধ", "ং", "ঁ", "ঃ", "র্", "্য", "ক্ষ", "জ্ঞ", "ৌ", "ৈ", "ৄ", "ৗ" };
+    for (String s : keptBengali)
+    {
+      assertTrue("Bengali character should be kept in Focus Mode: " + s,
+          LayoutModifier.isFocusModeAllowedSubKey(KeyValue.makeStringKey(s)));
+    }
+
+    String[] removedExtra = { "/", "\\", ">", "<", "]", "[", "|", "}", "{", "^", "√", "π", "¶", "~", "•", "°", "`", "-", "_", "=", "+", "1", "১", "৳", "।", "?", "!" };
+    for (String s : removedExtra)
+    {
+      assertFalse("Extra symbol should be removed in Focus Mode: " + s,
+          LayoutModifier.isFocusModeAllowedSubKey(KeyValue.makeStringKey(s)));
+    }
+    assertFalse(LayoutModifier.isFocusModeAllowedSubKey(KeyValue.getKeyByName("esc")));
+    assertFalse(LayoutModifier.isFocusModeAllowedSubKey(KeyValue.getKeyByName("tab")));
+
+    KeyValue[] karKs = new KeyValue[9];
+    karKs[0] = KeyValue.makeStringKey("া");
+    karKs[1] = KeyValue.makeStringKey("ৄ");
+    karKs[2] = KeyValue.makeStringKey("-");
+    karKs[3] = KeyValue.makeStringKey("_");
+    karKs[7] = KeyValue.makeStringKey("আ");
+    karKs[8] = KeyValue.makeStringKey("অ");
+    KeyboardData.Key karInput = new KeyboardData.Key(karKs, null, 0, 1f, 0f, null, KeyboardData.Key.Role.Normal);
+
+    KeyValue[] baKs = new KeyValue[9];
+    baKs[0] = KeyValue.makeStringKey("ব");
+    baKs[1] = KeyValue.makeStringKey("√");
+    baKs[2] = KeyValue.makeStringKey("?");
+    baKs[3] = KeyValue.makeStringKey("।");
+    baKs[4] = KeyValue.makeStringKey("π");
+    baKs[7] = KeyValue.makeStringKey("ভ");
+    KeyboardData.Key baInput = new KeyboardData.Key(baKs, null, 0, 1f, 0f, null, KeyboardData.Key.Role.Normal);
+
+    KeyValue[] bsKs = new KeyValue[9];
+    bsKs[0] = KeyValue.getKeyByName("backspace");
+    bsKs[2] = KeyValue.getKeyByName("delete");
+    KeyboardData.Key bsInput = new KeyboardData.Key(bsKs, null, 0, 1.5f, 0f, null, KeyboardData.Key.Role.Action);
+
+    KeyValue[] ctrlKs = new KeyValue[9];
+    ctrlKs[0] = KeyValue.getKeyByName("ctrl");
+    ctrlKs[4] = KeyValue.getKeyByName("switch_numeric");
+    KeyboardData.Key ctrlInput = new KeyboardData.Key(ctrlKs, null, 0, 1.7f, 0f, null, KeyboardData.Key.Role.Action);
+
+    KeyValue[] spaceKs = new KeyValue[9];
+    spaceKs[0] = KeyValue.getKeyByName("space");
+    spaceKs[5] = KeyValue.getKeyByName("cursor_left");
+    spaceKs[6] = KeyValue.getKeyByName("cursor_right");
+    KeyboardData.Key spaceInput = new KeyboardData.Key(spaceKs, null, 0, 4.4f, 0f, null, KeyboardData.Key.Role.Space_bar);
+
+    KeyValue[] enterKs = new KeyValue[9];
+    enterKs[0] = KeyValue.getKeyByName("enter");
+    enterKs[1] = KeyValue.getKeyByName("voice_typing");
+    KeyboardData.Key enterInput = new KeyboardData.Key(enterKs, null, 0, 1.7f, 0f, null, KeyboardData.Key.Role.Action);
+
+    KeyboardData.Row mainRow = new KeyboardData.Row(
+        java.util.Arrays.asList(karInput, baInput, bsInput), 1f, 0f);
+    KeyboardData.Row bottomRowInput = new KeyboardData.Row(
+        java.util.Arrays.asList(ctrlInput, spaceInput, enterInput), 0.95f, 0f);
+    KeyboardData parsed = new KeyboardData(
+        java.util.Arrays.asList(mainRow, bottomRowInput),
+        10f, null, "bengali", "bengali", "TestBijoy", false, false, true);
+    KeyboardData focused = LayoutModifier.apply_focus_mode(parsed);
+
+    KeyboardData.Key karKey = focused.rows.get(0).keys.get(0);
+    assertEquals(KeyValue.makeStringKey("া"), karKey.getKeyValue(0));
+    assertEquals(KeyValue.makeStringKey("ৄ"), karKey.getKeyValue(1));
+    assertNull(karKey.getKeyValue(2));
+    assertNull(karKey.getKeyValue(3));
+    assertEquals(KeyValue.makeStringKey("আ"), karKey.getKeyValue(7));
+    assertEquals(KeyValue.makeStringKey("অ"), karKey.getKeyValue(8));
+
+    KeyboardData.Key baKey = focused.rows.get(0).keys.get(1);
+    assertEquals(KeyValue.makeStringKey("ব"), baKey.getKeyValue(0));
+    assertNull(baKey.getKeyValue(1));
+    assertNull(baKey.getKeyValue(2));
+    assertNull(baKey.getKeyValue(3));
+    assertNull(baKey.getKeyValue(4));
+    assertEquals(KeyValue.makeStringKey("ভ"), baKey.getKeyValue(7));
+
+    KeyboardData.Key backspaceKey = focused.rows.get(0).keys.get(2);
+    assertNotNull(backspaceKey.getKeyValue(2));
+
+    KeyboardData.Row bottomRow = focused.rows.get(1);
+    assertNotNull(bottomRow.keys.get(0).getKeyValue(4));
+    assertNotNull(bottomRow.keys.get(1).getKeyValue(5));
+    assertNotNull(bottomRow.keys.get(1).getKeyValue(6));
+    assertNotNull(bottomRow.keys.get(2).getKeyValue(1));
+  }
+
   private static final class MemoryPreferences implements SharedPreferences
   {
     private final Map<String, Object> values = new HashMap<>();

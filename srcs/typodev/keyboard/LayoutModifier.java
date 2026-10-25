@@ -129,22 +129,112 @@ public final class LayoutModifier
         return modify_key(key, isPreview);
       }
     });
+    boolean focusMode = (!isPreview && config != null && config.focus_mode);
+    if (focusMode)
+      kw = apply_focus_mode(kw);
+
     if (added_numpad != null)
       kw = kw.addNumPad(added_numpad);
 
     // Add extra keys that are not on the layout (including 'loc' keys)
     extra_keys_keyset.removeAll(kw_keys);
-    if (extra_keys.size() > 0)
+    if (!focusMode && extra_keys.size() > 0)
       kw = kw.addExtraKeys(extra_keys.entrySet().iterator());
 
     // Avoid adding extra keys to the number row
     if (added_number_row != null)
       kw = kw.insert_row(added_number_row, 0);
 
-    if (applyCustomSymbols && config != null && config.custom_symbol_mappings != null && !config.custom_symbol_mappings.isEmpty())
+    if (!focusMode && applyCustomSymbols && config != null && config.custom_symbol_mappings != null && !config.custom_symbol_mappings.isEmpty())
       kw = apply_custom_symbols(kw, config.custom_symbol_mappings);
 
     return kw;
+  }
+
+  /**
+   * In Focus Mode, clean all main keyboard character buttons so that extra symbols,
+   * punctuation, digits, and math symbols are removed (both visually and from swipe),
+   * while preserving secondary Bengali script characters (e.g., আ/অ on া, ভ on ব)
+   * and keeping the bottom row, top number row, and action keys intact.
+   */
+  public static KeyboardData apply_focus_mode(KeyboardData kw)
+  {
+    if (kw == null || kw.rows == null)
+      return kw;
+    java.util.ArrayList<KeyboardData.Row> newRows = new java.util.ArrayList<KeyboardData.Row>(kw.rows.size());
+    int rowCount = kw.rows.size();
+    for (int rIdx = 0; rIdx < rowCount; rIdx++)
+    {
+      KeyboardData.Row row = kw.rows.get(rIdx);
+      if (row == null || row.keys == null)
+      {
+        newRows.add(row);
+        continue;
+      }
+      boolean isBottomRow = false;
+      for (KeyboardData.Key k : row.keys)
+      {
+        if (k != null && k.role == KeyboardData.Key.Role.Space_bar)
+        {
+          isBottomRow = true;
+          break;
+        }
+      }
+      if (isBottomRow || (kw.embedded_number_row && rIdx == 0))
+      {
+        newRows.add(row);
+        continue;
+      }
+      java.util.ArrayList<KeyboardData.Key> newKeys = new java.util.ArrayList<KeyboardData.Key>(row.keys.size());
+      for (KeyboardData.Key k : row.keys)
+      {
+        if (k == null || k.role != KeyboardData.Key.Role.Normal || Keyboard2View.isActionKey(k))
+        {
+          newKeys.add(k);
+          continue;
+        }
+        KeyboardData.Key cleaned = k;
+        for (int i = 1; i < 9; i++)
+        {
+          KeyValue sub = cleaned.getKeyValue(i);
+          if (sub != null && !isFocusModeAllowedSubKey(sub))
+            cleaned = cleaned.withKeyValue(i, null);
+        }
+        newKeys.add(cleaned);
+      }
+      newRows.add(row.with_keys(newKeys));
+    }
+    return kw.with_rows(newRows);
+  }
+
+  public static boolean isFocusModeAllowedSubKey(KeyValue kv)
+  {
+    if (kv == null)
+      return false;
+    KeyValue.Kind kind = kv.getKind();
+    if (kind != KeyValue.Kind.Char && kind != KeyValue.Kind.String)
+      return false;
+    String s = kv.getString();
+    if (s == null || s.isEmpty())
+      return false;
+    for (int i = 0; i < s.length(); i++)
+    {
+      if (!isBengaliScriptCharacter(s.charAt(i)))
+        return false;
+    }
+    return true;
+  }
+
+  private static boolean isBengaliScriptCharacter(char c)
+  {
+    return (c >= '\u0981' && c <= '\u0983')
+        || (c >= '\u0985' && c <= '\u09B9')
+        || c == '\u09BC'
+        || (c >= '\u09BE' && c <= '\u09CE')
+        || c == '\u09D7'
+        || (c >= '\u09DC' && c <= '\u09E3')
+        || c == '\u09F0'
+        || c == '\u09F1';
   }
 
   public static KeyboardData apply_custom_symbols(KeyboardData kw, java.util.List<typodev.keyboard.symbol.CustomSymbolStore.Mapping> mappings)

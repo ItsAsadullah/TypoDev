@@ -1361,7 +1361,7 @@ public class Keyboard2 extends InputMethodService
 
     if (_keyboard_layout_view != null)
     {
-      _keyboard_layout_view.invalidate();
+      _keyboard_layout_view.setKeyboard(current_layout());
     }
     typodev.keyboard.suggestions.ToolbarToolsManager.getInstance(this).notifyListeners();
     if (_candidates_view != null)
