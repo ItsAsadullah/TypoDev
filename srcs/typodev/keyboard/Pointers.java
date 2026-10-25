@@ -302,6 +302,7 @@ public final class Pointers implements Handler.Callback
     _ptrs.add(ptr);
     startLongPress(ptr);
     _handler.onPointerDown(key, value, false);
+    _handler.onPointerFeedback(value);
   }
 
   static final int[] DIRECTION_TO_INDEX = new int[]{
@@ -342,6 +343,10 @@ public final class Pointers implements Handler.Callback
         // This reduces accidental swipes on the slider and allow typing circle
         // gestures without being interrupted by the slider.
         if (k.getKind() == KeyValue.Kind.Slider && Math.abs(i) >= 2)
+          continue;
+        if (k.getKind() == KeyValue.Kind.Event
+            && (k.getEvent() == KeyValue.Event.SWITCH_FORWARD || k.getEvent() == KeyValue.Event.SWITCH_BACKWARD)
+            && Math.abs(i) >= 2)
           continue;
         return k;
       }
@@ -389,17 +394,31 @@ public final class Pointers implements Handler.Callback
       if (ptr.gesture == null)
       { // Gesture starts
 
-        ptr.gesture = new Gesture(direction);
         KeyValue new_value = getNearestKeyAtDirection(ptr, direction);
+        if (new_value != null
+            && new_value.getKind() == KeyValue.Kind.Event
+            && (new_value.getEvent() == KeyValue.Event.SWITCH_FORWARD || new_value.getEvent() == KeyValue.Event.SWITCH_BACKWARD)
+            && ptr.key != null && ptr.key.keys[0] != null
+            && ptr.key.keys[0].getKind() == KeyValue.Kind.Editing
+            && ptr.key.keys[0].getEditing() == KeyValue.Editing.SPACE_BAR)
+        {
+          if (Math.abs(dy) < _config.swipe_dist_px * 1.35f || Math.abs(dy) <= Math.abs(dx) * 1.4f)
+            return;
+        }
+        ptr.gesture = new Gesture(direction);
         if (new_value != null)
         { // Pointer is swiping into a side key.
-
+          boolean valueChanged = !areKeysEquivalent(ptr.value, new_value);
           ptr.value = new_value;
           ptr.flags = pointer_flags_of_kv(new_value);
           // Start sliding mode
           if (new_value.getKind() == KeyValue.Kind.Slider)
             startSliding(ptr, x, y, dx, dy, new_value);
           _handler.onPointerDown(ptr.key, new_value, true);
+          // Only the initial corner selection confirms the swipe, not every
+          // move/jitter event. Sound and vibration still honor their own toggles.
+          if (_config.corner_feedback_enabled && valueChanged)
+            _handler.onPointerFeedback(new_value);
         }
 
       }
@@ -407,7 +426,7 @@ public final class Pointers implements Handler.Callback
       { // Gesture changed state
         if (!ptr.gesture.is_in_progress())
         { // Gesture ended
-          _handler.onPointerFlagsChanged(true);
+          _handler.onPointerFlagsChanged(false);
         }
         else
         {
@@ -416,7 +435,7 @@ public final class Pointers implements Handler.Callback
             ptr.value = gVal;
           restartLongPress(ptr);
           ptr.flags = 0; // Special behaviors are ignored during a gesture.
-          _handler.onPointerFlagsChanged(true); // Vibrate
+          _handler.onPointerFlagsChanged(false);
           _handler.onPointerDown(ptr.key, ptr.value, true);
         }
       }
@@ -539,6 +558,7 @@ public final class Pointers implements Handler.Callback
     {
       ptr.value = kv;
       _handler.onPointerDown(ptr.key, kv, true);
+      _handler.onPointerFeedback(kv); // Confirm the deliberate long-press action.
       return;
     }
     // Special keys
@@ -904,6 +924,9 @@ public final class Pointers implements Handler.Callback
         up events. */
     public void onPointerDown(KeyValue k, boolean isSwipe);
     public void onPointerDown(KeyboardData.Key key, KeyValue k, boolean isSwipe);
+
+    /** Play feedback on physical down, optional corner selection, or long press. */
+    public void onPointerFeedback(KeyValue k);
 
     /** Key is released. [k] is the key that was returned by
         [modifySelectedKey] or [modifySelectedKey]. */

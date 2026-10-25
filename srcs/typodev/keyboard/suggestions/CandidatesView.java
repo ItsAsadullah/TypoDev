@@ -45,7 +45,6 @@ import typodev.keyboard.KeyValue;
 import typodev.keyboard.Logs;
 import typodev.keyboard.Pointers;
 import typodev.keyboard.R;
-import typodev.keyboard.ai.SlashCommand;
 import typodev.keyboard.voice.VoiceSpectrumButton;
 
 public class CandidatesView extends LinearLayout
@@ -63,10 +62,6 @@ public class CandidatesView extends LinearLayout
       set to [GONE] when there are less than [TOTAL_CANDIDATES] suggestions. */
   TextView[] _item_views = new TextView[TOTAL_CANDIDATES];
 
-  /** Message when no dictionary is installed. Visible when no candidates are
-      shown. Might be [null]. */
-  View _status_no_dict = null;
-
   View _dictionary_switch_button;
   boolean should_show_dictionary_switch = false;
 
@@ -75,11 +70,6 @@ public class CandidatesView extends LinearLayout
   private ImageView _btn_toolbar_toggle;
   private HorizontalScrollView _suggestions_scroll;
   private LinearLayout _suggestions_container;
-  private HorizontalScrollView _slash_scroll;
-  private LinearLayout _slash_row;
-  private String _slash_render_key, _dismissed_slash;
-  private long _slash_session = -1;
-  private SlashCommand.Input _slash_input;
   private TextView _emoji_view;
   private View _toolbar_scroll;
   private View _autofill_scroll;
@@ -97,6 +87,7 @@ public class CandidatesView extends LinearLayout
   private boolean _toolbar_open = true;
   private boolean _has_suggestions = false;
   private boolean _userManuallyToggled = false;
+  private long _magicRequestId = 0;
 
   private SuggestionRemovalOverlay _removalOverlay = null;
   private boolean _isDraggingSuggestion = false;
@@ -120,6 +111,15 @@ public class CandidatesView extends LinearLayout
   private View _btn_autofill_chip;
   private View _btn_generate_pwd_chip;
   private View _toolbar_btn_autofill;
+  private View _ai_comments_scroll;
+  private LinearLayout _ai_comments_container;
+  private byte[] _lastAiImageBytes = null;
+  private String _lastAiPostText = null;
+  private String _lastAiTone = "স্বাভাবিক";
+  private String _lastInsertedAiComment = null;
+  private int _selectedAiCommentIndex = -1;
+  private List<String> _currentAiComments = null;
+  private AlertDialog _fullCommentsDialog = null;
 
   public void set_keyboard2(typodev.keyboard.Keyboard2 keyboard2)
   {
@@ -182,8 +182,6 @@ public class CandidatesView extends LinearLayout
     _btn_toolbar_toggle = (ImageView)findViewById(R.id.btn_toolbar_toggle);
     _suggestions_scroll = (HorizontalScrollView)findViewById(R.id.suggestions_scroll);
     _suggestions_container = (LinearLayout)findViewById(R.id.suggestions_container);
-    _slash_scroll = (HorizontalScrollView)findViewById(R.id.slash_commands_scroll);
-    _slash_row = (LinearLayout)findViewById(R.id.slash_commands_row);
     if (_suggestions_scroll != null)
     {
       _suggestions_scroll.setClipChildren(true);
@@ -201,6 +199,8 @@ public class CandidatesView extends LinearLayout
     _btn_autofill_chip = findViewById(R.id.btn_autofill_chip);
     _btn_generate_pwd_chip = findViewById(R.id.btn_generate_pwd_chip);
     _toolbar_btn_autofill = findViewById(R.id.toolbar_btn_autofill);
+    _ai_comments_scroll = findViewById(R.id.ai_comments_scroll);
+    _ai_comments_container = (LinearLayout)findViewById(R.id.ai_comments_container);
 
     if (_btn_autofill_chip != null)
     {
@@ -462,7 +462,11 @@ public class CandidatesView extends LinearLayout
         public void onClick(View v)
         {
           try { v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); } catch (Throwable ignored) {}
-
+          if (_ai_comments_scroll != null && _ai_comments_scroll.getVisibility() == View.VISIBLE)
+          {
+            hideAiCommentsStrip();
+            return;
+          }
           if (_keyboard2 != null)
           {
             if (_keyboard2.isToolsPaneVisible())
@@ -824,7 +828,6 @@ public class CandidatesView extends LinearLayout
 
   private void update_view_visibility(boolean hasSuggestions)
   {
-    if (_slash_scroll != null) _slash_scroll.setVisibility(View.GONE);
     if (_clipboard_suggestion_container != null && _clipboard_suggestion_container.getVisibility() == View.VISIBLE) {
       hideOtherClipboardToolbarViews();
       return;
@@ -847,7 +850,6 @@ public class CandidatesView extends LinearLayout
         if (_voice_live_container != null) _voice_live_container.setVisibility(View.VISIBLE);
         if (_autofill_scroll != null) _autofill_scroll.setVisibility(View.GONE);
         if (_password_autofill_scroll != null) _password_autofill_scroll.setVisibility(View.GONE);
-        if (_status_no_dict != null) _status_no_dict.setVisibility(View.GONE);
         if (_btn_magic_container != null) _btn_magic_container.setVisibility(View.GONE);
         else if (_btn_magic_autocomplete != null) _btn_magic_autocomplete.setVisibility(View.GONE);
         if (_btn_voice_punct_container != null) _btn_voice_punct_container.setVisibility(View.VISIBLE);
@@ -873,6 +875,17 @@ public class CandidatesView extends LinearLayout
 
     updateMagicButtonVisibility();
 
+    if (_ai_comments_scroll != null && _ai_comments_scroll.getVisibility() == View.VISIBLE)
+    {
+      if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.GONE);
+      if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.GONE);
+      if (_suggestions_container != null) _suggestions_container.setVisibility(View.GONE);
+      if (_autofill_scroll != null) _autofill_scroll.setVisibility(View.GONE);
+      if (_password_autofill_scroll != null) _password_autofill_scroll.setVisibility(View.GONE);
+      updateToggleIconState();
+      return;
+    }
+
     // Suggestions and autofill can arrive asynchronously while the grid is open.
     // Keep the pinned toolbar and its Back button visible until the user leaves.
     if (_keyboard2 != null && _keyboard2.isToolsPaneVisible())
@@ -882,7 +895,6 @@ public class CandidatesView extends LinearLayout
       if (_suggestions_container != null) _suggestions_container.setVisibility(View.GONE);
       if (_autofill_scroll != null) _autofill_scroll.setVisibility(View.GONE);
       if (_password_autofill_scroll != null) _password_autofill_scroll.setVisibility(View.GONE);
-      if (_status_no_dict != null) _status_no_dict.setVisibility(View.GONE);
       if (_btn_magic_container != null) _btn_magic_container.setVisibility(View.GONE);
       updateToggleIconState();
       return;
@@ -893,7 +905,6 @@ public class CandidatesView extends LinearLayout
     {
       if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.GONE);
       if (_suggestions_container != null) _suggestions_container.setVisibility(View.GONE);
-      if (_status_no_dict != null) _status_no_dict.setVisibility(View.GONE);
 
       boolean hasInline = (_autofill_scroll != null && _autofill_scroll.getVisibility() == View.VISIBLE);
       if (hasInline)
@@ -922,32 +933,17 @@ public class CandidatesView extends LinearLayout
       if (_password_autofill_scroll != null) _password_autofill_scroll.setVisibility(View.GONE);
     }
 
-    if (showSlashCommands())
-    {
-      if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.GONE);
-      if (_suggestions_container != null) _suggestions_container.setVisibility(View.GONE);
-      if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.GONE);
-      if (_clipboard_suggestion_container != null) _clipboard_suggestion_container.setVisibility(View.GONE);
-      if (_status_no_dict != null) _status_no_dict.setVisibility(View.GONE);
-      return;
-    }
-
     if (_toolbar_open)
     {
       if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.GONE);
       if (_suggestions_container != null) _suggestions_container.setVisibility(View.GONE);
       if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.VISIBLE);
-      if (_status_no_dict != null) _status_no_dict.setVisibility(View.GONE);
     }
     else
     {
       if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.VISIBLE);
       if (_suggestions_container != null) _suggestions_container.setVisibility(View.VISIBLE);
       if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.GONE);
-      if (_status_no_dict != null)
-      {
-        _status_no_dict.setVisibility(View.GONE);
-      }
     }
     updateToggleIconState();
   }
@@ -958,27 +954,30 @@ public class CandidatesView extends LinearLayout
       return true;
     if (_keyboard2 != null)
     {
-      InputConnection ic = _keyboard2.getCurrentInputConnection();
-      if (ic != null)
+      try
       {
-        CharSequence textBefore = ic.getTextBeforeCursor(1, 0);
-        if (textBefore != null && textBefore.length() > 0)
+        InputConnection ic = _keyboard2.getCurrentInputConnection();
+        if (ic != null)
         {
-          return true;
-        }
-        CharSequence textAfter = ic.getTextAfterCursor(1, 0);
-        if (textAfter != null && textAfter.length() > 0)
-        {
-          return true;
+          CharSequence textBefore = ic.getTextBeforeCursor(1, 0);
+          if (textBefore != null && textBefore.length() > 0)
+          {
+            return true;
+          }
+          CharSequence textAfter = ic.getTextAfterCursor(1, 0);
+          if (textAfter != null && textAfter.length() > 0)
+          {
+            return true;
+          }
         }
       }
+      catch (Throwable ignored) {}
     }
     return false;
   }
 
   public void onTextOrSelectionChanged()
   {
-    if (_keyboard2 != null) _keyboard2.updateSlashCandidateVisibility();
     if (_is_voice_typing_active)
     {
       if (!typodev.keyboard.voice.OfflineVoiceTypingService.isListening())
@@ -1018,59 +1017,6 @@ public class CandidatesView extends LinearLayout
     updateMagicButtonVisibility();
     updateClipboardSuggestionChip();
     update_view_visibility(_has_suggestions);
-  }
-
-  private boolean showSlashCommands()
-  {
-    if (_keyboard2 == null || _slash_scroll == null || _slash_row == null
-        || (_autofill_scroll != null && _autofill_scroll.getVisibility() == View.VISIBLE)) return false;
-    _slash_input = _keyboard2.getSlashCommandInput();
-    long session = _keyboard2.getInputSessionId();
-    if (session != _slash_session) {
-      _slash_session = session; _dismissed_slash = null; _slash_render_key = null;
-    }
-    if (_slash_input == null) { _dismissed_slash = null; _slash_render_key = null; return false; }
-    if (_slash_input.raw.equals(_dismissed_slash)) return false;
-    _dismissed_slash = null;
-    String key = _slash_input.prefix + ":" + !_slash_input.argument.isEmpty()
-        + ":" + _keyboard2.getColorKey() + ":" + _keyboard2.getColorLabel();
-    if (!key.equals(_slash_render_key)) {
-      _slash_render_key = key;
-      _slash_row.removeAllViews();
-      _slash_scroll.scrollTo(0, 0);
-      for (SlashCommand command : _slash_input.suggestions()) {
-        String label = command.token();
-        if (!_slash_input.argument.isEmpty()) label = getContext().getString(
-            command == SlashCommand.REMEMBER ? R.string.slash_save : R.string.slash_generate, label);
-        addSlashChip(label, () -> _keyboard2.chooseSlashCommand(_slash_input, command, _slash_session));
-      }
-      if (_slash_input.command == SlashCommand.REMEMBER)
-        addSlashChip(getContext().getString(R.string.slash_saved_notes), () -> _keyboard2.showSavedSlashNotes());
-      TextView close = addSlashChip("×", () -> {
-        _dismissed_slash = _slash_input.raw;
-        update_view_visibility(_has_suggestions);
-      });
-      close.setContentDescription(getContext().getString(R.string.slash_dismiss));
-    }
-    _slash_scroll.setVisibility(View.VISIBLE);
-    return true;
-  }
-
-  private TextView addSlashChip(String text, Runnable action)
-  {
-    TextView chip = new TextView(getContext());
-    float density = getResources().getDisplayMetrics().density;
-    chip.setText(text); chip.setTextSize(13); chip.setSingleLine(true);
-    chip.setTextColor(_keyboard2.getColorLabel());
-    chip.setGravity(Gravity.CENTER);
-    chip.setPadding(Math.round(10 * density), 0, Math.round(10 * density), 0);
-    chip.setBackground(createThemedRippleDrawable(_keyboard2.getColorKey(), _keyboard2.getColorKeyActivated(), 16 * density));
-    chip.setFocusable(true);
-    chip.setOnClickListener(v -> action.run());
-    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-2, -1);
-    params.setMarginEnd(Math.round(4 * density));
-    _slash_row.addView(chip, params);
-    return chip;
   }
 
   public void updateMagicButtonVisibility()
@@ -1135,7 +1081,10 @@ public class CandidatesView extends LinearLayout
     _has_suggestions = (s_count > 0 || s.emoji_suggestion != null);
     if (_has_suggestions)
     {
-
+      if (_ai_comments_scroll != null && _ai_comments_scroll.getVisibility() == View.VISIBLE)
+      {
+        hideAiCommentsStrip();
+      }
       _toolbar_open = false;
       _userManuallyToggled = false;
     }
@@ -1148,12 +1097,6 @@ public class CandidatesView extends LinearLayout
       _items[i] = (i < s_count) ? s.suggestions[i] : null;
     _items[MAX_WORD_CANDIDATES] = s.emoji_suggestion;
 
-    if (_status_no_dict != null)
-    {
-      if (s_count != 0 || has_valid_dictionary())
-        _status_no_dict.setVisibility(View.GONE);
-    }
-
     for (int i = 0; i < MAX_WORD_CANDIDATES; i++)
     {
       TextView v = _item_views[i];
@@ -1163,7 +1106,7 @@ public class CandidatesView extends LinearLayout
         v.setText(_items[i]);
         v.setEllipsize(null); // Never truncate words like Knowledge with ellipsis
         boolean isAvro = s.isAvroBanglishActive();
-        if (isAvro ? (i == 1) : (i == 0 && s.should_autocorrect))
+        if (isAvro ? (i == 1) : (i == 0 && (s.should_autocorrect || s.isCalculatorActive() || s.isAlgebraActive())))
         {
           v.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         }
@@ -1246,8 +1189,6 @@ public class CandidatesView extends LinearLayout
   {
     _config = config;
     clear_candidates();
-    if (_status_no_dict != null)
-      _status_no_dict.setVisibility(View.GONE);
     should_show_dictionary_switch = config.should_show_dictionary_switch;
     set_sizes(config);
     applyCustomTheme(config);
@@ -1744,6 +1685,7 @@ public class CandidatesView extends LinearLayout
     if (_clipboard_suggestion_container == null) return;
 
     if (_is_voice_typing_active || (_keyboard2 != null && _keyboard2.isToolsPaneVisible())
+        || (_ai_comments_scroll != null && _ai_comments_scroll.getVisibility() == View.VISIBLE)
         || (_autofill_scroll != null && _autofill_scroll.getVisibility() == View.VISIBLE)
         || (_config != null && _config.editor_config.is_password))
     {
@@ -1814,7 +1756,7 @@ public class CandidatesView extends LinearLayout
   private void hideOtherClipboardToolbarViews() {
     View[] views = { _btn_toolbar_toggle, _toolbar_scroll, _suggestions_scroll, _suggestions_container,
         _btn_magic_container, _btn_magic_autocomplete, _btn_candidate_mic_container, _btn_candidate_mic,
-        _status_no_dict, _password_autofill_scroll };
+        _password_autofill_scroll };
     for (View view : views) if (view != null) view.setVisibility(View.GONE);
   }
   private void scheduleClipboardTimeout() {
@@ -1884,14 +1826,19 @@ public class CandidatesView extends LinearLayout
 
   public void cancelMagicAutocomplete()
   {
+    _magicRequestId++;
     setMagicLoading(false);
   }
 
-  public void generateAndShowTextComments(final String postText, final String tone)
+  private boolean finishMagicRequest(long requestId, long sessionId,
+      InputConnection connection, String originalBefore)
   {
-    if (_keyboard2 == null || postText == null || postText.trim().isEmpty()) return;
-    _keyboard2.showWritingResults(postText, null, tone,
-        typodev.keyboard.ai.AiWritingResultsView.Task.REPLY);
+    if (requestId != _magicRequestId) return false;
+    setMagicLoading(false);
+    return isAttachedToWindow() && _keyboard2 != null
+        && _keyboard2.getInputSessionId() == sessionId
+        && _keyboard2.getCurrentInputConnection() == connection
+        && typodev.keyboard.ai.EditorTextGuard.matches(connection, originalBefore, false);
   }
 
   public void trigger_magic_autocomplete()
@@ -1899,10 +1846,93 @@ public class CandidatesView extends LinearLayout
     if (_keyboard2 != null) _keyboard2.startWritingTools(true);
   }
 
-  void inflate_status_no_dict(Config config)
+  private void apply_ai_completions(String resultText, String originalText)
   {
-    if (_status_no_dict != null)
-      _status_no_dict.setVisibility(View.GONE);
+    if (resultText == null || resultText.trim().isEmpty())
+    {
+      apply_offline_completions(originalText);
+      return;
+    }
+    String[] lines = resultText.split("\n");
+    List<String> list = new ArrayList<>();
+    for (String line : lines)
+    {
+      String clean = line.replaceAll("^[0-9]+[.)\\-•*]\\s*", "")
+                         .replace("\"", "").replace("'", "").trim();
+      if (clean.length() > 0)
+      {
+        if (clean.toLowerCase(Locale.ROOT).startsWith(originalText.toLowerCase(Locale.ROOT)))
+        {
+          clean = clean.substring(originalText.length()).trim();
+        }
+        if (!clean.isEmpty())
+        {
+          list.add("🪄 " + clean);
+        }
+      }
+    }
+    if (list.isEmpty())
+    {
+      apply_offline_completions(originalText);
+      return;
+    }
+    display_custom_completions(list);
+  }
+
+  private void apply_offline_completions(String text)
+  {
+    typodev.keyboard.suggestions.NextWordPredictor predictor =
+        typodev.keyboard.suggestions.NextWordPredictor.instance(getContext());
+    List<String> preds = predictor.predictFromSentence(text, 6);
+    if (preds != null && !preds.isEmpty())
+    {
+      List<String> list = new ArrayList<>();
+      for (String p : preds)
+      {
+        list.add("🪄 " + p);
+      }
+      display_custom_completions(list);
+    }
+  }
+
+  public void display_custom_completions(List<String> list)
+  {
+    clear_candidates();
+    int count = Math.min(list.size(), MAX_WORD_CANDIDATES);
+    for (int i = 0; i < count; i++)
+    {
+      _items[i] = list.get(i);
+    }
+    _has_suggestions = (count > 0);
+    _toolbar_open = false;
+
+    for (int i = 0; i < MAX_WORD_CANDIDATES; i++)
+    {
+      TextView v = _item_views[i];
+      if (v == null) continue;
+      if (_items[i] != null)
+      {
+        v.setText(_items[i]);
+        v.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams)v.getLayoutParams();
+        if (lp != null)
+        {
+          lp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+          lp.weight = 0.0f;
+          v.setLayoutParams(lp);
+        }
+        v.setVisibility(View.VISIBLE);
+      }
+      else
+      {
+        v.setVisibility(View.GONE);
+      }
+    }
+    if (_suggestions_scroll != null)
+    {
+      _suggestions_scroll.scrollTo(0, 0);
+    }
+    update_view_visibility(_has_suggestions);
   }
 
   void setup_dictionary_switch_button()
@@ -2081,7 +2111,6 @@ public class CandidatesView extends LinearLayout
     if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.GONE);
     if (_btn_toolbar_toggle != null) _btn_toolbar_toggle.setVisibility(View.GONE);
     if (_autofill_scroll != null) _autofill_scroll.setVisibility(View.GONE);
-    if (_status_no_dict != null) _status_no_dict.setVisibility(View.GONE);
     if (_dictionary_switch_button != null) _dictionary_switch_button.setVisibility(View.GONE);
     if (_lang_name_view != null) _lang_name_view.setVisibility(View.GONE);
   }
@@ -2172,6 +2201,544 @@ public class CandidatesView extends LinearLayout
     update_view_visibility(_has_suggestions);
   }
 
+  public void showAiCommentsStrip(final List<String> comments)
+  {
+    if (_ai_comments_container == null || _ai_comments_scroll == null) return;
+    _ai_comments_container.removeAllViews();
+
+    if (comments == null || comments.isEmpty())
+    {
+      hideAiCommentsStrip();
+      return;
+    }
+
+    _currentAiComments = new ArrayList<>(comments);
+
+    float density = getResources().getDisplayMetrics().density;
+    int chipPadH = (int)(11 * density);
+    int chipHeight = (int)(32 * density);
+    int chipMarginEnd = (int)(6 * density);
+    int iconSize = (int)(14 * density);
+    int iconMargin = (int)(5 * density);
+    int maxTextWidth = (int)(450 * density);
+
+    android.content.res.TypedArray a = getContext().obtainStyledAttributes(new int[] { R.attr.colorLabel });
+    int labelColor = a.getColor(0, Color.WHITE);
+    a.recycle();
+
+    // 1. [⛶ সব দেখুন] Full View Action Button
+    LinearLayout btnExpand = new LinearLayout(getContext());
+    btnExpand.setOrientation(LinearLayout.HORIZONTAL);
+    btnExpand.setGravity(Gravity.CENTER_VERTICAL);
+    btnExpand.setBackgroundResource(R.drawable.toolbar_chip_bg);
+    btnExpand.setPadding((int)(9 * density), 0, (int)(10 * density), 0);
+    btnExpand.setClickable(true);
+    btnExpand.setFocusable(true);
+    LinearLayout.LayoutParams lpExpand = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, chipHeight);
+    lpExpand.gravity = Gravity.CENTER_VERTICAL;
+    lpExpand.setMarginEnd(chipMarginEnd);
+    btnExpand.setLayoutParams(lpExpand);
+
+    ImageView ivExpand = new ImageView(getContext());
+    LinearLayout.LayoutParams lpIvExpand = new LinearLayout.LayoutParams(iconSize, iconSize);
+    lpIvExpand.setMarginEnd(iconMargin);
+    ivExpand.setLayoutParams(lpIvExpand);
+    ivExpand.setImageResource(R.drawable.ic_ai_expand);
+    ivExpand.setColorFilter(Color.parseColor("#38BDF8"), PorterDuff.Mode.SRC_IN);
+    btnExpand.addView(ivExpand);
+
+    TextView tvExpand = new TextView(getContext());
+    tvExpand.setText("সব দেখুন");
+    tvExpand.setTextColor(Color.parseColor("#38BDF8"));
+    tvExpand.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+    tvExpand.setTypeface(Typeface.DEFAULT_BOLD);
+    btnExpand.addView(tvExpand);
+
+    btnExpand.setOnClickListener(new View.OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        try { v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); } catch (Throwable ignored) {}
+        showFullCommentsDialog();
+      }
+    });
+    _ai_comments_container.addView(btnExpand);
+
+    // 2. [🔄 নতুন] Regenerate Button
+    LinearLayout btnRegen = new LinearLayout(getContext());
+    btnRegen.setOrientation(LinearLayout.HORIZONTAL);
+    btnRegen.setGravity(Gravity.CENTER_VERTICAL);
+    btnRegen.setBackgroundResource(R.drawable.toolbar_chip_bg);
+    btnRegen.setPadding((int)(9 * density), 0, (int)(10 * density), 0);
+    btnRegen.setClickable(true);
+    btnRegen.setFocusable(true);
+    LinearLayout.LayoutParams lpRegen = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, chipHeight);
+    lpRegen.gravity = Gravity.CENTER_VERTICAL;
+    lpRegen.setMarginEnd(chipMarginEnd);
+    btnRegen.setLayoutParams(lpRegen);
+
+    ImageView ivRegen = new ImageView(getContext());
+    LinearLayout.LayoutParams lpIvRegen = new LinearLayout.LayoutParams(iconSize, iconSize);
+    lpIvRegen.setMarginEnd(iconMargin);
+    ivRegen.setLayoutParams(lpIvRegen);
+    ivRegen.setImageResource(R.drawable.ic_ai_refresh);
+    ivRegen.setColorFilter(labelColor, PorterDuff.Mode.SRC_IN);
+    btnRegen.addView(ivRegen);
+
+    TextView tvRegen = new TextView(getContext());
+    tvRegen.setText("নতুন");
+    tvRegen.setTextColor(labelColor);
+    tvRegen.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+    btnRegen.addView(tvRegen);
+
+    btnRegen.setOnClickListener(new View.OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        try { v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); } catch (Throwable ignored) {}
+        regenerateAiComments();
+      }
+    });
+    _ai_comments_container.addView(btnRegen);
+
+    // 3. [🎭 টোন ▾] Tone Switcher Button
+    LinearLayout btnTone = new LinearLayout(getContext());
+    btnTone.setOrientation(LinearLayout.HORIZONTAL);
+    btnTone.setGravity(Gravity.CENTER_VERTICAL);
+    btnTone.setBackgroundResource(R.drawable.toolbar_chip_bg);
+    btnTone.setPadding((int)(9 * density), 0, (int)(10 * density), 0);
+    btnTone.setClickable(true);
+    btnTone.setFocusable(true);
+    LinearLayout.LayoutParams lpTone = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, chipHeight);
+    lpTone.gravity = Gravity.CENTER_VERTICAL;
+    lpTone.setMarginEnd(chipMarginEnd);
+    btnTone.setLayoutParams(lpTone);
+
+    ImageView ivTone = new ImageView(getContext());
+    LinearLayout.LayoutParams lpIvTone = new LinearLayout.LayoutParams(iconSize, iconSize);
+    lpIvTone.setMarginEnd(iconMargin);
+    ivTone.setLayoutParams(lpIvTone);
+    ivTone.setImageResource(R.drawable.ic_ai_tone);
+    ivTone.setColorFilter(labelColor, PorterDuff.Mode.SRC_IN);
+    btnTone.addView(ivTone);
+
+    TextView tvTone = new TextView(getContext());
+    tvTone.setText(_lastAiTone + " ▾");
+    tvTone.setTextColor(labelColor);
+    tvTone.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+    btnTone.addView(tvTone);
+
+    btnTone.setOnClickListener(new View.OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        try { v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); } catch (Throwable ignored) {}
+        showTonePickerMenu(v);
+      }
+    });
+    _ai_comments_container.addView(btnTone);
+
+    // Subtle divider
+    View divider = new View(getContext());
+    LinearLayout.LayoutParams lpDiv = new LinearLayout.LayoutParams((int)(1 * density), (int)(18 * density));
+    lpDiv.gravity = Gravity.CENTER_VERTICAL;
+    lpDiv.setMarginEnd(chipMarginEnd);
+    divider.setLayoutParams(lpDiv);
+    divider.setBackgroundColor(Color.parseColor("#334155"));
+    _ai_comments_container.addView(divider);
+
+    // 4. Candidate Comment Chips
+    for (int i = 0; i < comments.size(); i++)
+    {
+      final int index = i;
+      final String comment = comments.get(i);
+      final boolean isSelected = (index == _selectedAiCommentIndex);
+
+      LinearLayout chip = new LinearLayout(getContext());
+      chip.setTag(Integer.valueOf(index));
+      chip.setOrientation(LinearLayout.HORIZONTAL);
+      chip.setGravity(Gravity.CENTER_VERTICAL);
+      chip.setBackgroundResource(isSelected ? R.drawable.toolbar_chip_active_bg : R.drawable.toolbar_chip_bg);
+      chip.setPadding(chipPadH, 0, chipPadH, 0);
+      chip.setClickable(true);
+      chip.setFocusable(true);
+
+      LinearLayout.LayoutParams lpChip = new LinearLayout.LayoutParams(
+          ViewGroup.LayoutParams.WRAP_CONTENT, chipHeight);
+      lpChip.gravity = Gravity.CENTER_VERTICAL;
+      lpChip.setMarginEnd(chipMarginEnd);
+      chip.setLayoutParams(lpChip);
+
+      ImageView iv = new ImageView(getContext());
+      LinearLayout.LayoutParams lpIv = new LinearLayout.LayoutParams(iconSize, iconSize);
+      lpIv.setMarginEnd(iconMargin);
+      iv.setLayoutParams(lpIv);
+      iv.setImageResource(isSelected ? R.drawable.ic_ai_check : R.drawable.ic_ai_comment);
+      iv.setColorFilter(isSelected ? Color.WHITE : Color.parseColor("#94A3B8"), PorterDuff.Mode.SRC_IN);
+      chip.addView(iv);
+
+      TextView tv = new TextView(getContext());
+      tv.setText(comment);
+      tv.setTextColor(isSelected ? Color.WHITE : labelColor);
+      tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+      tv.setSingleLine(true);
+      tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      tv.setMaxWidth(maxTextWidth);
+      chip.addView(tv);
+
+      chip.setOnClickListener(new View.OnClickListener()
+      {
+        @Override
+        public void onClick(View v)
+        {
+          insertOrSwapAiComment(comment, index);
+        }
+      });
+
+      chip.setOnLongClickListener(new View.OnLongClickListener()
+      {
+        @Override
+        public boolean onLongClick(View v)
+        {
+          try { v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS); } catch (Throwable ignored) {}
+          showFullCommentsDialog();
+          return true;
+        }
+      });
+
+      _ai_comments_container.addView(chip);
+    }
+
+    // 5. Clean Close pill [✕]
+    TextView btnClose = new TextView(getContext());
+    btnClose.setText("✕");
+    btnClose.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+    btnClose.setTextColor(Color.parseColor("#94A3B8"));
+    btnClose.setGravity(Gravity.CENTER);
+    btnClose.setPadding((int)(12 * density), 0, (int)(12 * density), 0);
+    btnClose.setBackgroundResource(R.drawable.toolbar_chip_bg);
+    LinearLayout.LayoutParams lpClose = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, chipHeight);
+    lpClose.gravity = Gravity.CENTER_VERTICAL;
+    lpClose.setMarginStart((int)(2 * density));
+    btnClose.setLayoutParams(lpClose);
+    btnClose.setOnClickListener(new View.OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        try { v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); } catch (Throwable ignored) {}
+        hideAiCommentsStrip();
+      }
+    });
+    _ai_comments_container.addView(btnClose);
+
+    _ai_comments_scroll.setVisibility(View.VISIBLE);
+    if (_suggestions_scroll != null) _suggestions_scroll.setVisibility(View.GONE);
+    if (_suggestions_container != null) _suggestions_container.setVisibility(View.GONE);
+    if (_toolbar_scroll != null) _toolbar_scroll.setVisibility(View.GONE);
+    if (_autofill_scroll != null) _autofill_scroll.setVisibility(View.GONE);
+    if (_password_autofill_scroll != null) _password_autofill_scroll.setVisibility(View.GONE);
+    _ai_comments_scroll.scrollTo(0, 0);
+  }
+
+  public void insertOrSwapAiComment(final String comment, final int index)
+  {
+    if (comment == null || _keyboard2 == null) return;
+    InputConnection ic = _keyboard2.getCurrentInputConnection();
+    if (ic == null) return;
+
+    try
+    {
+      performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+    }
+    catch (Throwable ignored) {}
+
+    boolean replaced = false;
+    if (_lastInsertedAiComment != null)
+    {
+      replaced = _keyboard2.replaceVoiceSessionText(_lastInsertedAiComment, comment);
+    }
+
+    if (!replaced)
+    {
+      ic.commitText(comment + " ", 1);
+    }
+
+    _lastInsertedAiComment = comment;
+    _selectedAiCommentIndex = index;
+
+    refreshAiCommentsChipsState();
+  }
+
+  private void refreshAiCommentsChipsState()
+  {
+    if (_ai_comments_container == null) return;
+
+    android.content.res.TypedArray a = getContext().obtainStyledAttributes(new int[] { R.attr.colorLabel });
+    int defaultLabelColor = a.getColor(0, Color.WHITE);
+    a.recycle();
+
+    for (int i = 0; i < _ai_comments_container.getChildCount(); i++)
+    {
+      View child = _ai_comments_container.getChildAt(i);
+      Object tag = child.getTag();
+      if (tag instanceof Integer)
+      {
+        int index = ((Integer) tag).intValue();
+        boolean isSelected = (index == _selectedAiCommentIndex);
+        child.setBackgroundResource(isSelected ? R.drawable.toolbar_chip_active_bg : R.drawable.toolbar_chip_bg);
+
+        if (child instanceof ViewGroup)
+        {
+          ViewGroup group = (ViewGroup) child;
+          if (group.getChildCount() >= 2)
+            {
+            View iv = group.getChildAt(0);
+            View tv = group.getChildAt(1);
+            if (iv instanceof ImageView)
+            {
+              ((ImageView) iv).setImageResource(isSelected ? R.drawable.ic_ai_check : R.drawable.ic_ai_comment);
+              ((ImageView) iv).setColorFilter(isSelected ? Color.WHITE : Color.parseColor("#94A3B8"), PorterDuff.Mode.SRC_IN);
+            }
+            if (tv instanceof TextView)
+            {
+              ((TextView) tv).setTextColor(isSelected ? Color.WHITE : defaultLabelColor);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private void showTonePickerMenu(View anchorView)
+  {
+    if (anchorView == null) return;
+    PopupMenu popup = new PopupMenu(getContext(), anchorView);
+    final String[] tones = typodev.keyboard.ai.AiVisionHelper.AVAILABLE_TONES;
+    for (int i = 0; i < tones.length; i++)
+    {
+      String prefix = tones[i].equals(_lastAiTone) ? "✓ " : "  ";
+      popup.getMenu().add(0, i, i, prefix + tones[i]);
+    }
+    popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener()
+    {
+      @Override
+      public boolean onMenuItemClick(MenuItem item)
+      {
+        int id = item.getItemId();
+        if (id >= 0 && id < tones.length)
+        {
+          _lastAiTone = tones[id];
+          regenerateAiComments();
+          return true;
+        }
+        return false;
+      }
+    });
+    popup.show();
+  }
+
+  public void regenerateAiComments()
+  {
+    if (_lastAiImageBytes != null && _lastAiImageBytes.length > 0)
+    {
+      generateAndShowImageComments(_lastAiImageBytes, _lastAiTone);
+    }
+    else if (_lastAiPostText != null && !_lastAiPostText.trim().isEmpty())
+    {
+      generateAndShowTextComments(_lastAiPostText, _lastAiTone);
+    }
+    else
+    {
+      Toast.makeText(getContext(), "পুনরায় জেনারেট করার জন্য পূর্বের কোনো তথ্য পাওয়া যায়নি", Toast.LENGTH_SHORT).show();
+    }
+  }
+
+  public void showFullCommentsDialog()
+  {
+    if (_keyboard2 == null || _currentAiComments == null || _currentAiComments.isEmpty()) return;
+
+    if (_fullCommentsDialog != null && _fullCommentsDialog.isShowing())
+    {
+      try { _fullCommentsDialog.dismiss(); } catch (Throwable ignored) {}
+    }
+
+    final Context context = getContext();
+    LayoutInflater inflater = LayoutInflater.from(context);
+    View dialogView = inflater.inflate(R.layout.dialog_ai_comments_full, null);
+
+    final AlertDialog dialog = new AlertDialog.Builder(context)
+        .setView(dialogView)
+        .create();
+    _fullCommentsDialog = dialog;
+
+    // Set tone text
+    TextView tvTone = dialogView.findViewById(R.id.tv_full_dialog_tone);
+    if (tvTone != null)
+    {
+      tvTone.setText("টোন: " + _lastAiTone);
+    }
+
+    // Close button
+    View btnClose = dialogView.findViewById(R.id.btn_full_dialog_close);
+    if (btnClose != null)
+    {
+      btnClose.setOnClickListener(new View.OnClickListener()
+      {
+        @Override
+        public void onClick(View v)
+        {
+          dialog.dismiss();
+        }
+      });
+    }
+
+    // Done button
+    View btnDone = dialogView.findViewById(R.id.btn_full_dialog_done);
+    if (btnDone != null)
+    {
+      btnDone.setOnClickListener(new View.OnClickListener()
+      {
+        @Override
+        public void onClick(View v)
+        {
+          dialog.dismiss();
+        }
+      });
+    }
+
+    // Regenerate button
+    View btnRegen = dialogView.findViewById(R.id.btn_full_dialog_regenerate);
+    if (btnRegen != null)
+    {
+      btnRegen.setOnClickListener(new View.OnClickListener()
+      {
+        @Override
+        public void onClick(View v)
+        {
+          dialog.dismiss();
+          regenerateAiComments();
+        }
+      });
+    }
+
+    // Populate Cards
+    LinearLayout container = dialogView.findViewById(R.id.container_full_comments_list);
+    if (container != null)
+    {
+      container.removeAllViews();
+      for (int i = 0; i < _currentAiComments.size(); i++)
+      {
+        final int index = i;
+        final String comment = _currentAiComments.get(i);
+        final View cardView = inflater.inflate(R.layout.item_ai_full_comment_card, container, false);
+
+        TextView tvLabel = cardView.findViewById(R.id.tv_card_label);
+        if (tvLabel != null)
+        {
+          tvLabel.setText("বিকল্প " + (index + 1));
+        }
+
+        final TextView tvActiveBadge = cardView.findViewById(R.id.tv_card_active_badge);
+        final boolean isSelected = (index == _selectedAiCommentIndex);
+        if (tvActiveBadge != null)
+        {
+          tvActiveBadge.setVisibility(isSelected ? View.VISIBLE : View.GONE);
+        }
+        cardView.setBackgroundResource(isSelected ? R.drawable.ai_comment_card_active_bg : R.drawable.ai_comment_card_bg);
+
+        TextView tvText = cardView.findViewById(R.id.tv_card_comment_text);
+        if (tvText != null)
+        {
+          tvText.setText(comment);
+        }
+
+        View btnCopy = cardView.findViewById(R.id.btn_card_copy);
+        if (btnCopy != null)
+        {
+          btnCopy.setOnClickListener(new View.OnClickListener()
+          {
+            @Override
+            public void onClick(View v)
+            {
+              try
+              {
+                android.content.ClipboardManager cm = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                if (cm != null)
+                {
+                  cm.setPrimaryClip(android.content.ClipData.newPlainText("AI Comment", comment));
+                  Toast.makeText(context, "কমেন্ট কপি হয়েছে", Toast.LENGTH_SHORT).show();
+                }
+              }
+              catch (Throwable t)
+              {
+                Toast.makeText(context, "কপি করা সম্ভব হয়নি", Toast.LENGTH_SHORT).show();
+              }
+            }
+          });
+        }
+
+        View btnInsert = cardView.findViewById(R.id.btn_card_insert);
+        if (btnInsert != null)
+        {
+          btnInsert.setOnClickListener(new View.OnClickListener()
+          {
+            @Override
+            public void onClick(View v)
+            {
+              insertOrSwapAiComment(comment, index);
+              dialog.dismiss();
+            }
+          });
+        }
+
+        cardView.setOnClickListener(new View.OnClickListener()
+        {
+          @Override
+          public void onClick(View v)
+          {
+            insertOrSwapAiComment(comment, index);
+            dialog.dismiss();
+          }
+        });
+
+        container.addView(cardView);
+      }
+    }
+
+    Window win = dialog.getWindow();
+    if (win != null)
+    {
+      win.setBackgroundDrawableResource(android.R.color.transparent);
+      win.requestFeature(Window.FEATURE_NO_TITLE);
+    }
+
+    typodev.keyboard.Utils.show_dialog_on_ime(dialog, _keyboard2);
+  }
+
+  public void hideAiCommentsStrip()
+  {
+    if (_fullCommentsDialog != null && _fullCommentsDialog.isShowing())
+    {
+      try { _fullCommentsDialog.dismiss(); } catch (Throwable ignored) {}
+      _fullCommentsDialog = null;
+    }
+    if (_ai_comments_scroll != null)
+    {
+      _ai_comments_scroll.setVisibility(View.GONE);
+    }
+    if (_ai_comments_container != null)
+    {
+      _ai_comments_container.removeAllViews();
+    }
+    _lastInsertedAiComment = null;
+    _selectedAiCommentIndex = -1;
+    update_view_visibility(_has_suggestions);
+  }
+
   public void generateAndShowImageComments(final byte[] imageBytes, final String tone)
   {
     if (_keyboard2 == null || imageBytes == null || imageBytes.length == 0) return;
@@ -2179,5 +2746,10 @@ public class CandidatesView extends LinearLayout
         typodev.keyboard.ai.AiWritingResultsView.Task.REPLY);
   }
 
-
+  public void generateAndShowTextComments(final String postText, final String tone)
+  {
+    if (_keyboard2 == null || postText == null || postText.trim().isEmpty()) return;
+    _keyboard2.showWritingResults(postText, null, tone,
+        typodev.keyboard.ai.AiWritingResultsView.Task.REPLY);
+  }
 }

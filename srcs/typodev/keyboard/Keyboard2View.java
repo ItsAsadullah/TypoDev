@@ -333,6 +333,11 @@ public class Keyboard2View extends View
       handler.key_down(k, isSwipe);
     showKeyPreview(key != null ? key : _lastPreviewKey, k);
     invalidate();
+  }
+
+  @Override
+  public void onPointerFeedback(KeyValue k)
+  {
     vibrate();
     playSound(k);
   }
@@ -1163,6 +1168,7 @@ public class Keyboard2View extends View
     float textSize = scaleTextSize(kv, true);
     Paint p = tc.label_paint(kv.hasFlagsAny(KeyValue.FLAG_KEY_FONT), labelColor(kv, isKeyDown, false, parentKey), textSize);
     String str = kv.getString();
+    p = BanglaFont.forText(getContext(), p, str);
     if (str != null && !str.isEmpty() && keyW > 0f)
     {
       float density = getResources().getDisplayMetrics().density;
@@ -1222,6 +1228,7 @@ public class Keyboard2View extends View
 
     float textSize = _mainLabelSize * 0.72f;
     Paint p = tc.label_paint(false, color, textSize);
+    p = BanglaFont.forText(getContext(), p, labelText);
     float density = getResources().getDisplayMetrics().density;
     float r = (tc != null) ? tc.border_radius : 0f;
     float w = (tc != null) ? tc.border_width : 0f;
@@ -1370,6 +1377,7 @@ public class Keyboard2View extends View
     }
 
     Paint p = tc.sublabel_paint(kv.hasFlagsAny(KeyValue.FLAG_KEY_FONT), labelColor(kv, isKeyDown, true, parentKey), textSize, a);
+    p = BanglaFont.forText(getContext(), p, kv.getString());
 
     // 2. Dynamic Safe Inset:
     // Base padding accounts for standard key padding and border stroke width.
@@ -1438,6 +1446,7 @@ public class Keyboard2View extends View
     if (k.indication == null || k.indication.equals(""))
       return;
     Paint p = tc.indication_paint;
+    p = BanglaFont.forText(getContext(), p, k.indication);
     float density = getResources().getDisplayMetrics().density;
     float r = (tc != null && tc.key != null) ? tc.key.border_radius : 0f;
     float indSize = _subLabelSize;

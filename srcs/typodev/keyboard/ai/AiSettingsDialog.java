@@ -177,15 +177,21 @@ public class AiSettingsDialog
     rgProvider.addView(rbGemini);
 
     final RadioButton rbOpenAi = new RadioButton(context);
-    rbOpenAi.setText("OpenAI / DeepSeek / Groq");
+    rbOpenAi.setText("Groq / Grok / OpenAI / DeepSeek");
     DialogTheme.styleRadioButton(rbOpenAi, palette);
     rgProvider.addView(rbOpenAi);
 
     AiProvider.ProviderType currentProvider = AiProvider.Manager.getActiveProviderType(context);
-    if (currentProvider == AiProvider.ProviderType.OPENAI_COMPATIBLE)
+    if (currentProvider == AiProvider.ProviderType.OPENAI_COMPATIBLE
+        || (GeminiAiService.getGeminiApiKey(context).isEmpty() && AiProvider.Manager.isOpenAiCompatibleKey(clipText)))
+    {
+      currentProvider = AiProvider.ProviderType.OPENAI_COMPATIBLE;
       rbOpenAi.setChecked(true);
+    }
     else
+    {
       rbGemini.setChecked(true);
+    }
 
     root.addView(rgProvider);
 
@@ -234,9 +240,9 @@ public class AiSettingsDialog
     tvGeminiKeyLabel.setTextColor(palette.textSecondary);
     llGemini.addView(tvGeminiKeyLabel);
 
-    // Initial Gemini Key resolution (Check saved, or auto-detect from clipboard)
-    String savedGeminiKey = GeminiAiService.getApiKey(context);
-    if (savedGeminiKey.isEmpty() && (clipText.startsWith("AIza") || clipText.length() >= 25))
+    // Initial Gemini Key resolution (Check saved, or auto-detect from clipboard ONLY if AIza...)
+    String savedGeminiKey = GeminiAiService.getGeminiApiKey(context);
+    if (savedGeminiKey.isEmpty() && clipText.startsWith("AIza"))
     {
       savedGeminiKey = clipText;
       Toast.makeText(context, "📋 ক্লিপবোর্ড থেকে আপনার Gemini Key স্বয়ংক্রিয়ভাবে বসানো হয়েছে!", Toast.LENGTH_SHORT).show();
@@ -460,31 +466,47 @@ public class AiSettingsDialog
     scrollPresets.addView(rowPresets);
 
     final EditText etOpenAiModel = new EditText(context);
-    etOpenAiModel.setHint("Model (e.g. gpt-4o-mini, deepseek-chat)");
+    etOpenAiModel.setHint("Model (e.g. llama-3.3-70b-versatile, grok-3-mini, gpt-4o-mini)");
     etOpenAiModel.setText(OpenAiCompatibleProvider.getModel(context));
     DialogTheme.styleEditText(etOpenAiModel, palette, density);
     etOpenAiModel.setOnFocusChangeListener(focusListener);
     etOpenAiModel.setOnClickListener(clickListener);
 
+    addPresetChip(context, rowPresets, "⚡ Groq", OpenAiCompatibleProvider.GROQ_BASE_URL, OpenAiCompatibleProvider.GROQ_DEFAULT_MODEL, etBaseUrl, etOpenAiModel, palette);
+    addPresetChip(context, rowPresets, "🚀 xAI Grok", OpenAiCompatibleProvider.XAI_BASE_URL, OpenAiCompatibleProvider.XAI_DEFAULT_MODEL, etBaseUrl, etOpenAiModel, palette);
     addPresetChip(context, rowPresets, "OpenAI", "https://api.openai.com/v1", "gpt-4o-mini", etBaseUrl, etOpenAiModel, palette);
-    addPresetChip(context, rowPresets, "Groq", "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", etBaseUrl, etOpenAiModel, palette);
-    addPresetChip(context, rowPresets, "DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat", etBaseUrl, etOpenAiModel, palette);
-    addPresetChip(context, rowPresets, "OpenRouter", "https://openrouter.ai/api/v1", "deepseek/deepseek-chat", etBaseUrl, etOpenAiModel, palette);
+    addPresetChip(context, rowPresets, "DeepSeek", OpenAiCompatibleProvider.DEEPSEEK_BASE_URL, OpenAiCompatibleProvider.DEEPSEEK_DEFAULT_MODEL, etBaseUrl, etOpenAiModel, palette);
+    addPresetChip(context, rowPresets, "OpenRouter", OpenAiCompatibleProvider.OPENROUTER_BASE_URL, "deepseek/deepseek-chat", etBaseUrl, etOpenAiModel, palette);
     addPresetChip(context, rowPresets, "Ollama Local", "http://10.0.2.2:11434/v1", "llama3.2", etBaseUrl, etOpenAiModel, palette);
     llOpenAi.addView(scrollPresets);
 
     TextView tvOpenAiKeyLabel = new TextView(context);
-    tvOpenAiKeyLabel.setText("API Key:");
+    tvOpenAiKeyLabel.setText("API Key (Groq gsk_... / Grok xai-... / OpenAI sk-...):");
     tvOpenAiKeyLabel.setTypeface(null, Typeface.BOLD);
     tvOpenAiKeyLabel.setTextColor(palette.textSecondary);
     tvOpenAiKeyLabel.setPadding(0, pad8, 0, (int)(4 * density));
     llOpenAi.addView(tvOpenAiKeyLabel);
 
     String savedOpenAiKey = OpenAiCompatibleProvider.getApiKey(context);
-    if (savedOpenAiKey.isEmpty() && clipText.startsWith("sk-"))
+    if (savedOpenAiKey.isEmpty() && AiProvider.Manager.isOpenAiCompatibleKey(clipText))
     {
       savedOpenAiKey = clipText;
-      Toast.makeText(context, "📋 ক্লিপবোর্ড থেকে OpenAI API Key স্বয়ংক্রিয়ভাবে বসানো হয়েছে!", Toast.LENGTH_SHORT).show();
+      if (clipText.startsWith("gsk_"))
+      {
+        etBaseUrl.setText(OpenAiCompatibleProvider.GROQ_BASE_URL);
+        etOpenAiModel.setText(OpenAiCompatibleProvider.GROQ_DEFAULT_MODEL);
+        Toast.makeText(context, "📋 ক্লিপবোর্ড থেকে আপনার Groq API Key স্বয়ংক্রিয়ভাবে বসানো হয়েছে!", Toast.LENGTH_SHORT).show();
+      }
+      else if (clipText.startsWith("xai-"))
+      {
+        etBaseUrl.setText(OpenAiCompatibleProvider.XAI_BASE_URL);
+        etOpenAiModel.setText(OpenAiCompatibleProvider.XAI_DEFAULT_MODEL);
+        Toast.makeText(context, "📋 ক্লিপবোর্ড থেকে আপনার xAI Grok API Key স্বয়ংক্রিয়ভাবে বসানো হয়েছে!", Toast.LENGTH_SHORT).show();
+      }
+      else
+      {
+        Toast.makeText(context, "📋 ক্লিপবোর্ড থেকে API Key স্বয়ংক্রিয়ভাবে বসানো হয়েছে!", Toast.LENGTH_SHORT).show();
+      }
     }
 
     LinearLayout rowOpenAiInput = new LinearLayout(context);
@@ -492,7 +514,7 @@ public class AiSettingsDialog
     rowOpenAiInput.setGravity(Gravity.CENTER_VERTICAL);
 
     final EditText etOpenAiKey = new EditText(context);
-    etOpenAiKey.setHint("sk-...");
+    etOpenAiKey.setHint("gsk_... / xai-... / sk-...");
     etOpenAiKey.setText(savedOpenAiKey);
     etOpenAiKey.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
     etOpenAiKey.setTransformationMethod(new PasswordTransformationMethod());
@@ -506,7 +528,20 @@ public class AiSettingsDialog
       @Override
       public boolean onLongClick(View v)
       {
-        pasteFromClipboard(context, etOpenAiKey, "API Key");
+        if (pasteFromClipboard(context, etOpenAiKey, "API Key"))
+        {
+          String pasted = etOpenAiKey.getText().toString().trim();
+          if (pasted.startsWith("gsk_"))
+          {
+            etBaseUrl.setText(OpenAiCompatibleProvider.GROQ_BASE_URL);
+            etOpenAiModel.setText(OpenAiCompatibleProvider.GROQ_DEFAULT_MODEL);
+          }
+          else if (pasted.startsWith("xai-"))
+          {
+            etBaseUrl.setText(OpenAiCompatibleProvider.XAI_BASE_URL);
+            etOpenAiModel.setText(OpenAiCompatibleProvider.XAI_DEFAULT_MODEL);
+          }
+        }
         return true;
       }
     });
@@ -526,7 +561,20 @@ public class AiSettingsDialog
       @Override
       public void onClick(View v)
       {
-        pasteFromClipboard(context, etOpenAiKey, "API Key");
+        if (pasteFromClipboard(context, etOpenAiKey, "API Key"))
+        {
+          String pasted = etOpenAiKey.getText().toString().trim();
+          if (pasted.startsWith("gsk_"))
+          {
+            etBaseUrl.setText(OpenAiCompatibleProvider.GROQ_BASE_URL);
+            etOpenAiModel.setText(OpenAiCompatibleProvider.GROQ_DEFAULT_MODEL);
+          }
+          else if (pasted.startsWith("xai-"))
+          {
+            etBaseUrl.setText(OpenAiCompatibleProvider.XAI_BASE_URL);
+            etOpenAiModel.setText(OpenAiCompatibleProvider.XAI_DEFAULT_MODEL);
+          }
+        }
       }
     });
     rowOpenAiInput.addView(btnPasteOpenAi);
@@ -574,6 +622,36 @@ public class AiSettingsDialog
 
     llOpenAi.addView(rowOpenAiInput);
 
+    // "Get Free Groq Key" button
+    Button btnGetGroq = new Button(context);
+    btnGetGroq.setText("🔑 Get Free Groq API Key (GroqCloud Console)");
+    btnGetGroq.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+    DialogTheme.styleSecondaryButton(btnGetGroq, palette, density);
+    LinearLayout.LayoutParams lpBtnGroq = new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    lpBtnGroq.setMargins(0, pad8, 0, pad6);
+    btnGetGroq.setLayoutParams(lpBtnGroq);
+    btnGetGroq.setOnClickListener(new View.OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        try
+        {
+          etBaseUrl.setText(OpenAiCompatibleProvider.GROQ_BASE_URL);
+          etOpenAiModel.setText(OpenAiCompatibleProvider.GROQ_DEFAULT_MODEL);
+          Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://console.groq.com/keys"));
+          i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          context.startActivity(i);
+        }
+        catch (Exception e)
+        {
+          Toast.makeText(context, "Could not open browser", Toast.LENGTH_SHORT).show();
+        }
+      }
+    });
+    llOpenAi.addView(btnGetGroq);
+
     TextView tvOpenAiModelLabel = new TextView(context);
     tvOpenAiModelLabel.setText("Model Name:");
     tvOpenAiModelLabel.setTypeface(null, Typeface.BOLD);
@@ -608,13 +686,16 @@ public class AiSettingsDialog
     llOpenAi.addView(rowModel);
 
     final String[] popularOpenAiModels = {
+      "llama-3.3-70b-versatile",
+      "llama-3.1-8b-instant",
+      "meta-llama/llama-4-scout-17b-16e-instruct",
+      "qwen/qwen3-32b",
+      "grok-3-mini",
+      "grok-2-latest",
       "gpt-4o-mini",
       "gpt-4o",
       "deepseek-chat",
-      "deepseek-reasoner",
-      "llama-3.3-70b-versatile",
-      "claude-3-5-sonnet-20241022",
-      "gemini-2.0-flash"
+      "deepseek-reasoner"
     };
     String[] spinnerOptions = new String[popularOpenAiModels.length + 1];
     spinnerOptions[0] = "-- Choose to autofill popular model --";
@@ -764,16 +845,50 @@ public class AiSettingsDialog
             public void onClick(View v)
             {
               boolean isOpenAi = rbOpenAi.isChecked();
-              AiProvider.Manager.setActiveProviderType(context, isOpenAi ? AiProvider.ProviderType.OPENAI_COMPATIBLE : AiProvider.ProviderType.GEMINI);
+              String geminiKeyInput = OpenAiCompatibleProvider.cleanApiKey(etGeminiKey.getText().toString());
+              String openAiKeyInput = OpenAiCompatibleProvider.cleanApiKey(etOpenAiKey.getText().toString());
+              String baseUrlInput = etBaseUrl.getText().toString().trim();
+              String openAiModelInput = etOpenAiModel.getText().toString().trim();
+
+              // If user accidentally pasted a Groq (gsk_), Grok (xai-), or OpenAI (sk-) key into the Gemini box
+              if (AiProvider.Manager.isOpenAiCompatibleKey(geminiKeyInput))
+              {
+                if (openAiKeyInput.isEmpty())
+                {
+                  openAiKeyInput = geminiKeyInput;
+                }
+                geminiKeyInput = "";
+                isOpenAi = true;
+              }
+              else if (AiProvider.Manager.isGeminiKey(openAiKeyInput))
+              {
+                if (geminiKeyInput.isEmpty())
+                {
+                  geminiKeyInput = openAiKeyInput;
+                }
+                openAiKeyInput = "";
+                isOpenAi = false;
+              }
+              else if (!openAiKeyInput.isEmpty() && geminiKeyInput.isEmpty())
+              {
+                isOpenAi = true;
+              }
+
+              String resolvedBaseUrl = OpenAiCompatibleProvider.normalizeBaseUrl(baseUrlInput, openAiKeyInput);
+              String resolvedOpenAiModel = OpenAiCompatibleProvider.resolveModel(openAiModelInput, resolvedBaseUrl, openAiKeyInput);
 
               // Save Gemini
-              GeminiAiService.setApiKey(context, etGeminiKey.getText().toString().trim());
+              GeminiAiService.setGeminiApiKeyOnly(context, geminiKeyInput);
               GeminiAiService.setModel(context, currentSelectedGeminiModel[0]);
 
-              // Save OpenAI
-              OpenAiCompatibleProvider.setBaseUrl(context, etBaseUrl.getText().toString().trim());
-              OpenAiCompatibleProvider.setApiKey(context, etOpenAiKey.getText().toString().trim());
-              OpenAiCompatibleProvider.setModel(context, etOpenAiModel.getText().toString().trim());
+              // Save OpenAI / Groq / Grok
+              OpenAiCompatibleProvider.setApiKey(context, openAiKeyInput);
+              OpenAiCompatibleProvider.setBaseUrl(context, resolvedBaseUrl);
+              OpenAiCompatibleProvider.setModel(context, resolvedOpenAiModel);
+
+              AiProvider.Manager.setActiveProviderType(
+                  context,
+                  isOpenAi ? AiProvider.ProviderType.OPENAI_COMPATIBLE : AiProvider.ProviderType.GEMINI);
 
               // Save Emojify preference
               GeminiAiService.setEmojifyEnabled(context, cbGlobalEmojify.isChecked());
@@ -837,6 +952,10 @@ public class AiSettingsDialog
       typodev.keyboard.Logs.print_exception(t);
       sCurrentDialog = null;
       sIsShowing = false;
+      if (keyboard != null)
+      {
+        keyboard.onAiSettingsClosed();
+      }
     }
   }
 

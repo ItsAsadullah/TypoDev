@@ -6,3 +6,5 @@ New ePaper theme.
 Added number row.
 Option to switch to the previous keyboard.
 Updated translations.
+
+Thanks to the contributors: @K4zoku, @rVnPower, @RamKromberg, @MAKI1LOVE

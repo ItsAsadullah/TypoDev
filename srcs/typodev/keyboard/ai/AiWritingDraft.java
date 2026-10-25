@@ -9,20 +9,12 @@ public final class AiWritingDraft {
   public final String source, tone, before, after, selection, editorPackage;
   public final int fieldId, index;
   public final AiWritingResultsView.Task task;
-  public final SlashCommand.Input command;
   public final List<String> results;
   private final byte[] image;
 
   public AiWritingDraft(String source, byte[] image, String tone, AiWritingResultsView.Task task,
       List<String> results, int index, String before, String after, String selection,
       String editorPackage, int fieldId) {
-    this(source, image, tone, task, results, index, before, after, selection, editorPackage, fieldId, null);
-  }
-
-  public AiWritingDraft(String source, byte[] image, String tone, AiWritingResultsView.Task task,
-      List<String> results, int index, String before, String after, String selection,
-      String editorPackage, int fieldId, SlashCommand.Input command) {
-    this.command = command;
     this.source = source;
     this.image = image == null ? null : image.clone();
     this.tone = tone;

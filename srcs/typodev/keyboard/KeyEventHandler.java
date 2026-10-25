@@ -23,6 +23,9 @@ public final class KeyEventHandler
   Config _config;
   private final StringBuilder _avroComposingLatin = new StringBuilder();
   private String _avroCurrentBangla = "";
+  private boolean _pendingAvroComposingEcho = false;
+  private int _expectedAvroCursorDelta = 0;
+  private long _lastAvroComposingUpdateMs = 0L;
   /** State of the system modifiers. It is updated whether a modifier is down
       or up and a corresponding key event is sent. */
   Pointers.Modifiers _mods;
@@ -58,6 +61,8 @@ public final class KeyEventHandler
     _config = conf;
     _avroComposingLatin.setLength(0);
     _avroCurrentBangla = "";
+    _pendingAvroComposingEcho = false;
+    _expectedAvroCursorDelta = 0;
     InputConnection ic = _recv.getCurrentInputConnection();
     _autocap.started(conf, ic);
     _typedword.started(conf, ic);
@@ -70,7 +75,19 @@ public final class KeyEventHandler
 
   public void finished()
   {
-    commitAvroComposing();
+    if (isAvroComposingActive())
+    {
+      try
+      {
+        InputConnection conn = _recv.getCurrentInputConnection();
+        if (conn != null) conn.finishComposingText();
+      }
+      catch (Throwable ignored) {}
+      _avroComposingLatin.setLength(0);
+      _avroCurrentBangla = "";
+      _pendingAvroComposingEcho = false;
+      _expectedAvroCursorDelta = 0;
+    }
     _macroGeneration++;
     _autocap.finished();
     _typedword.finished();
@@ -89,6 +106,11 @@ public final class KeyEventHandler
   public boolean isAvroActive()
   {
     if (_recv.isSlashCommandTokenActive()) return false;
+    if (_config != null && _config.editor_config != null
+        && (_config.editor_config.is_password || _config.editor_config.should_move_cursor_force_fallback))
+    {
+      return false;
+    }
     return (_config != null && _config.is_avro_mode)
         || (_suggestions != null && _suggestions.isAvroMode());
   }
@@ -123,6 +145,8 @@ public final class KeyEventHandler
       }
       _avroComposingLatin.setLength(0);
       _avroCurrentBangla = "";
+      _pendingAvroComposingEcho = false;
+      _expectedAvroCursorDelta = 0;
     }
   }
 
@@ -131,14 +155,60 @@ public final class KeyEventHandler
   {
     if (isAvroComposingActive())
     {
-      if (candidatesStart < 0 && candidatesEnd < 0 && (oldSelStart != newSelStart || newSelStart != newSelEnd))
+      if (newSelStart != newSelEnd)
       {
+        InputConnection conn = _recv.getCurrentInputConnection();
+        if (conn != null)
+        {
+          try { conn.finishComposingText(); } catch (Throwable ignored) {}
+        }
         _avroComposingLatin.setLength(0);
         _avroCurrentBangla = "";
+        _pendingAvroComposingEcho = false;
+        _expectedAvroCursorDelta = 0;
+      }
+      else if (candidatesStart >= 0 && candidatesEnd >= 0)
+      {
+        if (newSelStart != candidatesEnd)
+        {
+          InputConnection conn = _recv.getCurrentInputConnection();
+          if (conn != null)
+          {
+            try { conn.finishComposingText(); } catch (Throwable ignored) {}
+          }
+          _avroComposingLatin.setLength(0);
+          _avroCurrentBangla = "";
+          _pendingAvroComposingEcho = false;
+          _expectedAvroCursorDelta = 0;
+        }
+        else
+        {
+          _pendingAvroComposingEcho = false;
+        }
+      }
+      else if (oldSelStart != newSelStart)
+      {
+        int banglaLen = (_avroCurrentBangla != null) ? _avroCurrentBangla.length() : 0;
+        int actualDelta = newSelStart - oldSelStart;
+        boolean isOwnComposingEcho = _pendingAvroComposingEcho
+            && newSelStart >= banglaLen
+            && (actualDelta == _expectedAvroCursorDelta
+                || (System.currentTimeMillis() - _lastAvroComposingUpdateMs < 400L
+                    && Math.abs(actualDelta - _expectedAvroCursorDelta) <= 2));
+        _pendingAvroComposingEcho = false;
+        if (!isOwnComposingEcho)
+        {
+          _avroComposingLatin.setLength(0);
+          _avroCurrentBangla = "";
+          _expectedAvroCursorDelta = 0;
+        }
       }
     }
     _autocap.selection_updated(oldSelStart, newSelStart);
-    _typedword.selection_updated(oldSelStart, newSelStart, newSelEnd);
+    if (!isAvroComposingActive())
+    {
+      _typedword.selection_updated(oldSelStart, newSelStart, newSelEnd);
+    }
   }
 
   public void selection_updated(int oldSelStart, int newSelStart, int newSelEnd)
@@ -226,9 +296,31 @@ public final class KeyEventHandler
   public void suggestion_entered(String text)
   {
     if (text == null) return;
+    boolean isMagic = text.startsWith("🪄 ");
+    String effectiveText = isMagic ? text.substring(3).trim() : text;
+    InputConnection conn = _recv.getCurrentInputConnection();
+
+    if (effectiveText.startsWith("🧮 AI সমাধান") || effectiveText.startsWith("✨ স্টেপ বাই স্টেপ") || effectiveText.contains("AI সমাধান"))
+    {
+      String mathProblem = (_suggestions != null) ? _suggestions.getActiveMathProblem() : null;
+      if (mathProblem == null && conn != null)
+      {
+        try
+        {
+          CharSequence beforeSeq = conn.getTextBeforeCursor(120, 0);
+          if (beforeSeq != null)
+          {
+            mathProblem = AlgebraFormulaEngine.extractMathProblem(beforeSeq.toString());
+          }
+        }
+        catch (Throwable ignored) {}
+      }
+      _recv.showMathSolver(mathProblem != null ? mathProblem : "");
+      return;
+    }
+
     if (isAvroComposingActive())
     {
-      InputConnection conn = _recv.getCurrentInputConnection();
       if (conn != null)
       {
         conn.commitText(text + " ", 1);
@@ -237,6 +329,8 @@ public final class KeyEventHandler
       String composedLatin = _avroComposingLatin.toString().trim();
       _avroComposingLatin.setLength(0);
       _avroCurrentBangla = "";
+      _pendingAvroComposingEcho = false;
+      _expectedAvroCursorDelta = 0;
       last_replaced_word = null;
       last_replacement_word_len = 0;
       _next_last_action = LastAction.SUGGESTION_ENTERED;
@@ -288,11 +382,73 @@ public final class KeyEventHandler
       return;
     }
 
-    boolean isMagic = text.startsWith("🪄 ");
-    String effectiveText = isMagic ? text.substring(3).trim() : text;
     String old = _typedword.get();
     int cur_rel = _typedword.cursor_relative();
-    InputConnection conn = _recv.getCurrentInputConnection();
+
+    boolean isCalc = (_suggestions != null && _suggestions.isCalculatorSuggestion(effectiveText));
+    String calcMatched = isCalc ? _suggestions.getCalculatorMatchedText() : null;
+    if (conn != null)
+    {
+      try
+      {
+        CharSequence beforeSeq = conn.getTextBeforeCursor(120, 0);
+        if (beforeSeq != null)
+        {
+          NumericCalculator.InlineResult inlineRes = NumericCalculator.evaluateInline(beforeSeq.toString());
+          if (inlineRes != null && (effectiveText.equals(inlineRes.result)
+              || effectiveText.equals(inlineRes.equation)
+              || effectiveText.equals(NumericCalculator.toBengaliDigits(inlineRes.result))
+              || effectiveText.equals(NumericCalculator.toBengaliDigits(inlineRes.equation))))
+          {
+            isCalc = true;
+            calcMatched = inlineRes.matchedText;
+          }
+        }
+      }
+      catch (Throwable ignored) {}
+    }
+
+    if (isCalc && calcMatched != null)
+    {
+      int calcRemoveBefore = Math.max(0, calcMatched.length() + cur_rel);
+      replace_surrounding_text(calcRemoveBefore, -cur_rel, effectiveText);
+      last_replaced_word = (calcRemoveBefore > 0) ? calcMatched : "";
+      last_replacement_word_len = effectiveText.length();
+      _next_last_action = LastAction.SUGGESTION_ENTERED;
+      _last_action = LastAction.SUGGESTION_ENTERED;
+      return;
+    }
+
+    boolean isAlg = (_suggestions != null && _suggestions.isAlgebraSuggestion(effectiveText));
+    String algMatched = isAlg ? _suggestions.getAlgebraMatchedText() : null;
+    if (conn != null)
+    {
+      try
+      {
+        CharSequence beforeSeq = conn.getTextBeforeCursor(120, 0);
+        if (beforeSeq != null)
+        {
+          AlgebraFormulaEngine.AlgebraResult inlineAlg = AlgebraFormulaEngine.evaluateInline(beforeSeq.toString());
+          if (inlineAlg != null && (effectiveText.equals(inlineAlg.expansion) || effectiveText.equals(inlineAlg.equation)))
+          {
+            isAlg = true;
+            algMatched = inlineAlg.matchedText;
+          }
+        }
+      }
+      catch (Throwable ignored) {}
+    }
+
+    if (isAlg && algMatched != null)
+    {
+      int algRemoveBefore = Math.max(0, algMatched.length() + cur_rel);
+      replace_surrounding_text(algRemoveBefore, -cur_rel, effectiveText);
+      last_replaced_word = (algRemoveBefore > 0) ? algMatched : "";
+      last_replacement_word_len = effectiveText.length();
+      _next_last_action = LastAction.SUGGESTION_ENTERED;
+      _last_action = LastAction.SUGGESTION_ENTERED;
+      return;
+    }
 
     // Check if we need to remove leading '<' or '</' if the suggestion starts with '<'
     int extraBefore = 0;
@@ -443,16 +599,6 @@ public final class KeyEventHandler
     _mods = mods;
   }
 
-  // private void handleDelKey(int before, int after)
-  // {
-  //  CharSequence selection = getCurrentInputConnection().getSelectedText(0);
-
-  //  if (selection != null && selection.length() > 0)
-  //  getCurrentInputConnection().commitText("", 1);
-  //  else
-  //  getCurrentInputConnection().deleteSurroundingText(before, after);
-  // }
-
   void sendMetaKey(int eventCode, int meta_flags, boolean down)
   {
     if (down)
@@ -536,6 +682,7 @@ public final class KeyEventHandler
 
     if (isAvroActive() && typodev.keyboard.suggestions.BanglishEngine.isLatinOnly(text))
     {
+      int prevLen = (_avroCurrentBangla != null) ? _avroCurrentBangla.length() : 0;
       _avroComposingLatin.append(text);
       String latinWord = _avroComposingLatin.toString();
       if (_suggestions != null)
@@ -552,6 +699,9 @@ public final class KeyEventHandler
       {
         _avroCurrentBangla = typodev.keyboard.suggestions.BanglishEngine.transliteratePhonetic(latinWord);
       }
+      _expectedAvroCursorDelta = _avroCurrentBangla.length() - prevLen;
+      _pendingAvroComposingEcho = true;
+      _lastAvroComposingUpdateMs = System.currentTimeMillis();
       conn.setComposingText(_avroCurrentBangla, 1);
       return;
     }
@@ -562,8 +712,8 @@ public final class KeyEventHandler
     }
 
     _autocap.typed(text);
-    _typedword.typed(text);
     conn.commitText(text, 1);
+    _typedword.typed(text);
   }
 
   void replace_surrounding_text(int remove_before, int remove_after,
@@ -982,10 +1132,13 @@ public final class KeyEventHandler
   {
     if (isAvroComposingActive())
     {
+      int prevLen = (_avroCurrentBangla != null) ? _avroCurrentBangla.length() : 0;
       _avroComposingLatin.deleteCharAt(_avroComposingLatin.length() - 1);
       InputConnection conn = _recv.getCurrentInputConnection();
       if (_avroComposingLatin.length() == 0)
       {
+        _pendingAvroComposingEcho = false;
+        _expectedAvroCursorDelta = 0;
         if (conn != null)
         {
           conn.setComposingText("", 1);
@@ -1014,6 +1167,9 @@ public final class KeyEventHandler
         {
           _avroCurrentBangla = typodev.keyboard.suggestions.BanglishEngine.transliteratePhonetic(latinWord);
         }
+        _expectedAvroCursorDelta = _avroCurrentBangla.length() - prevLen;
+        _pendingAvroComposingEcho = true;
+        _lastAvroComposingUpdateMs = System.currentTimeMillis();
         if (conn != null)
         {
           conn.setComposingText(_avroCurrentBangla, 1);
@@ -1047,6 +1203,7 @@ public final class KeyEventHandler
   {
     default boolean isSlashCommandTokenActive() { return false; }
     default boolean runSlashCommand() { return false; }
+    default void showMathSolver(String mathProblem) {}
     public void handle_event_key(KeyValue.Event ev);
     public void set_shift_state(boolean state, boolean lock);
     public void set_compose_pending(boolean pending);

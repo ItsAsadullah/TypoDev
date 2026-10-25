@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="ai_back_keyboard">Back to keyboard</string>
+  <string name="ai_settings">AI settings</string>
+  <string name="ai_write_prompt">Write an instruction…</string>
+  <string name="ai_retry">Generate again</string>
+  <string name="ai_cancel">Cancel</string>
+  <string name="ai_generate">Generate</string>
+  <string name="ai_empty_response">No text was returned. Please try again.</string>
+  <string name="ai_paste">Paste</string>
+  <string name="ai_show_key">Show API key</string>
+  <string name="ai_hide_key">Hide API key</string>
+  <string name="ai_clear">Clear</string>
+  <string name="ai_magic_shortcuts">Writing tools</string>
+</resources>

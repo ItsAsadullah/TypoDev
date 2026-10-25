@@ -58,7 +58,6 @@ public class Keyboard2 extends InputMethodService
   /** Installed and current locales. */
   private Dictionaries _dictionaries;
   private ViewGroup _emojiPane = null;
-  private ViewGroup _clipboard_pane = null;
   private typodev.keyboard.ai.AiPaneView _ai_pane_view = null;
   private typodev.keyboard.fancy.FancyPaneView _fancy_pane_view = null;
   private typodev.keyboard.suggestions.ToolsGridPaneView _tools_grid_pane = null;
@@ -83,6 +82,8 @@ public class Keyboard2 extends InputMethodService
   private ImageView _btn_one_hand_right_switch = null;
   private ImageView _btn_one_hand_right_expand = null;
   private boolean _isClipboardPaneOpen = false;
+  private boolean _isEmojiPaneOpen = false;
+  private View _currentInputView = null;
   private boolean _isAiSettingsOpen = false;
   private boolean _wasAiPaneVisibleBeforeSettings = false;
   private android.widget.EditText _dialogActiveEditText = null;
@@ -93,11 +94,11 @@ public class Keyboard2 extends InputMethodService
   private Receiver _receiver = null;
   private Handler _handler;
   private long _inputSessionId = 0;
-  private boolean _slashEnterHandled;
   private long _inlineResponseId = 0;
   private typodev.keyboard.ai.AiWritingResultsView _writing_results;
   private typodev.keyboard.ai.AiWritingDraft _lastWritingDraft;
   private View _magic_tools_pane;
+  private typodev.keyboard.ai.MathSolverPaneView _math_solver;
   private byte[] _pendingWritingImage;
   private String _pendingWritingTone, _pendingWritingPackage;
 
@@ -204,6 +205,38 @@ public class Keyboard2 extends InputMethodService
     refresh_candidates_view();
   }
 
+  public void showMathSolver(String mathProblem)
+  {
+    if (_keyboard_container_view == null) return;
+    closeMathSolver();
+    closeWritingResults();
+    int baseHeight = getTargetPaneHeight();
+    resetTransientPanes();
+    android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+    // Add reading room while keeping the editor visible, including in landscape.
+    int height = Math.min(Math.max(baseHeight, Math.round(420 * metrics.density)),
+        Math.round(metrics.heightPixels * .72f));
+    _math_solver = new typodev.keyboard.ai.MathSolverPaneView(_keyboard_container_view.getContext(), this);
+    _keyboard_container_view.addView(_math_solver,
+        new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
+    if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
+    _math_solver.start(mathProblem);
+  }
+
+  public void closeMathSolver()
+  {
+    if (_math_solver == null) return;
+    _math_solver.cancel();
+    ViewParent parent = _math_solver.getParent();
+    if (parent instanceof ViewGroup) ((ViewGroup)parent).removeView(_math_solver);
+    _math_solver = null;
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(_numeric_pad == null ? View.VISIBLE : View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.VISIBLE);
+    refresh_candidates_view();
+  }
+
   public boolean hasWritingDraft() { return _lastWritingDraft != null; }
 
   public void restoreWritingDraft()
@@ -225,7 +258,8 @@ public class Keyboard2 extends InputMethodService
   {
     InputConnection connection = getCurrentInputConnection();
     if (connection == null) return;
-    if (!typodev.keyboard.ai.AiProvider.Manager.hasConfiguredApiKey(this)) { showAiPane(); return; }
+    String key = typodev.keyboard.ai.GeminiAiService.getApiKey(this);
+    if (key == null || key.trim().isEmpty()) { showAiPane(); return; }
     connection.finishComposingText();
     CharSequence selected = connection.getSelectedText(0);
     CharSequence content = selected != null && selected.length() > 0
@@ -244,94 +278,9 @@ public class Keyboard2 extends InputMethodService
     return _inputSessionId;
   }
 
-  public typodev.keyboard.ai.SlashCommand.Input getSlashCommandInput()
-  {
-    if (_writing_results != null || _magic_tools_pane != null || isToolsPaneVisible()
-        || isAiPaneVisible() || isFancyPaneVisible() || _isEmojiSearchMode || _isAiSettingsOpen
-        || _isTranslateMode || _isAddClipMode
-        || typodev.keyboard.voice.OfflineVoiceTypingService.isListening()
-        || getCurrentInputConnection() != getTargetAppInputConnection()
-        || !typodev.keyboard.ai.SlashCommandEditor.eligible(getCurrentInputEditorInfo())) return null;
-    return typodev.keyboard.ai.SlashCommandEditor.read(getTargetAppInputConnection());
-  }
-
-  /** Refresh just visibility while typing; do not reset dictionaries or candidate state. */
-  public void updateSlashCandidateVisibility()
-  {
-    if (_candidates_view == null || _config == null || _writing_results != null
-        || _magic_tools_pane != null || isToolsPaneVisible() || isAiPaneVisible()
-        || isFancyPaneVisible() || _isEmojiSearchMode || _isAiSettingsOpen) return;
-    boolean normal = _config.suggestions_enabled && _config.editor_config.should_show_candidates_view
-        && !_config.split_layout;
-    _candidates_view.setVisibility(normal || getSlashCommandInput() != null ? View.VISIBLE : View.GONE);
-  }
-
-  public void chooseSlashCommand(typodev.keyboard.ai.SlashCommand.Input expected,
-      typodev.keyboard.ai.SlashCommand selected, long session)
-  {
-    typodev.keyboard.ai.SlashCommand.Input current = getSlashCommandInput();
-    if (session != _inputSessionId || current == null || expected == null || !current.raw.equals(expected.raw)
-        || !current.suggestions().contains(selected)) return;
-    if (current.argument.isEmpty())
-      typodev.keyboard.ai.SlashCommandEditor.complete(getTargetAppInputConnection(), current, selected);
-    else runSlashCommand(current.choose(selected));
-    if (_candidates_view != null) _candidates_view.onTextOrSelectionChanged();
-  }
-
-  public boolean runSlashCommand()
-  {
-    typodev.keyboard.ai.SlashCommand.Input input = getSlashCommandInput();
-    if (input == null || input.command == null) return false;
-    runSlashCommand(input);
-    return true;
-  }
-
-  private void runSlashCommand(typodev.keyboard.ai.SlashCommand.Input input)
-  {
-    // Complete Avro's composing word before handing its text to a panel or local storage.
-    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
-    if (!typodev.keyboard.ai.SlashCommandEditor.matches(getTargetAppInputConnection(), input)) return;
-    if (input.command == typodev.keyboard.ai.SlashCommand.REMEMBER)
-    {
-      if (input.argument.isEmpty()) { showSavedSlashNotes(); return; }
-      try {
-        new typodev.keyboard.ai.SavedNoteStore(this).save(input.argument);
-        typodev.keyboard.ai.SlashCommandEditor.remove(getTargetAppInputConnection(), input);
-        android.widget.Toast.makeText(this, R.string.slash_saved, android.widget.Toast.LENGTH_SHORT).show();
-      } catch (RuntimeException failure) {
-        android.widget.Toast.makeText(this, R.string.slash_note_error, android.widget.Toast.LENGTH_LONG).show();
-      }
-      if (_candidates_view != null) _candidates_view.onTextOrSelectionChanged();
-      return;
-    }
-    if (input.argument.isEmpty()) {
-      android.widget.Toast.makeText(this, R.string.slash_need_text, android.widget.Toast.LENGTH_SHORT).show();
-      return;
-    }
-    if (!typodev.keyboard.ai.AiProvider.Manager.hasConfiguredApiKey(this)) {
-      android.widget.Toast.makeText(this, R.string.slash_need_key, android.widget.Toast.LENGTH_LONG).show();
-      showAiPane();
-      return;
-    }
-    if (_keyboard_container_view == null) return;
-    int height = getTargetPaneHeight();
-    closeWritingResults();
-    resetTransientPanes();
-    _writing_results = new typodev.keyboard.ai.AiWritingResultsView(_keyboard_container_view.getContext(), this);
-    _keyboard_container_view.addView(_writing_results,
-        new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
-    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
-    if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
-    _writing_results.startCommand(input);
-  }
-
-  public void showSavedSlashNotes()
-  {
-    typodev.keyboard.ai.SavedNotesDialog.show(this, this);
-  }
-
   private void finishInputSession()
   {
+    closeMathSolver();
     closeWritingResults();
     typodev.keyboard.voice.OfflineVoiceTypingService.cancelListening();
     if (_candidates_view != null && _candidates_view.isVoiceTypingActive())
@@ -356,8 +305,8 @@ public class Keyboard2 extends InputMethodService
   /** End a session without navigating back into a previous tool panel. */
   private void resetTransientPanes()
   {
+    closeMathSolver();
     removeMagicTools();
-    removeNumericPad();
     if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
     if (_candidates_view != null && _candidates_view.isVoiceTypingActive()
         && !typodev.keyboard.voice.OfflineVoiceTypingService.isListening())
@@ -373,6 +322,12 @@ public class Keyboard2 extends InputMethodService
     _isAddClipMode = false;
     _addClipInputConnection = null;
     _isClipboardPaneOpen = false;
+    if (_isEmojiPaneOpen)
+    {
+      _isEmojiPaneOpen = false;
+      if (_keyboard_container_view != null && isInputViewShown())
+        setInputView(_keyboard_container_view);
+    }
     View[] panes = { _ai_prompt_bar, _ai_pane_view, _fancy_pane_view,
         _tools_grid_pane, _emoji_search_bar, _clipboard_search_bar,
         _clipboard_add_bar, _clipboard_pane_view };
@@ -382,25 +337,28 @@ public class Keyboard2 extends InputMethodService
       _keyboard_layout_view.setVisibility(View.VISIBLE);
   }
 
-  private void removeNumericPad()
-  {
-    if (_numeric_pad != null)
-    {
-      ViewParent parent = _numeric_pad.getParent();
-      if (parent instanceof ViewGroup)
-        ((ViewGroup)parent).removeView(_numeric_pad);
-      _numeric_pad = null;
-      if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
-    }
-  }
-
   @Override
   public void onStartInput(EditorInfo info, boolean restarting)
   {
     try
     {
-      finishInputSession();
+      boolean viewShown = isInputViewShown();
+      if (!restarting || !viewShown)
+      {
+        finishInputSession();
+      }
       super.onStartInput(info, restarting);
+      if (viewShown && _config != null)
+      {
+        if (_config.editor_config != null && info != null)
+        {
+          _config.editor_config.refresh(info, getResources(), _config);
+        }
+        if (_keyeventhandler != null)
+        {
+          _keyeventhandler.started(_config);
+        }
+      }
       if (_candidates_view != null && _candidates_view.isVoiceTypingActive()
           && !typodev.keyboard.voice.OfflineVoiceTypingService.isListening())
       {
@@ -451,6 +409,21 @@ public class Keyboard2 extends InputMethodService
   void setTextLayout(int l)
   {
     _config.set_current_layout(l);
+    try
+    {
+      if (DirectBootAwarePreferences.isUserUnlocked(this))
+      {
+        SharedPreferences defPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        if (defPrefs != null && defPrefs != _config.getPrefs())
+        {
+          defPrefs.edit()
+              .putInt("current_layout_portrait", _config.current_layout_narrow)
+              .putInt("current_layout_landscape", _config.current_layout_wide)
+              .apply();
+        }
+      }
+    }
+    catch (Throwable ignored) {}
     _currentSpecialLayout = null;
     // The active dictionary depends on the current layout.
     refresh_current_dictionary();
@@ -522,6 +495,9 @@ public class Keyboard2 extends InputMethodService
       ClipboardHistoryService.on_startup(this, _keyeventhandler);
       _foldStateTracker.setChangedCallback(() -> { refresh_config(); });
       typodev.keyboard.suggestions.BanglishLexiconManager.instance(this).init(this);
+      typodev.keyboard.suggestions.CoreLexiconManager.instance(this);
+      typodev.keyboard.suggestions.UserVocabularyStore.instance(this);
+      typodev.keyboard.suggestions.BanglishUserDictionary.instance(this);
       SoundFeedbackManager.getInstance(this);
     }
     catch (Throwable t)
@@ -1420,6 +1396,7 @@ public class Keyboard2 extends InputMethodService
       _emojiPane = (ViewGroup)inflate_view(R.layout.emoji_pane);
       wireEmojiPaneSearch();
     }
+    _isEmojiPaneOpen = true;
     setInputView(_emojiPane);
     EmojiGridView grid = (EmojiGridView)_emojiPane.findViewById(R.id.emoji_grid);
     if (grid != null)
@@ -1452,6 +1429,7 @@ public class Keyboard2 extends InputMethodService
 
   public void showEmojiSearchMode(String query)
   {
+    _isEmojiPaneOpen = false;
     _isEmojiSearchMode = true;
     if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
     if (_ai_pane_view != null) _ai_pane_view.setVisibility(View.GONE);
@@ -1834,8 +1812,7 @@ public class Keyboard2 extends InputMethodService
 
   public void refresh_candidates_view()
   {
-    if (_writing_results != null || _magic_tools_pane != null)
-    {
+    if (_writing_results != null || _magic_tools_pane != null || _math_solver != null) {
       if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
       return;
     }
@@ -1855,9 +1832,9 @@ public class Keyboard2 extends InputMethodService
       return;
     }
     boolean should_show =
-      getSlashCommandInput() != null || (_config.suggestions_enabled
+      _config.suggestions_enabled
       && _config.editor_config.should_show_candidates_view
-      && !_config.split_layout);
+      && !_config.split_layout;
     if (should_show)
     {
       _candidates_view.refresh_config(_config);
@@ -1901,7 +1878,6 @@ public class Keyboard2 extends InputMethodService
       {
         create_keyboard_view();
         _emojiPane = null;
-        _clipboard_pane = null;
         if (isInputViewShown())
         {
           setInputView(_keyboard_container_view);
@@ -2023,7 +1999,12 @@ public class Keyboard2 extends InputMethodService
         create_keyboard_view();
       }
       setInputView(_keyboard_container_view);
-      removeNumericPad();
+      if (_numeric_pad != null) {
+        ViewParent parent = _numeric_pad.getParent();
+        if (parent instanceof ViewGroup) ((ViewGroup)parent).removeView(_numeric_pad);
+        _numeric_pad = null;
+        if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
+      }
       if (_config.editor_config.numeric_layout) {
         _numeric_pad = new NumericPadView(this, info);
         _keyboard_container_view.addView(_numeric_pad,
@@ -2031,8 +2012,9 @@ public class Keyboard2 extends InputMethodService
         if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
       }
       Logs.debug_startup_input_view(info, _config);
-      if (_writing_results != null || _magic_tools_pane != null) {
+      if (_writing_results != null || _magic_tools_pane != null || _math_solver != null) {
         if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
+        if (_math_solver != null && _numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
         if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
       }
       openPendingWritingImage();
@@ -2067,10 +2049,15 @@ public class Keyboard2 extends InputMethodService
     if (v == null) return;
     try
     {
-      ViewParent parent = v.getParent();
-      if (parent != null && parent instanceof ViewGroup)
-        ((ViewGroup)parent).removeView(v);
-      super.setInputView(v);
+      if (v != _currentInputView || v.getParent() == null)
+      {
+        ViewParent parent = v.getParent();
+        if (parent != null && parent instanceof ViewGroup)
+          ((ViewGroup)parent).removeView(v);
+        super.setInputView(v);
+        _currentInputView = v;
+      }
+      BanglaFont.install(v);
       updateSoftInputWindowLayoutParams();
       v.requestApplyInsets();
     }
@@ -2200,12 +2187,9 @@ public class Keyboard2 extends InputMethodService
   @Override
   public boolean onKeyDown(int keyCode, KeyEvent event)
   {
-    if (keyCode == KeyEvent.KEYCODE_ENTER && event.hasNoModifiers()) {
-      if (_slashEnterHandled) return true;
-      if (runSlashCommand()) { _slashEnterHandled = true; return true; }
-    }
     if (keyCode == KeyEvent.KEYCODE_BACK)
     {
+      if (_math_solver != null) { closeMathSolver(); return true; }
       if (_magic_tools_pane != null) { closeMagicTools(); return true; }
       if (_writing_results != null) { closeWritingResults(); return true; }
       if (typodev.keyboard.voice.OfflineVoiceTypingService.isListening())
@@ -2243,6 +2227,18 @@ public class Keyboard2 extends InputMethodService
         exitEmojiSearchMode();
         return true;
       }
+      if (_isEmojiPaneOpen)
+      {
+        _isEmojiPaneOpen = false;
+        if (_keyboard_layout_view != null)
+        {
+          _keyboard_layout_view.setVisibility(View.VISIBLE);
+          _keyboard_layout_view.setKeyboard(current_layout());
+        }
+        setInputView(_keyboard_container_view);
+        refresh_candidates_view();
+        return true;
+      }
       if (isAiPaneVisible())
       {
         closeAiPane();
@@ -2263,20 +2259,26 @@ public class Keyboard2 extends InputMethodService
   }
 
   @Override
-  public boolean onKeyUp(int keyCode, KeyEvent event)
-  {
-    if (keyCode == KeyEvent.KEYCODE_ENTER && _slashEnterHandled) {
-      _slashEnterHandled = false;
-      return true;
-    }
-    return super.onKeyUp(keyCode, event);
-  }
-
-  @Override
   public void onSharedPreferenceChanged(SharedPreferences _prefs, String _key)
   {
     try
     {
+      if ("pref_dismissed_clipboard_clips".equals(_key)
+          || "need_migration".equals(_key)
+          || "emoji_last_use".equals(_key))
+      {
+        return;
+      }
+      if (("current_layout_portrait".equals(_key) || "current_layout_landscape".equals(_key))
+          && _config != null && _prefs != null)
+      {
+        int narrow = _prefs.getInt("current_layout_portrait", 0);
+        int wide = _prefs.getInt("current_layout_landscape", 0);
+        if (narrow == _config.current_layout_narrow && wide == _config.current_layout_wide)
+        {
+          return;
+        }
+      }
       refresh_config();
       if (_keyboard_layout_view != null)
       {
@@ -2321,12 +2323,6 @@ public class Keyboard2 extends InputMethodService
     start_activity(DictionariesActivity.class);
   }
 
-  /** Called from [onClick] attributes. */
-  public void launch_dictionaries_activity(View v)
-  {
-    launch_dictionaries_activity();
-  }
-
   void start_activity(Class cls)
   {
     Intent intent = new Intent(this, cls);
@@ -2338,11 +2334,11 @@ public class Keyboard2 extends InputMethodService
   public class Receiver implements KeyEventHandler.IReceiver,
          KeyValue.Stateful.Symbol_provider, DictionarySwitcher.Callback
   {
-    @Override public boolean isSlashCommandTokenActive() {
-      typodev.keyboard.ai.SlashCommand.Input input = getSlashCommandInput();
-      return input != null && !input.hasDelimiter;
+    @Override
+    public void showMathSolver(String mathProblem)
+    {
+      Keyboard2.this.showMathSolver(mathProblem);
     }
-    @Override public boolean runSlashCommand() { return Keyboard2.this.runSlashCommand(); }
 
     public void handle_event_key(KeyValue.Event ev)
     {
@@ -2370,6 +2366,7 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case SWITCH_BACK_EMOJI:
+          _isEmojiPaneOpen = false;
           if (_isEmojiSearchMode)
           {
             _isEmojiSearchMode = false;
@@ -2408,7 +2405,6 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case ACTION:
-          if (Keyboard2.this.runSlashCommand()) break;
           InputConnection conn = getCurrentInputConnection();
           if (conn != null)
             conn.performEditorAction(_config.editor_config.actionId);

@@ -57,6 +57,11 @@
         android:key="vibrate_custom"
         android:title="@string/pref_vibrate_custom"
         android:defaultValue="false"/>
+    <SwitchPreference
+        android:key="corner_feedback_enabled"
+        android:title="@string/pref_corner_feedback_title"
+        android:summary="@string/pref_corner_feedback_summary"
+        android:defaultValue="false"/>
     <typodev.keyboard.prefs.IntSlideBarPreference
         android:dependency="vibrate_custom"
         android:key="vibrate_duration"

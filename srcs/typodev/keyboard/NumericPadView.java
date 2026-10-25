@@ -45,7 +45,6 @@ public final class NumericPadView extends LinearLayout {
     return WindowInsets.CONSUMED;
   }
   private void applySystemInsets(WindowInsets windowInsets) {
-    if (Build.VERSION.SDK_INT < 35) return;
     Insets insets = windowInsets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
     setPadding(dp(3) + insets.left, dp(3), dp(3) + insets.right, dp(3) + insets.bottom);
   }

@@ -267,7 +267,7 @@ public final class LayoutModifier
       the main layout's script. */
   public static KeyboardData modify_numpad(KeyboardData kw, KeyboardData main_kw)
   {
-    final int map_digit = KeyModifier.modify_numpad_script(main_kw.numpad_script);
+    final int map_digit = globalConfig.editor_config.numeric_layout ? -1 : KeyModifier.modify_numpad_script(main_kw.numpad_script);
     return kw.mapKeys(new KeyboardData.MapKeyValues() {
       public KeyValue apply(KeyValue key, boolean localized)
       {
@@ -297,6 +297,7 @@ public final class LayoutModifier
       same script. */
   public static KeyboardData modify_pinentry(KeyboardData kw, KeyboardData main_kw)
   {
+    if (globalConfig.editor_config.numeric_layout) return kw;
     KeyboardData.MapKeyValues m = numpad_script_map(main_kw.numpad_script);
     return m == null ? kw : kw.mapKeys(m);
   }

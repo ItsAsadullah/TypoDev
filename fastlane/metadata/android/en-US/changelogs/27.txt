@@ -7,3 +7,5 @@ Hide Alt and Meta keys by default.
 Added more optional keys.
 Allow typing password on boot.
 Improvements to the layouts and bug fixes.
+
+Thanks to the contributors: @geroxyz

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/item_ai_comment_card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/ai_comment_card_bg"
+    android:layout_marginBottom="10dp"
+    android:padding="12dp">
+
+  <!-- Card Header -->
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/tv_card_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="বিকল্প ১"
+        android:textSize="11.5sp"
+        android:textStyle="bold"
+        android:textColor="#38BDF8" />
+
+    <TextView
+        android:id="@+id/tv_card_active_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="✓ ইনসার্ট করা রয়েছে"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="#34D399"
+        android:visibility="gone" />
+  </LinearLayout>
+
+  <!-- Comment Text -->
+  <TextView
+      android:id="@+id/tv_card_comment_text"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="6dp"
+      android:layout_marginBottom="10dp"
+      android:text="কমেন্ট টেক্সট..."
+      android:textSize="14.5sp"
+      android:lineSpacingExtra="3dp"
+      android:textColor="#F1F5F9"
+      android:textIsSelectable="true" />
+
+  <!-- Action Buttons Row -->
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="end|center_vertical">
+
+    <!-- Copy Button -->
+    <LinearLayout
+        android:id="@+id/btn_card_copy"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/toolbar_chip_bg"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:layout_marginEnd="8dp"
+        android:clickable="true"
+        android:focusable="true">
+
+      <ImageView
+          android:layout_width="14dp"
+          android:layout_height="14dp"
+          android:src="@drawable/ic_clip_copy"
+          android:tint="#94A3B8"
+          android:layout_marginEnd="5dp" />
+
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="কপি"
+          android:textSize="12sp"
+          android:textColor="#94A3B8" />
+    </LinearLayout>
+
+    <!-- Insert Button -->
+    <LinearLayout
+        android:id="@+id/btn_card_insert"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/toolbar_chip_active_bg"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:clickable="true"
+        android:focusable="true">
+
+      <ImageView
+          android:layout_width="14dp"
+          android:layout_height="14dp"
+          android:src="@drawable/ic_ai_check"
+          android:tint="#FFFFFF"
+          android:layout_marginEnd="5dp" />
+
+      <TextView
+          android:id="@+id/tv_card_insert_label"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="ইনসার্ট"
+          android:textSize="12.5sp"
+          android:textStyle="bold"
+          android:textColor="#FFFFFF" />
+    </LinearLayout>
+  </LinearLayout>
+</LinearLayout>

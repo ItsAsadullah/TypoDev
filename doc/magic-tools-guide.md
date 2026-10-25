@@ -1,9 +1,5 @@
 # Magic Tools quick guide / ম্যাজিক টুল গাইড
 
-**Text from image / ছবি থেকে লেখা:** Open the Magic menu, choose **Text from image**, then **Take photo** or **Choose from gallery**. Gemini reads the selected image and copies readable text to the clipboard. Review or edit the preview and tap **Copy text** again if needed. Internet and a Gemini API key are required. If no text is found, your existing clipboard stays unchanged. Camera photos are temporary and removed when this screen closes.
-
-ম্যাজিক মেনু → **ছবি থেকে লেখা** → **ছবি তুলুন** অথবা **গ্যালারি থেকে নিন**। লেখা পাওয়া গেলে কপি হবে; প্রিভিউতে সংশোধন করে আবার কপি করা যায়। এই অপশনে ইন্টারনেট ও Gemini API key প্রয়োজন।
-
 The walkthrough opens automatically the first time you use the magic menu. Afterwards, open **Settings → AI Assistant → Magic Tools guide** to see it again. You can also use the settings icon in the magic menu to open Writing Settings and its guide. The guide follows the app language and includes Bengali for Bangladesh.
 
 ম্যাজিক মেনু প্রথমবার খুললে গাইড দেখাবে। পরে **Settings → AI Assistant → ম্যাজিক টুল ব্যবহার গাইড** থেকে আবার দেখতে পারবেন।

@@ -159,11 +159,15 @@ public final class ClipboardHistoryService
 
   private static synchronized void addDismissedClip(String text)
   {
+    if (text == null || text.isEmpty()) return;
     if (_service != null && _service._ctx != null)
     {
       ensureDismissedClipsLoaded(_service._ctx);
     }
-    _dismissedClips.add(text);
+    if (!_dismissedClips.add(text))
+    {
+      return;
+    }
     if (_dismissedClips.size() > 60)
     {
       Iterator<String> it = _dismissedClips.iterator();
@@ -177,9 +181,16 @@ public final class ClipboardHistoryService
     {
       try
       {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(_service._ctx);
-        sp.edit().putStringSet(PREF_DISMISSED_CLIPS, new HashSet<String>(_dismissedClips)).apply();
-        DirectBootAwarePreferences.copy_preferences_to_protected_storage(_service._ctx, sp);
+        Set<String> copy = new HashSet<String>(_dismissedClips);
+        SharedPreferences prot = DirectBootAwarePreferences.get_shared_preferences(_service._ctx);
+        if (prot != null)
+          prot.edit().putStringSet(PREF_DISMISSED_CLIPS, copy).apply();
+        if (DirectBootAwarePreferences.isUserUnlocked(_service._ctx))
+        {
+          SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(_service._ctx);
+          if (sp != null && sp != prot)
+            sp.edit().putStringSet(PREF_DISMISSED_CLIPS, copy).apply();
+        }
       }
       catch (Throwable ignored) {}
     }
@@ -201,9 +212,16 @@ public final class ClipboardHistoryService
       {
         try
         {
-          SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(_service._ctx);
-          sp.edit().putStringSet(PREF_DISMISSED_CLIPS, new HashSet<String>(_dismissedClips)).apply();
-          DirectBootAwarePreferences.copy_preferences_to_protected_storage(_service._ctx, sp);
+          Set<String> copy = new HashSet<String>(_dismissedClips);
+          SharedPreferences prot = DirectBootAwarePreferences.get_shared_preferences(_service._ctx);
+          if (prot != null)
+            prot.edit().putStringSet(PREF_DISMISSED_CLIPS, copy).apply();
+          if (DirectBootAwarePreferences.isUserUnlocked(_service._ctx))
+          {
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(_service._ctx);
+            if (sp != null && sp != prot)
+              sp.edit().putStringSet(PREF_DISMISSED_CLIPS, copy).apply();
+          }
         }
         catch (Throwable ignored) {}
       }
@@ -490,11 +508,20 @@ public final class ClipboardHistoryService
       this.isImage = isImage;
       this.uriString = uriString;
 
-      final int historyTtlMinutes = (_service != null) ? _service.get_history_ttl_minutes() : 60;
-      if (historyTtlMinutes >= 0) {
-        this.expiry_timestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(historyTtlMinutes);
-      } else {
-        this.expiry_timestamp = Long.MAX_VALUE;
+      // Sensitive data auto-expiry: 10 minutes for standalone OTP codes
+      boolean isOtp = (c != null) && c.trim().matches("^\\d{4,8}$");
+      if (isOtp)
+      {
+        this.expiry_timestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10);
+      }
+      else
+      {
+        final int historyTtlMinutes = (_service != null) ? _service.get_history_ttl_minutes() : 60;
+        if (historyTtlMinutes >= 0) {
+          this.expiry_timestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(historyTtlMinutes);
+        } else {
+          this.expiry_timestamp = Long.MAX_VALUE;
+        }
       }
     }
   }

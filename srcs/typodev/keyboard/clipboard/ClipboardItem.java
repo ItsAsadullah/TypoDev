@@ -1,10 +1,11 @@
 package typodev.keyboard.clipboard;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Enhanced data model for a clipboard entry with smart categorization (URL, Email, Phone, Image)
+ * Enhanced data model for a clipboard entry with smart categorization (URL, OTP, Email, Phone, Image)
  * and deep entity extraction for 1-tap contextual quick actions.
  */
 public class ClipboardItem
@@ -12,6 +13,7 @@ public class ClipboardItem
   public enum Category
   {
     URL("Link"),
+    CODE_OTP("Code"),
     EMAIL("Email"),
     PHONE("Phone"),
     IMAGE("Image"),
@@ -30,6 +32,8 @@ public class ClipboardItem
       "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b");
   private static final Pattern PHONE_PATTERN = Pattern.compile(
       "(?:\\+?\\d{1,3}[-\\s]?)?\\(?\\d{3,4}\\)?[-\\s]?\\d{3,4}[-\\s]?\\d{3,4}");
+  private static final Pattern OTP_PATTERN = Pattern.compile(
+      "\\b\\d{4,8}\\b");
 
   public final String content;
   public final long timestamp;
@@ -37,6 +41,7 @@ public class ClipboardItem
   public final Category category;
 
   // Extracted entities for 1-tap smart quick actions
+  public final String extractedOtp;
   public final String extractedUrl;
   public final String extractedPhone;
   public final String extractedEmail;
@@ -64,6 +69,7 @@ public class ClipboardItem
     if (isImage)
     {
       this.category = Category.IMAGE;
+      this.extractedOtp = null;
       this.extractedUrl = null;
       this.extractedPhone = null;
       this.extractedEmail = null;
@@ -71,10 +77,16 @@ public class ClipboardItem
     else
     {
       this.category = detectCategory(this.content);
+      this.extractedOtp = extractOtp(this.content);
       this.extractedUrl = extractUrl(this.content);
       this.extractedPhone = extractPhone(this.content);
       this.extractedEmail = extractEmail(this.content);
     }
+  }
+
+  public boolean hasOtp()
+  {
+    return extractedOtp != null && !extractedOtp.isEmpty();
   }
 
   /** Stable identity for history deletion and selection, including image clips. */
@@ -103,25 +115,59 @@ public class ClipboardItem
     if (text == null || text.trim().isEmpty()) return Category.TEXT;
     String trimmed = text.trim();
 
-    // Check URL
+    // 1. Check standalone OTP / numeric code (4 to 8 digits)
+    if (trimmed.matches("^\\d{4,8}$"))
+    {
+      return Category.CODE_OTP;
+    }
+    String lower = trimmed.toLowerCase(Locale.ROOT);
+    if ((lower.contains("code") || lower.contains("otp") || lower.contains("pin") || lower.contains("verification") || lower.contains("পাসকোড") || lower.contains("কোড"))
+        && OTP_PATTERN.matcher(trimmed).find())
+    {
+      return Category.CODE_OTP;
+    }
+
+    // 2. Check URL
     if (URL_PATTERN.matcher(trimmed).find())
     {
       return Category.URL;
     }
 
-    // Check Email
+    // 3. Check Email
     if (EMAIL_PATTERN.matcher(trimmed).find())
     {
       return Category.EMAIL;
     }
 
-    // Check Phone number
+    // 4. Check Phone number
     if (trimmed.length() >= 7 && trimmed.length() <= 16 && PHONE_PATTERN.matcher(trimmed).matches())
     {
       return Category.PHONE;
     }
 
     return Category.TEXT;
+  }
+
+  public static String extractOtp(String text)
+  {
+    if (text == null || text.trim().isEmpty()) return null;
+    String trimmed = text.trim();
+    if (trimmed.matches("^\\d{4,8}$"))
+    {
+      return trimmed;
+    }
+    String lower = trimmed.toLowerCase(Locale.ROOT);
+    if (lower.contains("code") || lower.contains("otp") || lower.contains("pin")
+        || lower.contains("verification") || lower.contains("secret")
+        || lower.contains("পাসকোড") || lower.contains("কোড") || lower.contains("ভেরিফিকেশন"))
+    {
+      Matcher m = OTP_PATTERN.matcher(trimmed);
+      if (m.find())
+      {
+        return m.group();
+      }
+    }
+    return null;
   }
 
   public static String extractUrl(String text)

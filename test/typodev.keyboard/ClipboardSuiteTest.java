@@ -22,11 +22,11 @@ public class ClipboardSuiteTest
   }
 
   @Test
-  public void testShortNumbersAndVerificationMessagesArePlainText()
+  public void testOtpCodeCategoryDetection()
   {
-    assertEquals(ClipboardItem.Category.TEXT, ClipboardItem.detectCategory("492810"));
-    assertEquals(ClipboardItem.Category.TEXT, ClipboardItem.detectCategory("1234"));
-    assertEquals(ClipboardItem.Category.TEXT, ClipboardItem.detectCategory("Your verification code is 882910"));
+    assertEquals(ClipboardItem.Category.CODE_OTP, ClipboardItem.detectCategory("492810"));
+    assertEquals(ClipboardItem.Category.CODE_OTP, ClipboardItem.detectCategory("1234"));
+    assertEquals(ClipboardItem.Category.CODE_OTP, ClipboardItem.detectCategory("Your verification code is 882910"));
   }
 
   @Test
@@ -43,13 +43,12 @@ public class ClipboardSuiteTest
   }
 
   @Test
-  public void testVerificationMessagesHaveNoContextualEntities()
+  public void testOtpExtraction()
   {
-    ClipboardItem item = new ClipboardItem("Your verification code is 492019.", false);
-    assertEquals(ClipboardItem.Category.TEXT, item.category);
-    assertFalse(item.hasPhone());
-    assertFalse(item.hasUrl());
-    assertFalse(item.hasEmail());
+    assertEquals("748291", ClipboardItem.extractOtp("748291"));
+    assertEquals("492019", ClipboardItem.extractOtp("Your bKash verification code is 492019. Do not share."));
+    assertEquals("582104", ClipboardItem.extractOtp("আপনার ওটিপি কোড 582104"));
+    assertNull(ClipboardItem.extractOtp("Just random text with no code"));
   }
 
   @Test

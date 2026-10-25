@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import typodev.keyboard.ai.AiWritingResultsView;
-import typodev.keyboard.ai.SlashCommand;
 import static org.junit.Assert.*;
 
 /** Exercise the real insertion path without requiring Android view constructors. */
@@ -88,39 +87,5 @@ public class AiWritingInsertionTest {
   @Test public void failedCommitEndsBatchAndKeepsPreviewOpen() throws Exception {
     assertEquals(Arrays.asList("beginBatchEdit", "finishComposingText", "deleteSurroundingText",
         "commit:revised", "endBatchEdit"), insert(false, false));
-  }
-
-  @Test public void commandResultReplacesOnlyCommandAndPreservesCodeFormatting() throws Exception {
-    Owner owner = allocate(Owner.class);
-    AiWritingResultsView panel = allocate(AiWritingResultsView.class);
-    SlashCommandTest.Editor editor = new SlashCommandTest.Editor("Earlier text\n  /co Java JSON");
-    String result = "```java\nJSONObject json = new JSONObject(input);\n```\nExplanation";
-    owner.panel = panel; owner.calls = new ArrayList<>(); owner.editor = editor.connection;
-    set(panel, "keyboard", owner); set(panel, "connection", editor.connection); set(panel, "session", 7L);
-    set(panel, "results", new ArrayList<>(Arrays.asList(result)));
-    set(panel, "source", "Java JSON"); set(panel, "before", editor.before);
-    set(panel, "after", ""); set(panel, "selection", "");
-    set(panel, "task", AiWritingResultsView.Task.COMMAND);
-    set(panel, "command", SlashCommand.parse(editor.before).choose(SlashCommand.CODE));
-    Method insert = AiWritingResultsView.class.getDeclaredMethod("insert"); insert.setAccessible(true); insert.invoke(panel);
-    assertEquals("Earlier text\n  " + result, editor.before);
-    assertEquals(Arrays.asList("begin", "finish", "delete:13", "commit:" + result, "end"), editor.edits);
-    assertEquals(Arrays.asList("close"), owner.calls);
-  }
-
-  @Test public void commandChangedDuringCompositionDoesNotDeleteOrInsert() throws Exception {
-    Owner owner = allocate(Owner.class);
-    AiWritingResultsView panel = allocate(AiWritingResultsView.class);
-    SlashCommandTest.Editor editor = new SlashCommandTest.Editor("/reply hello");
-    owner.panel = panel; owner.calls = new ArrayList<>(); owner.editor = editor.connection;
-    set(panel, "keyboard", owner); set(panel, "connection", editor.connection); set(panel, "session", 7L);
-    set(panel, "results", new ArrayList<>(Arrays.asList("polite reply")));
-    set(panel, "source", "hello"); set(panel, "before", editor.before);
-    set(panel, "after", ""); set(panel, "selection", "");
-    set(panel, "task", AiWritingResultsView.Task.COMMAND); set(panel, "command", SlashCommand.parse(editor.before));
-    editor.changeOnFinish = true;
-    Method insert = AiWritingResultsView.class.getDeclaredMethod("insert"); insert.setAccessible(true); insert.invoke(panel);
-    assertEquals("/reply hello changed", editor.before);
-    assertEquals(Arrays.asList("begin", "finish", "end"), editor.edits); assertTrue(owner.calls.isEmpty());
   }
 }

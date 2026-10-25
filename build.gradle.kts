@@ -9,6 +9,7 @@ val robolectricSdk by configurations.creating
 val robolectricCompileSdk by configurations.creating
 
 dependencies {
+  implementation("com.google.android.gms:play-services-auth-api-phone:18.1.0")
   // Following versions of androidx.window require sdk version 23
   implementation("androidx.window:window-java:1.4.0")
   implementation("androidx.core:core:1.16.0") // Version 1.17.0 available with sdk 36
@@ -28,8 +29,8 @@ android {
     applicationId = "typodev.keyboard"
     minSdk = 21
     targetSdk = 35
-    versionCode = 60
-    versionName = "2.1.4"
+    versionCode = 61
+    versionName = "2.1.5"
   }
 
   androidResources {
@@ -60,7 +61,7 @@ android {
   signingConfigs {
     // Debug builds will always be signed. If no environment variables are set, a default
     // keystore will be initialized by the task initDebugKeystore and used. This keystore
-    // can be uploaded to GitHub secrets by following instructions in BUILDING.md
+    // can be uploaded to GitHub secrets by following instructions in CONTRIBUTING.md
     // in order to always receive correctly signed debug APKs from the CI.
     named("debug") {
       storeFile = file(System.getenv("DEBUG_KEYSTORE") ?: "debug.keystore")
@@ -76,6 +77,11 @@ android {
         storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
         keyAlias = System.getenv("RELEASE_KEY_ALIAS")
         keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+      } else {
+        storeFile = file(System.getenv("DEBUG_KEYSTORE") ?: "debug.keystore")
+        storePassword = System.getenv("DEBUG_KEYSTORE_PASSWORD") ?: "debug0"
+        keyAlias = System.getenv("DEBUG_KEY_ALIAS") ?: "debug"
+        keyPassword = System.getenv("DEBUG_KEY_PASSWORD") ?: "debug0"
       }
     }
   }
@@ -102,8 +108,6 @@ android {
       signingConfig = signingConfigs["debug"]
     }
 
-    // Upgrade existing debug APK installs with release optimizations while
-    // retaining their package name and the configured debug signing key.
     create("optimizedDebug") {
       initWith(getByName("release"))
       applicationIdSuffix = ".debug"

@@ -1,13 +1,14 @@
 # Custom layouts
-You select a key layout for TypoDev by calling up the Settings page (swipe the gear icon) and, at the top of the page, either tapping an existing layout or tapping _Add an alternate layout_. This displays a menu of available layouts. You can define your own layout by choosing _Custom layout_ at the bottom of this menu. TypoDev now displays code in the XML format. You make changes by replacing this with different code and tapping OK.
+You select a key layout for Unexpected Keyboard by calling up the Settings page (swipe the gear icon) and, at the top of the page, either tapping an existing layout or tapping _Add an alternate layout_. This displays a menu of available layouts. You can define your own layout by choosing _Custom layout_ at the bottom of this menu. Unexpected Keyboard now displays code in the XML format. You make changes by replacing this with different code and tapping OK.
 
-We recommend you keep your work in a file outside TypoDev (named something like `MyChanges.xml`). If you installed a new version of TypoDev from a different website (with a different signature), then the work you did solely by editing the XML inside TypoDev would be lost.
+We recommend you keep your work in a file outside Unexpected Keyboard (named something like `MyChanges.xml`). If you installed a new version of Unexpected from a different website (with a different signature), then the work you did solely by editing the XML inside Unexpected would be lost.
 
 Put initial contents into your file in one of these ways:
-* Copypaste the code TypoDev displays for _Custom layout_.
-* Make a copy of one of the built-in layouts found in [`/srcs/layouts`](https://github.com/ItsAsadullah/TypoDev/tree/master/srcs/layouts).
+* Copypaste the code Unexpected displays for _Custom layout_.
+* Make a copy of one of the built-in layouts found in [`/srcs/layouts`](https://github.com/Julow/Unexpected-Keyboard/tree/master/srcs/layouts).
+* Use the [web-based editor](https://domportera.github.io/app-unexpected-keyboard-layout-editor/). Interact with this web page to define keys and swipes and move keys to desired positions, and it will write the XML code for you. You can make the web page put the XML in a text file or copy it to the clipboard.
 
-When you have prepared suitable XML code in one of these ways, copy it to the clipboard and paste it into TypoDev.
+When you have prepared suitable XML code in one of these ways, copy it to the clipboard and paste it into Unexpected Keyboard.
 
 ## XML language overview
 A layout XML file comprises tags that start with `<` and end with `>`.
@@ -43,12 +44,12 @@ The `<keyboard>`...`</keyboard>` pair follows the declaration tag and encloses t
 * `numpad_script`: The script to use for the numpad. This is useful for scripts where a different, non-ASCII set of numerals is used, like Devanagari and Arabic. It defaults to the same as `script`.
 
 * `bottom_row`: Whether or not to show the built-in bottom row. It accepts `true` or `false`, and defaults to `true`. If your custom layout defines the bottom row, then specify `bottom_row="false"` to disable the built-in bottom row.
-  + We recommend your layout use the built-in bottom row, because it is still evolving and your layout will incorporate innovations in future versions. However, to define your own, the current definition of the bottom row is in [bottom_row.xml](https://github.com/ItsAsadullah/TypoDev/blob/master/res/xml/bottom_row.xml). You can copypaste this XML into your custom layout as a starting point.
-  + Likewise, the current definition of the top (number) row is in [number_row.xml](https://github.com/ItsAsadullah/TypoDev/blob/master/res/xml/number_row.xml).
+  + We recommend your layout use the built-in bottom row, because it is still evolving and your layout will incorporate innovations in future versions. However, to define your own, the current definition of the bottom row is in [bottom_row.xml](https://github.com/Julow/Unexpected-Keyboard/blob/master/res/xml/bottom_row.xml). You can copypaste this XML into your custom layout as a starting point.
+  + Likewise, the current definition of the top (number) row is in [number_row.xml](https://github.com/Julow/Unexpected-Keyboard/blob/master/res/xml/number_row.xml).
 
 * `embedded_number_row`: Whether the layout has an embedded number row, and thus the "Show number row" setting shouldn't add another one. It accepts `true` or `false`, and defaults to `false`.
 
-* `locale_extra_keys`: Whether TypoDev should add language-dependent extra keys from [method.xml](../res/xml/method.xml) to this layout. It accepts `true` or `false`, and defaults to `true`. To disable these automatic additions, specify `locale_extra_keys="false"`.
+* `locale_extra_keys`: Whether Unexpected should add language-dependent extra keys from [method.xml](../res/xml/method.xml) to this layout. It accepts `true` or `false`, and defaults to `true`. To disable these automatic additions, specify `locale_extra_keys="false"`.
 
 ## Row
 The `<row>`...`</row>` pair encloses one row on the keyboard. It has the following optional property:
@@ -64,7 +65,7 @@ A row's default height is 1.0 (one quarter of the keyboard height specified on t
 The `<key />` tag defines a key on the keyboard. Its position in the sequence of keys inside `<row>`...`</row>` indicates its position in the row from left to right. What the key does is defined by optional properties.
 
 ### Taps
-What the key does when tapped is defined by the optional `c` property. For example, `<key c="a" />` defines the "a" key. TypoDev provides a legend in the middle of the key.
+What the key does when tapped is defined by the optional `c` property. For example, `<key c="a" />` defines the "a" key. Unexpected Keyboard provides a legend in the middle of the key.
 
 When the Shift modifier is tapped, the "a" key becomes the "A" key and the legend temporarily changes. The Fn modifier makes a different change. You can override this behavior with a modmap (see below).
 
@@ -96,7 +97,7 @@ The following optional properties define the effects of swipes:
   </TR>
 </TABLE>
 
-You can define a swipe only once with either compass-point or numeric notation. TypoDev automatically puts a small legend in that direction from the center of the key.
+You can define a swipe only once with either compass-point or numeric notation. Unexpected Keyboard automatically puts a small legend in that direction from the center of the key.
 
 * `anticircle`: The key value to send when doing an anti-clockwise gesture on the key.
 
@@ -105,7 +106,7 @@ A key may have the following properties to control the row's layout:
 * `width`: The width of the key, a positive floating-point value. It defaults to 1.0
 * `shift`: How much empty space to add to the left of this key, a non-negative floating-point value. It defaults to 0.0
 
-Normally, a key's width is 1.0 unit. TypoDev occupies the full width of the screen, and the row defining the highest number of units (in widths plus shifts) is as wide as the screen. A row whose width is a smaller number of units has empty space on the right.
+Normally, a key's width is 1.0 unit. Unexpected Keyboard occupies the full width of the screen, and the row defining the highest number of units (in widths plus shifts) is as wide as the screen. A row whose width is a smaller number of units has empty space on the right.
 
 ### Extra legend
 * `indication`: An optional extra legend to show under the main label. For example, `<key c="2" indication="ABC" />` displays ABC at the bottom of the 2 key, as on a pinpad or some telephones. If the key also defines a downward swipe with `s` or `key8`, the legends overlap.
@@ -151,7 +152,12 @@ The clockwise circle and the round-trip gestures are affected by the `<fn />` ma
 This maps Ctrl+в to Ctrl+V—not to v.
 
 ### Default mappings
-TypoDev's built-in mappings are not expressed as a modmap but by a series of .json files in `https://github.com/ItsAsadullah/TypoDev/tree/master/srcs/compose`. For example, the mappings for `fn` are in [`fn.json`](https://github.com/ItsAsadullah/TypoDev/blob/master/srcs/compose/fn.json). These built-in mappings are common to every language.
+Unexpected Keyboard's built-in mappings are not expressed as a modmap but by a series of .json files in `https://github.com/Julow/Unexpected-Keyboard/tree/master/srcs/compose`. For example, the mappings for `fn` are in [`fn.json`](https://github.com/Julow/Unexpected-Keyboard/blob/master/srcs/compose/fn.json). These built-in mappings are common to every language.
 
 ## Portrait vs. landscape
-TypoDev remembers *separately* which layout has last been used in portrait and landscape orientation. So you may have one custom layout for portrait orientation, but another custom layout for landscape orientation, and TypoDev will switch between them without your intervention.
+Unexpected Keyboard remembers *separately* which layout has last been used in portrait and landscape orientation. So you may have one custom layout for portrait orientation, but another custom layout for landscape orientation, and Unexpected Keyboard will switch between them without your intervention.
+
+## Contributing your layout
+The Unexpected Keyboard project enthusiastically accepts user contributions, including custom layouts. (See the guidance for layouts at [CONTRIBUTING.md](https://github.com/Julow/Unexpected-Keyboard/blob/master/CONTRIBUTING.md#Adding-a-layout)).
+* Submit a layout that has innovations of possible interest to other users at [Unexpected-Keyboard-layouts](https://github.com/Julow/Unexpected-Keyboard-layouts).
+* Propose that your layout be included in the set of built-in layouts by making a Pull Request for an addition to [srcs/layouts](https://github.com/Julow/Unexpected-Keyboard/tree/master/srcs/layouts). Please show that such a layout is standard in your locale or has a substantial number of users.

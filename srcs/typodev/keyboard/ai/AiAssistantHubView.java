@@ -57,21 +57,25 @@ public final class AiAssistantHubView
     });
 
     View writing = view.findViewById(R.id.card_action_writing);
-    view.findViewById(R.id.card_action_image_text).setOnClickListener(v -> {
-      if (!ensureApiKey(context, keyboard2)) return;
-      keyboard2.closeMagicTools();
-      context.startActivity(new android.content.Intent(context, ImageTextActivity.class)
-          .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
-    });
-    writing.setOnClickListener(v -> {
-      keyboard2.closeMagicTools();
-      keyboard2.startWritingTools(false);
-    });
+    if (writing != null) {
+      writing.setOnClickListener(v -> {
+        keyboard2.closeMagicTools();
+        keyboard2.startWritingTools(false);
+      });
+    }
 
-    view.findViewById(R.id.card_action_ai_actions).setOnClickListener(v -> {
-      keyboard2.closeMagicTools();
-      keyboard2.showAiPane();
-    });
+    View mathSolver = view.findViewById(R.id.card_action_math_solver);
+    if (mathSolver != null) {
+      mathSolver.setOnClickListener(v -> {
+        keyboard2.closeMagicTools();
+        android.view.inputmethod.InputConnection ic = keyboard2.getCurrentInputConnection();
+        CharSequence selected = (ic != null) ? ic.getSelectedText(0) : null;
+        CharSequence before = selected != null && selected.length() > 0 ? selected
+            : (ic != null) ? ic.getTextBeforeCursor(160, 0) : null;
+        String problem = (before != null) ? before.toString().trim() : "";
+        keyboard2.showMathSolver(problem);
+      });
+    }
 
     // Setup Close Button
     ImageView btnClose = view.findViewById(R.id.btn_hub_close);
@@ -234,9 +238,9 @@ public final class AiAssistantHubView
       params.bottomMargin = Math.round(8 * density);
       button.setLayoutParams(params);
     }
-    for (int id : new int[] {R.id.card_action_writing, R.id.card_action_ai_actions, R.id.card_action_copied_reply,
+    for (int id : new int[] {R.id.card_action_writing, R.id.card_action_copied_reply,
         R.id.card_action_screen_scan, R.id.card_action_screenshot,
-        R.id.card_action_gallery, R.id.card_action_autocomplete, R.id.card_action_image_text}) {
+        R.id.card_action_gallery, R.id.card_action_autocomplete}) {
       View action = view.findViewById(id);
       GradientDrawable surface = new GradientDrawable();
       surface.setColor(keyboard2.getColorKey());

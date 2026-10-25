@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="math_pane_title">গণিত সমাধান</string>
+  <string name="math_mode_notebook">খাতার মতো সমাধান</string>
+  <string name="math_mode_explained">ধাপে ধাপে বুঝুন</string>
+  <string name="math_mode_notebook_short">খাতার মতো</string>
+  <string name="math_mode_explained_short">ধাপে ধাপে</string>
+  <string name="math_back_keyboard">কিবোর্ডে ফিরুন</string>
+  <string name="math_regenerate">আবার সমাধান করুন</string>
+  <string name="math_question">প্রশ্ন</string>
+  <string name="math_answer">চূড়ান্ত উত্তর</string>
+  <string name="math_rules">সূত্র ও শর্ত</string>
+  <string name="math_empty">আগে অঙ্কটি লিখুন বা নির্বাচন করুন, তারপর গণিত সমাধান খুলুন।</string>
+  <string name="math_loading">সমাধানের ধাপগুলো তৈরি হচ্ছে…</string>
+  <string name="math_incomplete">সম্পূর্ণ সমাধান পাওয়া যায়নি। আবার সমাধান করুন।</string>
+  <string name="math_api_needed">এই অঙ্কের বিস্তারিত সমাধানের জন্য কিবোর্ডের AI সেটিংসে Gemini API Key যোগ করুন।</string>
+  <string name="math_copy">কপি</string>
+  <string name="math_insert_full">সমাধান ইনসার্ট</string>
+  <string name="math_insert_answer">শুধু উত্তর</string>
+  <string name="math_copied">সমাধান কপি হয়েছে</string>
+  <string name="math_edit_hint">অঙ্ক বদলাতে কিবোর্ডে ফিরুন</string>
+  <string name="math_editor_changed">লেখার জায়গা বদলেছে। মূল অঙ্ক থেকে সমাধানটি আবার খুলুন।</string>
+</resources>

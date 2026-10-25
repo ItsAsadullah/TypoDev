@@ -42,25 +42,29 @@
   </PreferenceCategory>
 
   <PreferenceCategory
-      android:title="OpenAI / DeepSeek / Groq / Local LLM"
+      android:title="Groq / xAI Grok / OpenAI / DeepSeek"
       android:layout="@layout/pref_category_header">
+    <EditTextPreference
+        android:key="openai_api_key"
+        android:title="Groq / Grok / OpenAI API Key"
+        android:dialogTitle="API Key (gsk_... / xai-... / sk-...)"
+        android:summary="Enter your Groq (gsk_...), Grok (xai-...), or OpenAI (sk-...) key"/>
+    <Preference
+        android:key="pref_get_groq_api_key"
+        android:title="🔑 Get Free Groq API Key"
+        android:summary="Open GroqCloud Console (console.groq.com/keys) to create a free API key"/>
     <EditTextPreference
         android:key="openai_base_url"
         android:title="API Base URL"
         android:dialogTitle="API Base URL"
-        android:defaultValue="https://api.openai.com/v1"
-        android:summary="https://api.openai.com/v1"/>
-    <EditTextPreference
-        android:key="openai_api_key"
-        android:title="OpenAI / DeepSeek API Key"
-        android:dialogTitle="API Key"
-        android:summary="Enter your API key (sk-...)"/>
+        android:defaultValue="https://api.groq.com/openai/v1"
+        android:summary="https://api.groq.com/openai/v1"/>
     <ListPreference
         android:key="openai_model"
         android:title="Model Name"
         android:dialogTitle="Select Model"
         android:summary="%s"
-        android:defaultValue="gpt-4o-mini"
+        android:defaultValue="llama-3.3-70b-versatile"
         android:entries="@array/pref_openai_model_entries"
         android:entryValues="@array/pref_openai_model_values"/>
   </PreferenceCategory>

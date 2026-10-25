@@ -158,6 +158,23 @@ public class SettingsCategoryActivity extends PreferenceActivity
   }
 
   private void setupClipboardListeners() {
+    Preference browser = findPreference("otp_browser_settings");
+    if (browser != null) browser.setOnPreferenceClickListener(preference -> {
+      typodev.keyboard.autofill.OtpAutofillSettings.openBrowserSettings(this);
+      return true;
+    });
+    Preference test = findPreference("otp_autofill_test");
+    if (test != null) test.setOnPreferenceClickListener(preference -> {
+      if (android.os.Build.VERSION.SDK_INT >= 28)
+        startActivity(new Intent(this, typodev.keyboard.autofill.OtpAutofillTestActivity.class));
+      else typodev.keyboard.autofill.OtpAutofillSettings.open(this);
+      return true;
+    });
+    Preference autofill = findPreference("otp_autofill_service");
+    if (autofill != null) autofill.setOnPreferenceClickListener(preference -> {
+      typodev.keyboard.autofill.OtpAutofillSettings.open(this);
+      return true;
+    });
     Preference pref = findPreference("clipboard_screenshot_autosave");
     if (!(pref instanceof android.preference.SwitchPreference)) return;
     android.preference.SwitchPreference toggle = (android.preference.SwitchPreference)pref;
@@ -221,6 +238,12 @@ public class SettingsCategoryActivity extends PreferenceActivity
       return true;
     });
     final ListPreference providerPref = (ListPreference) findPreference("pref_ai_provider");
+    final EditTextPreference apiKeyPref = (EditTextPreference) findPreference("gemini_api_key");
+    final ListPreference geminiModelPref = (ListPreference) findPreference("gemini_working_model");
+    final EditTextPreference openAiUrlPref = (EditTextPreference) findPreference("openai_base_url");
+    final EditTextPreference openAiKeyPref = (EditTextPreference) findPreference("openai_api_key");
+    final ListPreference openAiModelPref = (ListPreference) findPreference("openai_model");
+
     if (providerPref != null)
     {
       if (providerPref.getEntry() != null)
@@ -238,7 +261,6 @@ public class SettingsCategoryActivity extends PreferenceActivity
       });
     }
 
-    final EditTextPreference apiKeyPref = (EditTextPreference) findPreference("gemini_api_key");
     if (apiKeyPref != null)
     {
       updateApiKeySummary(apiKeyPref);
@@ -247,9 +269,52 @@ public class SettingsCategoryActivity extends PreferenceActivity
         @Override
         public boolean onPreferenceChange(Preference preference, Object newValue)
         {
-          String key = (newValue != null) ? newValue.toString().trim() : "";
+          String key = typodev.keyboard.ai.OpenAiCompatibleProvider.cleanApiKey(
+              newValue != null ? newValue.toString() : "");
+          if (typodev.keyboard.ai.AiProvider.Manager.isOpenAiCompatibleKey(key))
+          {
+            typodev.keyboard.ai.OpenAiCompatibleProvider.setApiKey(SettingsCategoryActivity.this, key);
+            typodev.keyboard.ai.AiProvider.Manager.setActiveProviderType(
+                SettingsCategoryActivity.this,
+                typodev.keyboard.ai.AiProvider.ProviderType.OPENAI_COMPATIBLE);
+            if (openAiKeyPref != null)
+            {
+              openAiKeyPref.setText(key);
+              updateOpenAiKeySummary(openAiKeyPref);
+            }
+            if (openAiUrlPref != null)
+            {
+              String resolvedUrl = typodev.keyboard.ai.OpenAiCompatibleProvider.getBaseUrl(SettingsCategoryActivity.this);
+              openAiUrlPref.setText(resolvedUrl);
+              openAiUrlPref.setSummary(resolvedUrl);
+            }
+            if (openAiModelPref != null)
+            {
+              String resolvedModel = typodev.keyboard.ai.OpenAiCompatibleProvider.getModel(SettingsCategoryActivity.this);
+              openAiModelPref.setValue(resolvedModel);
+              openAiModelPref.setSummary(openAiModelPref.getEntry() != null ? openAiModelPref.getEntry() : resolvedModel);
+            }
+            if (providerPref != null)
+            {
+              providerPref.setValue("openai");
+              if (providerPref.getEntry() != null) providerPref.setSummary(providerPref.getEntry());
+            }
+            Toast.makeText(
+                SettingsCategoryActivity.this,
+                "✅ Groq / Grok / OpenAI API Key সনাক্ত হয়েছে এবং সক্রিয় করা হয়েছে!",
+                Toast.LENGTH_LONG).show();
+            return false;
+          }
           if (key.length() > 0)
           {
+            typodev.keyboard.ai.AiProvider.Manager.setActiveProviderType(
+                SettingsCategoryActivity.this,
+                typodev.keyboard.ai.AiProvider.ProviderType.GEMINI);
+            if (providerPref != null)
+            {
+              providerPref.setValue("gemini");
+              if (providerPref.getEntry() != null) providerPref.setSummary(providerPref.getEntry());
+            }
             preference.setSummary("Key configured: ●●●●●●" + (key.length() > 4 ? key.substring(key.length() - 4) : ""));
           }
           else
@@ -261,7 +326,6 @@ public class SettingsCategoryActivity extends PreferenceActivity
       });
     }
 
-    final ListPreference geminiModelPref = (ListPreference) findPreference("gemini_working_model");
     if (geminiModelPref != null)
     {
       if (geminiModelPref.getEntry() != null)
@@ -301,10 +365,31 @@ public class SettingsCategoryActivity extends PreferenceActivity
       });
     }
 
-    final EditTextPreference openAiUrlPref = (EditTextPreference) findPreference("openai_base_url");
+    Preference getGroqKeyPref = findPreference("pref_get_groq_api_key");
+    if (getGroqKeyPref != null)
+    {
+      getGroqKeyPref.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener()
+      {
+        @Override
+        public boolean onPreferenceClick(Preference preference)
+        {
+          try
+          {
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://console.groq.com/keys"));
+            startActivity(browserIntent);
+          }
+          catch (Exception e)
+          {
+            Toast.makeText(SettingsCategoryActivity.this, "Could not open browser: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+          }
+          return true;
+        }
+      });
+    }
+
     if (openAiUrlPref != null)
     {
-      String url = openAiUrlPref.getText();
+      String url = typodev.keyboard.ai.OpenAiCompatibleProvider.getBaseUrl(this);
       if (url != null && !url.trim().isEmpty())
         openAiUrlPref.setSummary(url.trim());
       openAiUrlPref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener()
@@ -313,13 +398,12 @@ public class SettingsCategoryActivity extends PreferenceActivity
         public boolean onPreferenceChange(Preference preference, Object newValue)
         {
           String u = (newValue != null) ? newValue.toString().trim() : "";
-          preference.setSummary(u.isEmpty() ? "https://api.openai.com/v1" : u);
+          preference.setSummary(u.isEmpty() ? "https://api.groq.com/openai/v1" : u);
           return true;
         }
       });
     }
 
-    final EditTextPreference openAiKeyPref = (EditTextPreference) findPreference("openai_api_key");
     if (openAiKeyPref != null)
     {
       updateOpenAiKeySummary(openAiKeyPref);
@@ -328,21 +412,42 @@ public class SettingsCategoryActivity extends PreferenceActivity
         @Override
         public boolean onPreferenceChange(Preference preference, Object newValue)
         {
-          String key = (newValue != null) ? newValue.toString().trim() : "";
+          String key = typodev.keyboard.ai.OpenAiCompatibleProvider.cleanApiKey(
+              newValue != null ? newValue.toString() : "");
           if (key.length() > 0)
           {
+            typodev.keyboard.ai.OpenAiCompatibleProvider.setApiKey(SettingsCategoryActivity.this, key);
+            typodev.keyboard.ai.AiProvider.Manager.setActiveProviderType(
+                SettingsCategoryActivity.this,
+                typodev.keyboard.ai.AiProvider.ProviderType.OPENAI_COMPATIBLE);
+            if (providerPref != null)
+            {
+              providerPref.setValue("openai");
+              if (providerPref.getEntry() != null) providerPref.setSummary(providerPref.getEntry());
+            }
+            if (openAiUrlPref != null)
+            {
+              String resolvedUrl = typodev.keyboard.ai.OpenAiCompatibleProvider.getBaseUrl(SettingsCategoryActivity.this);
+              openAiUrlPref.setText(resolvedUrl);
+              openAiUrlPref.setSummary(resolvedUrl);
+            }
+            if (openAiModelPref != null)
+            {
+              String resolvedModel = typodev.keyboard.ai.OpenAiCompatibleProvider.getModel(SettingsCategoryActivity.this);
+              openAiModelPref.setValue(resolvedModel);
+              openAiModelPref.setSummary(openAiModelPref.getEntry() != null ? openAiModelPref.getEntry() : resolvedModel);
+            }
             preference.setSummary("Key configured: ●●●●●●" + (key.length() > 4 ? key.substring(key.length() - 4) : ""));
           }
           else
           {
-            preference.setSummary("Enter your API key (sk-...)");
+            preference.setSummary("Enter your Groq (gsk_...), Grok (xai-...), or OpenAI (sk-...) key");
           }
           return true;
         }
       });
     }
 
-    final ListPreference openAiModelPref = (ListPreference) findPreference("openai_model");
     if (openAiModelPref != null)
     {
       if (openAiModelPref.getEntry() != null)
@@ -375,9 +480,21 @@ public class SettingsCategoryActivity extends PreferenceActivity
             {
               if (apiKeyPref != null) updateApiKeySummary(apiKeyPref);
               if (openAiKeyPref != null) updateOpenAiKeySummary(openAiKeyPref);
-              if (providerPref != null && providerPref.getEntry() != null) providerPref.setSummary(providerPref.getEntry());
+              if (openAiUrlPref != null) openAiUrlPref.setSummary(typodev.keyboard.ai.OpenAiCompatibleProvider.getBaseUrl(SettingsCategoryActivity.this));
+              if (providerPref != null)
+              {
+                boolean isOpenAi = typodev.keyboard.ai.AiProvider.Manager.getActiveProviderType(SettingsCategoryActivity.this)
+                    == typodev.keyboard.ai.AiProvider.ProviderType.OPENAI_COMPATIBLE;
+                providerPref.setValue(isOpenAi ? "openai" : "gemini");
+                if (providerPref.getEntry() != null) providerPref.setSummary(providerPref.getEntry());
+              }
               if (geminiModelPref != null && geminiModelPref.getEntry() != null) geminiModelPref.setSummary(geminiModelPref.getEntry());
-              if (openAiModelPref != null && openAiModelPref.getEntry() != null) openAiModelPref.setSummary(openAiModelPref.getEntry());
+              if (openAiModelPref != null)
+              {
+                String m = typodev.keyboard.ai.OpenAiCompatibleProvider.getModel(SettingsCategoryActivity.this);
+                openAiModelPref.setValue(m);
+                openAiModelPref.setSummary(openAiModelPref.getEntry() != null ? openAiModelPref.getEntry() : m);
+              }
             }
           });
           return true;

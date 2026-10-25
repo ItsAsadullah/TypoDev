@@ -178,4 +178,38 @@ public class AiActionEngineTest
     String cleanVowel = AiActionEngine.sanitizeBengaliAndUnicode(brokenVowel);
     assertEquals("কা", cleanVowel);
   }
+
+  @Test
+  public void testGroqAndGrokProviderResolution()
+  {
+    assertTrue(typodev.keyboard.ai.AiProvider.Manager.isOpenAiCompatibleKey("gsk_abc1234567890"));
+    assertTrue(typodev.keyboard.ai.AiProvider.Manager.isOpenAiCompatibleKey("xai-abc1234567890"));
+    assertTrue(typodev.keyboard.ai.AiProvider.Manager.isOpenAiCompatibleKey("sk-abc1234567890"));
+    assertFalse(typodev.keyboard.ai.AiProvider.Manager.isOpenAiCompatibleKey("AIzaSyAbc1234567890"));
+    assertTrue(typodev.keyboard.ai.AiProvider.Manager.isGeminiKey("AIzaSyAbc1234567890"));
+
+    // Groq key with default OpenAI URL should auto-resolve to Groq URL and model
+    assertEquals(
+        "https://api.groq.com/openai/v1",
+        typodev.keyboard.ai.OpenAiCompatibleProvider.normalizeBaseUrl("https://api.openai.com/v1", "gsk_test123"));
+    assertEquals(
+        "https://api.groq.com/openai/v1",
+        typodev.keyboard.ai.OpenAiCompatibleProvider.normalizeBaseUrl("https://api.groq.com/v1", "gsk_test123"));
+    assertEquals(
+        "llama-3.3-70b-versatile",
+        typodev.keyboard.ai.OpenAiCompatibleProvider.resolveModel("gpt-4o-mini", "https://api.groq.com/openai/v1", "gsk_test123"));
+
+    // xAI Grok key with default OpenAI URL should auto-resolve to xAI URL and model
+    assertEquals(
+        "https://api.x.ai/v1",
+        typodev.keyboard.ai.OpenAiCompatibleProvider.normalizeBaseUrl("https://api.openai.com/v1", "xai-test123"));
+    assertEquals(
+        "grok-3-mini",
+        typodev.keyboard.ai.OpenAiCompatibleProvider.resolveModel("gpt-4o-mini", "https://api.x.ai/v1", "xai-test123"));
+
+    // Reasoning <think> tag stripping
+    assertEquals(
+        "চূড়ান্ত উত্তর",
+        typodev.keyboard.ai.OpenAiCompatibleProvider.stripReasoningThinkTags("<think>\nThinking step by step...\n</think>\nচূড়ান্ত উত্তর"));
+  }
 }

@@ -1,0 +1,8 @@
+<resources>
+  <string name="otp_autofill_title">TypoDev OTP Autofill</string>
+  <string name="otp_autofill_summary">Google-এর সম্মতিতে SMS কোড পূরণ করতে TypoDev-কে Autofill service হিসেবে বেছে নিন (Android 9+)। এটি বর্তমান Autofill provider-এর জায়গায় কাজ করবে।</string>
+  <string name="otp_autofill_prompt">SMS যাচাইকরণ কোড নিন</string>
+  <string name="otp_autofill_waiting">SMS যাচাইকরণ কোডের জন্য অপেক্ষা করা হচ্ছে…</string>
+  <string name="otp_autofill_failed">OTP পাওয়া যায়নি, অনুমতি দেওয়া হয়নি অথবা সময় শেষ হয়েছে। কোড নিজে লিখতে পারেন।</string>
+  <string name="otp_autofill_unsupported">OTP Autofill-এর জন্য Android 9 বা পরবর্তী সংস্করণ প্রয়োজন।</string>
+</resources>

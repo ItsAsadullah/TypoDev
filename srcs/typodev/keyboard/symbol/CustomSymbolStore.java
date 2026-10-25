@@ -22,7 +22,7 @@ public final class CustomSymbolStore
 
     public Mapping(String baseKey, int pos, String symbol)
     {
-      this.baseKey = (baseKey == null) ? "" : baseKey.toLowerCase(java.util.Locale.ROOT).trim();
+      this.baseKey = (baseKey == null) ? "" : baseKey.toLowerCase().trim();
       this.pos = pos;
       this.symbol = (symbol == null) ? "" : symbol.trim();
     }
@@ -92,7 +92,7 @@ public final class CustomSymbolStore
     @Override
     public int hashCode()
     {
-      return 31 * baseKey.toLowerCase(java.util.Locale.ROOT).hashCode() + pos;
+      return 31 * baseKey.toLowerCase().hashCode() + pos;
     }
   }
 

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/settings_hub_card_bg"
+    android:padding="16dp">
+
+  <!-- Header -->
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical"
+      android:layout_marginBottom="10dp">
+
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_toolbar_ai"
+        android:tint="#38BDF8"
+        android:layout_marginEnd="10dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="এআই কমেন্ট ও রিপ্লাই"
+          android:textSize="16sp"
+          android:textStyle="bold"
+          android:textColor="#FFFFFF" />
+
+      <TextView
+          android:id="@+id/tv_full_dialog_tone"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="টোন: স্বাভাবিক"
+          android:textSize="11.5sp"
+          android:textColor="#94A3B8" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/btn_full_dialog_close"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@drawable/ic_ai_close"
+        android:tint="#94A3B8"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:padding="5dp"
+        android:contentDescription="Close" />
+  </LinearLayout>
+
+  <!-- Subtitle Hint -->
+  <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="পছন্দের কমেন্টে ক্লিক করলে ইনসার্ট হবে। ভিন্ন কমেন্ট ক্লিক করে পরিবর্তন করতে পারেন।"
+      android:textSize="11.5sp"
+      android:textColor="#64748B"
+      android:layout_marginBottom="10dp" />
+
+  <!-- Scrollable List of Cards -->
+  <ScrollView
+      android:id="@+id/scroll_full_comments"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:overScrollMode="ifContentScrolls">
+
+    <LinearLayout
+        android:id="@+id/container_full_comments_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+  </ScrollView>
+
+  <!-- Footer Actions -->
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical"
+      android:layout_marginTop="8dp">
+
+    <!-- Regenerate Button -->
+    <LinearLayout
+        android:id="@+id/btn_full_dialog_regenerate"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/toolbar_chip_bg"
+        android:layout_marginEnd="8dp"
+        android:clickable="true"
+        android:focusable="true">
+
+      <ImageView
+          android:layout_width="15dp"
+          android:layout_height="15dp"
+          android:src="@drawable/ic_ai_refresh"
+          android:tint="#38BDF8"
+          android:layout_marginEnd="6dp" />
+
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="নতুন জেনারেট"
+          android:textSize="12.5sp"
+          android:textColor="#38BDF8" />
+    </LinearLayout>
+
+    <!-- Done / Close Button -->
+    <LinearLayout
+        android:id="@+id/btn_full_dialog_done"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@drawable/toolbar_chip_bg"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:clickable="true"
+        android:focusable="true">
+
+      <TextView
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="বন্ধ করুন"
+          android:textSize="12.5sp"
+          android:textColor="#94A3B8" />
+    </LinearLayout>
+  </LinearLayout>
+</LinearLayout>

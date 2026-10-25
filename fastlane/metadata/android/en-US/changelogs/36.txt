@@ -5,3 +5,5 @@ New layouts.
 Improved layouts and language support.
 Improved the space bar slider, and many more.
 Updated translations.
+
+Thanks to the contributors: @ChasmSolacer, @ElucGeek, @GoRaN909, @RZHSSNZDH, @Shareef101, @Validbit, @eandersons, @nitsvga, @polyctena, @sdrapha, @syskill

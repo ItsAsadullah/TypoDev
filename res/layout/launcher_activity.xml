@@ -371,7 +371,6 @@
               android:layout_width="55dp"
               android:layout_height="66dp"
               android:background="@drawable/doc_key_u"
-              android:src="@drawable/doc_anim_swipe"
               android:scaleType="fitCenter"
               android:contentDescription="Corner Swipe"/>
 
@@ -408,7 +407,6 @@
               android:layout_width="55dp"
               android:layout_height="66dp"
               android:background="@drawable/doc_key_g"
-              android:src="@drawable/doc_anim_circle"
               android:scaleType="fitCenter"
               android:contentDescription="Circle Gesture"/>
 
@@ -445,7 +443,6 @@
               android:layout_width="55dp"
               android:layout_height="66dp"
               android:background="@drawable/doc_key_g"
-              android:src="@drawable/doc_anim_round_trip"
               android:scaleType="fitCenter"
               android:contentDescription="Round-Trip Swipe"/>
 

@@ -10,6 +10,8 @@ import typodev.keyboard.dict.Dictionaries;
 import typodev.keyboard.Config;
 import typodev.keyboard.ComposeKey;
 import typodev.keyboard.ComposeKeyData;
+import typodev.keyboard.NumericCalculator;
+import typodev.keyboard.AlgebraFormulaEngine;
 
 /** Keep track of the word being typed and provide suggestions for
     [CandidatesView]. */
@@ -150,6 +152,33 @@ public final class Suggestions
 
     clear();
     boolean bengaliMode = isBengaliMode() || containsBengaliChar(textBefore);
+    if (_config == null || _config.editor_config == null || !_config.editor_config.is_password)
+    {
+      NumericCalculator.InlineResult calcResult = NumericCalculator.evaluateInline(textBefore);
+      if (calcResult != null)
+      {
+        populateCalculatorSuggestions(calcResult, bengaliMode || isAvroMode());
+        _callback.set_suggestions(this);
+        return;
+      }
+      AlgebraFormulaEngine.AlgebraResult algResult = AlgebraFormulaEngine.evaluateInline(textBefore);
+      if (algResult != null)
+      {
+        populateAlgebraSuggestions(algResult);
+        _callback.set_suggestions(this);
+        return;
+      }
+      if (AlgebraFormulaEngine.isMathProblem(textBefore))
+      {
+        String mathProblem = AlgebraFormulaEngine.extractMathProblem(textBefore);
+        if (mathProblem != null)
+        {
+          populateGeneralMathSolverSuggestion(mathProblem);
+          _callback.set_suggestions(this);
+          return;
+        }
+      }
+    }
 
     // If text ends with angle bracket e.g. "<" or "</", show tag suggestions directly IF in developer mode
     if (_config != null && _config.developer_mode && (textBefore.endsWith("</") || textBefore.endsWith("<")))
@@ -296,10 +325,111 @@ public final class Suggestions
   public String verbatim_word = null;
   public Candidate top_candidate = null;
   private boolean _isAvroBanglishActive = false;
+  private String _calc_matched_text = null;
+  private String _calc_result = null;
+  private String _calc_equation = null;
 
   public boolean isAvroBanglishActive()
   {
     return _isAvroBanglishActive;
+  }
+
+  public boolean isCalculatorActive()
+  {
+    return _calc_matched_text != null;
+  }
+
+  public boolean isCalculatorSuggestion(String candidate)
+  {
+    if (_calc_matched_text == null || candidate == null) return false;
+    return candidate.equals(_calc_result)
+        || candidate.equals(_calc_equation)
+        || (_calc_result != null && candidate.equals(NumericCalculator.toBengaliDigits(_calc_result)))
+        || (_calc_equation != null && candidate.equals(NumericCalculator.toBengaliDigits(_calc_equation)));
+  }
+
+  private void populateCalculatorSuggestions(NumericCalculator.InlineResult calcResult, boolean includeBengaliVariants)
+  {
+    _calc_matched_text = calcResult.matchedText;
+    _calc_result = calcResult.result;
+    _calc_equation = calcResult.equation;
+    int idx = 0;
+    suggestions[idx++] = calcResult.result;
+    suggestions[idx++] = calcResult.equation;
+    if (includeBengaliVariants && !NumericCalculator.containsBengaliDigits(calcResult.compactExpression))
+    {
+      String bnRes = NumericCalculator.toBengaliDigits(calcResult.result);
+      String bnEq = NumericCalculator.toBengaliDigits(calcResult.equation);
+      if (!bnRes.equals(calcResult.result))
+      {
+        suggestions[idx++] = bnRes;
+        suggestions[idx++] = bnEq;
+      }
+    }
+    count = idx;
+    should_autocorrect = false;
+    top_candidate = new Candidate(calcResult.result, Candidate.Source.VERBATIM, 255, 0, 1.0f);
+  }
+
+  public String getCalculatorMatchedText()
+  {
+    return _calc_matched_text;
+  }
+
+  private String _algebra_matched_text = null;
+  private String _algebra_result = null;
+  private String _algebra_equation = null;
+  private String _math_problem_text = null;
+
+  public boolean isAlgebraActive()
+  {
+    return _algebra_matched_text != null;
+  }
+
+  public boolean isAlgebraSuggestion(String candidate)
+  {
+    if (_algebra_matched_text == null || candidate == null) return false;
+    return candidate.equals(_algebra_result) || candidate.equals(_algebra_equation);
+  }
+
+  public String getAlgebraMatchedText()
+  {
+    return _algebra_matched_text;
+  }
+
+  public String getActiveMathProblem()
+  {
+    return _math_problem_text;
+  }
+
+  public boolean isMathSolverSuggestion(String candidate)
+  {
+    if (candidate == null) return false;
+    return candidate.startsWith("🧮 AI সমাধান") || candidate.startsWith("✨ স্টেপ বাই স্টেপ");
+  }
+
+  private void populateAlgebraSuggestions(AlgebraFormulaEngine.AlgebraResult algResult)
+  {
+    _algebra_matched_text = algResult.matchedText;
+    _algebra_result = algResult.expansion;
+    _algebra_equation = algResult.equation;
+    _math_problem_text = algResult.matchedText;
+    int idx = 0;
+    suggestions[idx++] = algResult.expansion;
+    suggestions[idx++] = algResult.equation;
+    suggestions[idx++] = "🧮 AI সমাধান (স্টেপ বাই স্টেপ)";
+    count = idx;
+    should_autocorrect = false;
+    top_candidate = new Candidate(algResult.expansion, Candidate.Source.VERBATIM, 255, 0, 1.0f);
+  }
+
+  private void populateGeneralMathSolverSuggestion(String problem)
+  {
+    _math_problem_text = problem;
+    suggestions[0] = "🧮 AI সমাধান (স্টেপ বাই স্টেপ)";
+    suggestions[1] = "✨ স্টেপ বাই স্টেপ সমাধান";
+    count = 2;
+    should_autocorrect = false;
   }
 
   public String getTopBanglaCandidate()
@@ -328,6 +458,13 @@ public final class Suggestions
     verbatim_word = null;
     top_candidate = null;
     _isAvroBanglishActive = false;
+    _calc_matched_text = null;
+    _calc_result = null;
+    _calc_equation = null;
+    _algebra_matched_text = null;
+    _algebra_result = null;
+    _algebra_equation = null;
+    _math_problem_text = null;
     if (_onlineDebounce != null)
     {
       android.os.Handler handler = getOnlineHandler();
@@ -350,11 +487,62 @@ public final class Suggestions
     {
       String rawWord = word;
       verbatim_word = rawWord;
+
+      CharSequence calcBeforeSeq = null;
+      if (_callback != null)
+      {
+        try
+        {
+          calcBeforeSeq = _callback.getTextBeforeCursor(120, 0);
+        }
+        catch (Throwable ignored) {}
+      }
+      String calcBeforeStr = (calcBeforeSeq != null) ? calcBeforeSeq.toString() : "";
+      String effectiveCalcText;
+      if (calcBeforeStr.isEmpty())
+      {
+        effectiveCalcText = (rawWord != null) ? rawWord : "";
+      }
+      else if (rawWord == null || rawWord.isEmpty() || calcBeforeStr.endsWith(rawWord))
+      {
+        effectiveCalcText = calcBeforeStr;
+      }
+      else
+      {
+        effectiveCalcText = calcBeforeStr + rawWord;
+      }
+
       Cdict dict = _config.current_dictionary;
       boolean first_char_upper = (word != null && !word.isEmpty() && Character.isUpperCase(word.charAt(0)));
       String subWord = apply_substitutions(word);
       boolean bengaliMode = isBengaliMode() || containsBengaliChar(rawWord);
       boolean isAvroBanglish = (isAvroMode() || bengaliMode) && BanglishEngine.isLatinOnly(rawWord) && rawWord != null && !rawWord.isEmpty();
+
+      if (!isAvroBanglish)
+      {
+        NumericCalculator.InlineResult calcResult = NumericCalculator.evaluateInline(effectiveCalcText);
+        if (calcResult != null)
+        {
+          populateCalculatorSuggestions(calcResult, isBengaliMode() || isAvroMode() || containsBengaliChar(effectiveCalcText));
+          return count;
+        }
+
+        AlgebraFormulaEngine.AlgebraResult algResult = AlgebraFormulaEngine.evaluateInline(effectiveCalcText);
+        if (algResult != null)
+        {
+          populateAlgebraSuggestions(algResult);
+          return count;
+        }
+        if (AlgebraFormulaEngine.isMathProblem(effectiveCalcText))
+        {
+          String mathProblem = AlgebraFormulaEngine.extractMathProblem(effectiveCalcText);
+          if (mathProblem != null)
+          {
+            populateGeneralMathSolverSuggestion(mathProblem);
+            return count;
+          }
+        }
+      }
 
       List<Candidate> rawCandidates = new ArrayList<>(48);
       _clipboardShortcutTexts.clear();
@@ -415,17 +603,7 @@ public final class Suggestions
       // 0. Developer Coding Syntax & Tag Suggestions (ONLY in developer_mode)
       if (_config != null && _config.developer_mode)
       {
-        CharSequence textBefore = null;
-        if (_callback != null)
-        {
-          try
-          {
-            textBefore = _callback.getTextBeforeCursor(120, 0);
-          }
-          catch (Throwable ignored) {}
-        }
-        String textBeforeStr = (textBefore != null) ? textBefore.toString() : "";
-        List<Candidate> devCands = DevSyntaxEngine.instance().queryCandidates(rawWord, textBeforeStr, 8);
+        List<Candidate> devCands = DevSyntaxEngine.instance().queryCandidates(rawWord, calcBeforeStr, 8);
         rawCandidates.addAll(devCands);
       }
 
@@ -582,16 +760,7 @@ public final class Suggestions
       // 9. Context Collocation & Predictive Boost from preceding words in sentence
       // Skip in Avro/Banglish mode: NextWordPredictor is English-trained and adds noise for Bengali.
       if (!isAvroBanglish) {
-        CharSequence textBefore = null;
-        if (_callback != null)
-        {
-          try
-          {
-            textBefore = _callback.getTextBeforeCursor(120, 0);
-          }
-          catch (Throwable ignored) {}
-        }
-        String priorText = (textBefore != null) ? textBefore.toString() : "";
+        String priorText = calcBeforeStr;
         if (!priorText.isEmpty() && rawWord != null && !rawWord.isEmpty())
         {
           if (priorText.endsWith(rawWord))

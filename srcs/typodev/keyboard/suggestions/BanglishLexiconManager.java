@@ -19,7 +19,7 @@ import typodev.keyboard.R;
  */
 public class BanglishLexiconManager {
     private static volatile BanglishLexiconManager sInstance;
-    private final Map<String, String[]> mDictionary = new HashMap<>(55000);
+    private volatile Map<String, String[]> mDictionary = java.util.Collections.emptyMap();
     private volatile boolean mLoaded = false;
     private volatile boolean mLoading = false;
 
@@ -68,7 +68,7 @@ public class BanglishLexiconManager {
                 loadSync(context);
             }
         }, "BanglishLexiconLoader");
-        t.setPriority(Thread.MAX_PRIORITY);
+        t.setPriority(Thread.NORM_PRIORITY);
         t.start();
     }
 
@@ -110,6 +110,7 @@ public class BanglishLexiconManager {
     }
 
     private void loadFromStream(InputStream is) {
+        Map<String, String[]> loaded = new HashMap<>(55000);
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8), 32768)) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -122,19 +123,21 @@ public class BanglishLexiconManager {
                                    .replace("\u09a2\u09bc", "\u09dd")
                                    .replace("\u09af\u09bc", "\u09df");
                         String[] candidates = vals.split(",");
-                        mDictionary.put(key, candidates);
+                        loaded.put(key, candidates);
                     }
                 }
             }
+            mDictionary = loaded;
         } catch (Throwable ignored) {}
     }
 
     public String[] getCandidates(String latinWord) {
         if (latinWord == null || latinWord.isEmpty()) return null;
         String lower = latinWord.toLowerCase(Locale.ROOT);
+        Map<String, String[]> dict = mDictionary;
 
         // 1. Direct hit in 50,000+ words dictionary
-        String[] hit = mDictionary.get(lower);
+        String[] hit = dict.get(lower);
         if (hit != null && hit.length > 0) {
             return hit;
         }
@@ -148,7 +151,7 @@ public class BanglishLexiconManager {
         // 3. Normalized fuzzy lookup (e.g. collapse duplicate letters: 'onnek' -> 'onek', 'kkhoma' -> 'khoma')
         String normalized = normalize(lower);
         if (!normalized.equals(lower)) {
-            String[] normHit = mDictionary.get(normalized);
+            String[] normHit = dict.get(normalized);
             if (normHit != null && normHit.length > 0) {
                 return normHit;
             }

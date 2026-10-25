@@ -18,14 +18,8 @@ import typodev.keyboard.*;
     possible extra keys. */
 public class ExtraKeysPreference extends PreferenceCategory
 {
-  /** Selectable math characters, in the same order as their localized descriptions. */
-  public static final String[] math_keys = new String[] {
-    "+", "−", "×", "÷", "±", "=", "≠", "≈", "≡", "<", ">", "≤", "≥",
-    "√", "∛", "∞", "π", "∑", "∏", "∫", "∂", "∆", "∇", "°", "²", "³",
-    "½", "¼", "¾", "%", "‰", "∈", "∉", "∅", "∪", "∩", "⊂", "⊆", "∝", "∠"
-  };
-
-  private static final String[] standard_keys = new String[]
+  /** Array of the keys that can be selected. */
+  public static String[] extra_keys = new String[]
   {
     "alt",
     "meta",
@@ -133,15 +127,6 @@ public class ExtraKeysPreference extends PreferenceCategory
     "combining_palatalization",
   };
 
-  /** Complete catalog shared with the layout modifier and symbol customizer. */
-  public static String[] extra_keys;
-  static {
-    extra_keys = java.util.Arrays.copyOf(standard_keys, standard_keys.length + math_keys.length);
-    System.arraycopy(math_keys, 0, extra_keys, standard_keys.length, math_keys.length);
-  }
-
-  protected String[] selectable_keys() { return standard_keys; }
-
   /** Whether an extra key is enabled by default. */
   public static boolean default_checked(String name)
   {
@@ -164,8 +149,6 @@ public class ExtraKeysPreference extends PreferenceCategory
   /** Text that describe a key. Might be null. */
   static String key_description(Resources res, String name)
   {
-    for (int i = 0; i < math_keys.length; i++)
-      if (math_keys[i].equals(name)) return res.getStringArray(R.array.math_extra_key_descriptions)[i];
     int id = 0;
     String additional_info = null;
     switch (name)
@@ -392,7 +375,7 @@ public class ExtraKeysPreference extends PreferenceCategory
     if (_attached)
       return;
     _attached = true;
-    for (String key_name : selectable_keys())
+    for (String key_name : extra_keys)
       addPreference(new ExtraKeyCheckBoxPreference(getContext(), key_name,
             default_checked(key_name)));
   }

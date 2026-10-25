@@ -42,7 +42,7 @@ public final class AiVisionHelper
    */
   public static byte[] scaleAndCompressBitmap(Bitmap bitmap, int maxDimension, int quality)
   {
-    if (bitmap == null || bitmap.isRecycled() || maxDimension <= 0) return null;
+    if (bitmap == null) return null;
 
     int width = bitmap.getWidth();
     int height = bitmap.getHeight();
@@ -56,12 +56,12 @@ public final class AiVisionHelper
       if (ratio > 1f)
       {
         newWidth = maxDimension;
-        newHeight = Math.max(1, (int) (maxDimension / ratio));
+        newHeight = (int) (maxDimension / ratio);
       }
       else
       {
         newHeight = maxDimension;
-        newWidth = Math.max(1, (int) (maxDimension * ratio));
+        newWidth = (int) (maxDimension * ratio);
       }
       if (newWidth > 0 && newHeight > 0)
       {
@@ -86,7 +86,7 @@ public final class AiVisionHelper
    */
   public static byte[] getBytesFromUri(Context context, Uri uri, int maxDimension)
   {
-    if (context == null || uri == null || maxDimension <= 0) return null;
+    if (context == null || uri == null) return null;
     ContentResolver resolver = context.getContentResolver();
 
     try
@@ -106,7 +106,7 @@ public final class AiVisionHelper
 
       // Calculate inSampleSize
       int sampleSize = 1;
-      while ((outWidth / sampleSize) > (long) maxDimension * 2 || (outHeight / sampleSize) > (long) maxDimension * 2)
+      while ((outWidth / sampleSize) > maxDimension * 2 || (outHeight / sampleSize) > maxDimension * 2)
       {
         sampleSize *= 2;
       }
@@ -142,13 +142,10 @@ public final class AiVisionHelper
     if (context == null) return null;
     ContentResolver resolver = context.getContentResolver();
 
-    String pathColumn = Build.VERSION.SDK_INT >= 29
-        ? MediaStore.Images.Media.RELATIVE_PATH : MediaStore.Images.Media.DATA;
     String[] projection = {
         MediaStore.Images.Media._ID,
         MediaStore.Images.Media.DATE_ADDED,
-        MediaStore.Images.Media.DISPLAY_NAME,
-        pathColumn
+        MediaStore.Images.Media.DISPLAY_NAME
     };
 
     String sortOrder = MediaStore.Images.Media.DATE_ADDED + " DESC";
@@ -158,7 +155,7 @@ public final class AiVisionHelper
       cursor = resolver.query(
           MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
           projection,
-          Build.VERSION.SDK_INT >= 29 ? "is_pending=0" : null,
+          null,
           null,
           sortOrder
       );
@@ -167,23 +164,35 @@ public final class AiVisionHelper
       {
         int idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID);
         int nameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME);
-        int pathCol = cursor.getColumnIndexOrThrow(pathColumn);
+        int dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED);
 
         int count = 0;
+        long nowSeconds = System.currentTimeMillis() / 1000L;
 
         do
         {
           long id = cursor.getLong(idCol);
           String name = cursor.getString(nameCol);
-          if (typodev.keyboard.clipboard.ClipboardImageStore.isScreenshot(
-              name + " " + cursor.getString(pathCol)))
+          long dateAdded = cursor.getLong(dateCol);
+
+          if (name != null)
+          {
+            String lowerName = name.toLowerCase();
+            if (lowerName.contains("screenshot") || lowerName.contains("screen_shot"))
+            {
+              return ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+            }
+          }
+
+          // If within the last 15 minutes, likely the screenshot the user just took
+          if (count == 0 && (nowSeconds - dateAdded) < 900L)
           {
             return ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
           }
 
           count++;
         }
-        while (cursor.moveToNext() && count < 500);
+        while (cursor.moveToNext() && count < 10);
       }
     }
     catch (Throwable ignored)

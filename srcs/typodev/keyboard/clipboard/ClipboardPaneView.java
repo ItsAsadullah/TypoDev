@@ -44,17 +44,17 @@ import typodev.keyboard.KeyValue;
 import typodev.keyboard.R;
 import typodev.keyboard.Utils;
 import typodev.keyboard.ai.AiSettingsDialog;
-import typodev.keyboard.ai.AiProvider;
 import typodev.keyboard.ai.GeminiAiService;
 import typodev.keyboard.translate.TranslationEngine;
 
 /**
  * Modern, card-based mobile clipboard suite modeled after GBoard and SwiftKey.
  * Professional styling strictly synced with active keyboard theme:
- * 1. Category Filter Tabs: Clean labels (All, Pinned, Recent, Links, Contacts, Images).
+ * 1. Category Filter Tabs: Clean labels (All, Pinned, Recent, Codes, Links, Contacts, Images).
  * 2. Multi-Paste / Queue Mode: Continuous sequential paste without closing clipboard.
- * 3. Smart Quick Actions: Open Link, WhatsApp, Call, Email and image analysis.
+ * 3. Smart Quick Actions & OTP Extractor: Clean action chips (Paste Code, Open Link, WhatsApp, Call, Email).
  * 4. AI Assistant: Professional vector icons and dialogs matched to active keyboard theme.
+ * 5. 10-minute Auto-expiry for sensitive OTPs.
  * 6. Backup & Restore (JSON export / import).
  * 7. Image & Screenshot Support (Thumbnail display + Rich Content Insertion).
  */
@@ -68,6 +68,7 @@ public class ClipboardPaneView extends LinearLayout
     RECENT("Recent"),
     IMAGES("Images"),
     SHORTCUTS("Shortcuts"),
+    OTP("Codes"),
     LINKS("Links"),
     CONTACTS("Contacts");
 
@@ -81,7 +82,6 @@ public class ClipboardPaneView extends LinearLayout
   private Keyboard2 _keyboard;
   private boolean _readingAiImage;
   private long _aiImageRequest;
-  private long _aiTextRequest;
   private ClipboardHistoryService _historyService;
   private PinnedClipboardStore _pinnedStore;
   private ClipboardImageStore _imageStore;
@@ -1578,6 +1578,7 @@ public class ClipboardPaneView extends LinearLayout
     optionsList.add("Paste directly");
     optionsList.add(getResources().getString(item.isImage ? R.string.clipboard_visual_search : R.string.clipboard_web_search));
     if (item.isImage) optionsList.add(getResources().getString(R.string.clipboard_ai_image_comments));
+    if (item.hasOtp()) optionsList.add("Paste Code (" + item.extractedOtp + ")");
     if (item.hasUrl()) optionsList.add("Open Link");
     if (item.hasPhone()) optionsList.add("WhatsApp Chat");
     if (item.hasPhone()) optionsList.add("Call number");
@@ -1619,7 +1620,11 @@ public class ClipboardPaneView extends LinearLayout
             else if (opt.equals(getResources().getString(R.string.clipboard_web_search))) {
               ClipboardSearchActions.web(context, item.content);
             }
-
+            else if (opt.startsWith("Paste Code"))
+            {
+              ClipboardHistoryService.paste(item.extractedOtp);
+              if (_keyboard != null) _keyboard.handle_event_key(KeyValue.Event.SWITCH_BACK_CLIPBOARD);
+            }
             else if (opt.startsWith("Open Link"))
             {
               try
@@ -1842,7 +1847,7 @@ public class ClipboardPaneView extends LinearLayout
     });
     root.addView(btnCancel);
 
-    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar)
+    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
         .setView(root)
         .create();
     dialogHolder[0] = dialog;
@@ -1857,9 +1862,7 @@ public class ClipboardPaneView extends LinearLayout
     boolean hasBengali = containsBengali(item.content);
     String src = hasBengali ? "bn" : "en";
     String target = hasBengali ? "en" : "bn";
-    Toast.makeText(context, "Translating (" + src.toUpperCase(Locale.ROOT) + " → " + target.toUpperCase(Locale.ROOT) + ")...", Toast.LENGTH_SHORT).show();
-    final long request = ++_aiTextRequest;
-    final long session = _keyboard == null ? -1 : _keyboard.getInputSessionId();
+    Toast.makeText(context, "Translating (" + src.toUpperCase() + " → " + target.toUpperCase() + ")...", Toast.LENGTH_SHORT).show();
 
     TranslationEngine.translate(context, item.content, src, target, new TranslationEngine.TranslationCallback()
     {
@@ -1871,8 +1874,7 @@ public class ClipboardPaneView extends LinearLayout
           @Override
           public void run()
           {
-            if (isCurrentAiTextRequest(request, session))
-              showAiResultDialog("Translation (" + (isOffline ? "Offline" : "Online") + ")", translatedText);
+            showAiResultDialog("Translation (" + (isOffline ? "Offline" : "Online") + ")", translatedText);
           }
         });
       }
@@ -1885,8 +1887,7 @@ public class ClipboardPaneView extends LinearLayout
           @Override
           public void run()
           {
-            if (isCurrentAiTextRequest(request, session))
-              Toast.makeText(context, "Translation error: " + error, Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "Translation error: " + error, Toast.LENGTH_SHORT).show();
           }
         });
       }
@@ -1896,11 +1897,12 @@ public class ClipboardPaneView extends LinearLayout
   private void performAiAction(final ClipboardItem item, final GeminiAiService.Action action, final String promptOverride, final String title)
   {
     final Context context = getContext();
-    if (!AiProvider.Manager.hasConfiguredApiKey(context))
+    String key = GeminiAiService.getApiKey(context);
+    if (key == null || key.trim().isEmpty())
     {
       AlertDialog d = new AlertDialog.Builder(context)
           .setTitle("AI Setup Required")
-          .setMessage("Please configure your selected AI provider in AI Settings.")
+          .setMessage("Please enter your free Google Gemini API Key in AI Settings to use AI features.")
           .setPositiveButton("Settings", new DialogInterface.OnClickListener()
           {
             @Override
@@ -1920,9 +1922,7 @@ public class ClipboardPaneView extends LinearLayout
 
     Toast.makeText(context, "Processing with AI...", Toast.LENGTH_SHORT).show();
 
-    final long request = ++_aiTextRequest;
-    final long session = _keyboard == null ? -1 : _keyboard.getInputSessionId();
-    AiProvider.Callback callback = new AiProvider.Callback()
+    GeminiAiService.AiCallback callback = new GeminiAiService.AiCallback()
     {
       @Override
       public void onSuccess(final String result)
@@ -1932,7 +1932,7 @@ public class ClipboardPaneView extends LinearLayout
           @Override
           public void run()
           {
-            if (isCurrentAiTextRequest(request, session)) showAiResultDialog(title, result);
+            showAiResultDialog(title, result);
           }
         });
       }
@@ -1945,8 +1945,7 @@ public class ClipboardPaneView extends LinearLayout
           @Override
           public void run()
           {
-            if (isCurrentAiTextRequest(request, session))
-              Toast.makeText(context, "AI Error: " + error, Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "AI Error: " + error, Toast.LENGTH_SHORT).show();
           }
         });
       }
@@ -1954,20 +1953,12 @@ public class ClipboardPaneView extends LinearLayout
 
     if (action != null)
     {
-      String prompt = action.getPrompt() + "\n" + typodev.keyboard.ai.AiWritingPrompts.GROUNDING_RULES;
-      prompt += GeminiAiService.isEmojifyEnabled(context)
-          ? "\nUse fitting emojis naturally." : "\nDo not include emojis.";
-      AiProvider.Manager.getActiveProvider(context).generate(context, prompt, item.content, callback);
+      GeminiAiService.processText(context, item.content, action, callback);
     }
     else if (promptOverride != null)
     {
-      AiProvider.Manager.getActiveProvider(context).generate(context, promptOverride, "", callback);
+      GeminiAiService.processPrompt(context, promptOverride, callback);
     }
-  }
-
-  private boolean isCurrentAiTextRequest(long request, long session) {
-    return request == _aiTextRequest && isAttachedToWindow() && isShown()
-        && _keyboard != null && session == _keyboard.getInputSessionId();
   }
 
   /**
@@ -1976,8 +1967,6 @@ public class ClipboardPaneView extends LinearLayout
    */
   private void showAiResultDialog(String title, final String resultText)
   {
-    final long session = _keyboard == null ? -1 : _keyboard.getInputSessionId();
-    final InputConnection target = _keyboard == null ? null : _keyboard.getTargetAppInputConnection();
     final Context context = getContext();
     final float density = getResources().getDisplayMetrics().density;
     final DialogTheme.Palette palette = DialogTheme.getPalette(context);
@@ -2045,8 +2034,6 @@ public class ClipboardPaneView extends LinearLayout
       public void onClick(View v)
       {
         if (dialogHolder[0] != null) dialogHolder[0].dismiss();
-        if (_keyboard == null || session != _keyboard.getInputSessionId()
-            || target == null || target != _keyboard.getTargetAppInputConnection()) return;
         if (_isMultiPasteMode)
         {
           ClipboardHistoryService.paste(resultText + " ");
@@ -2129,7 +2116,7 @@ public class ClipboardPaneView extends LinearLayout
     });
     root.addView(btnCancel);
 
-    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar)
+    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
         .setView(root)
         .create();
     dialogHolder[0] = dialog;
@@ -2195,7 +2182,7 @@ public class ClipboardPaneView extends LinearLayout
       "Import Pinned from JSON (Restore)"
     };
 
-    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar)
+    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
         .setTitle("Backup & Restore Pinned Clips")
         .setItems(choices, new DialogInterface.OnClickListener()
         {
@@ -2238,7 +2225,7 @@ public class ClipboardPaneView extends LinearLayout
     DialogTheme.styleEditText(et, palette, density);
     et.setMinLines(3);
 
-    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar)
+    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
         .setTitle("Restore Pinned Clips")
         .setMessage("Paste your exported JSON backup below:")
         .setView(et)
@@ -2287,17 +2274,11 @@ public class ClipboardPaneView extends LinearLayout
   @Override
   protected void onDetachedFromWindow()
   {
-    _aiTextRequest++;
     if (_historyService != null) _historyService.remove_on_clipboard_history_change(this);
     _imageStore.removeListener(_imageChanged);
     cancelHold(); finishPreview(); dismissInlineMenu();
     _aiImageRequest++; _readingAiImage = false;
     super.onDetachedFromWindow();
-  }
-
-  @Override protected void onVisibilityChanged(View changedView, int visibility) {
-    super.onVisibilityChanged(changedView, visibility);
-    if (changedView == this && visibility != VISIBLE) _aiTextRequest++;
   }
 
   private void selectAllClips()
@@ -2359,7 +2340,7 @@ public class ClipboardPaneView extends LinearLayout
     final float density = getResources().getDisplayMetrics().density;
     final DialogTheme.Palette palette = DialogTheme.getPalette(context);
 
-    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar)
+    AlertDialog dialog = new AlertDialog.Builder(context, android.R.style.Theme_DeviceDefault_Dialog_Alert)
         .setTitle("Clear Recent History")
         .setMessage("Are you sure you want to clear all unpinned recent clips? Pinned clips will not be deleted.")
         .setPositiveButton("Clear", new DialogInterface.OnClickListener()

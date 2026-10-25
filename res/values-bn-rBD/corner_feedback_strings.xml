@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="pref_corner_feedback_title">কর্নার বাছাইয়ে অতিরিক্ত সাউন্ড ও হ্যাপটিক</string>
+  <string name="pref_corner_feedback_summary">সোয়াইপ করে কর্নারের অক্ষর বাছাই হলে আবার ফিডব্যাক হবে। সাউন্ড ও হ্যাপটিকের মূল সুইচ অনুযায়ী কাজ করবে। বন্ধ রাখলে শুধু প্রথম স্পর্শে ফিডব্যাক হবে।</string>
+</resources>

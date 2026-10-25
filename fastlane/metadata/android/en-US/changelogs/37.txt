@@ -4,3 +4,5 @@ The numpad can work with other numeral systems.
 New and updated layouts.
 New themes.
 Many small improvements.
+
+Thanks to the contributors: @pharook, @syskill, @ojas-bhagavath, @lrvideckis, @lyubomirv, @matthiakl, @deftkHD, @V6lhost, @RZHSSNZDH, @RetrogisusDEV, @rafasaurus, @krtsgnr7230, @eandersons, @ChasmSolacer, @Validbit, @polyctena

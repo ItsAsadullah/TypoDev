@@ -315,4 +315,130 @@ public class AvroAndJatiyoTypingTest
     }
     assertTrue("Candidates for 'jokjon' must offer 'যখন' via QWERTY proximity", hasJokhon);
   }
+
+  @Test
+  public void testAvroComposingSurvivesSelectionEchoWithoutCandidatesSpan()
+  {
+    final StringBuilder composingBuffer = new StringBuilder();
+    final InputConnection dummyIc = new BaseInputConnection(null, false)
+    {
+      @Override
+      public boolean setComposingText(CharSequence text, int newCursorPosition)
+      {
+        composingBuffer.setLength(0);
+        if (text != null) composingBuffer.append(text);
+        return true;
+      }
+      @Override public boolean finishComposingText() { composingBuffer.setLength(0); return true; }
+      @Override public CharSequence getTextBeforeCursor(int n, int flags) { return composingBuffer.toString(); }
+    };
+
+    KeyEventHandler.IReceiver receiver = new KeyEventHandler.IReceiver()
+    {
+      @Override public void handle_event_key(KeyValue.Event ev) {}
+      @Override public void set_shift_state(boolean state, boolean lock) {}
+      @Override public void set_compose_pending(boolean pending) {}
+      @Override public void selection_state_changed(boolean selection_is_ongoing) {}
+      @Override public InputConnection getCurrentInputConnection() { return dummyIc; }
+      @Override public Handler getHandler() { return null; }
+      @Override public void set_suggestions(Suggestions suggestions) {}
+      @Override public CharSequence getTextBeforeCursor(int n, int flags) { return composingBuffer.toString(); }
+    };
+
+    Config conf = new Config();
+    conf.editor_config.should_show_candidates_view = true;
+    conf.is_avro_mode = true;
+    conf.is_bengali_mode = true;
+
+    Suggestions s = new Suggestions(receiver, conf, null);
+    KeyEventHandler handler = new KeyEventHandler(receiver, s);
+    handler.started(conf);
+
+    int cursor = 0;
+    for (String ch : new String[]{"k", "h", "o", "m", "a"})
+    {
+      int oldCursor = cursor;
+      handler.send_text(ch);
+      cursor = composingBuffer.length();
+      // WebView/custom editor reports candidatesStart=-1, candidatesEnd=-1 on setComposingText
+      handler.selection_updated(oldCursor, cursor, cursor, -1, -1);
+      assertTrue("Avro composing must stay active after '" + ch + "'", handler.isAvroComposingActive());
+    }
+    assertEquals("ক্ষমা", composingBuffer.toString());
+
+    // Now simulate user tapping to start of field (cursor = 0)
+    handler.selection_updated(cursor, 0, 0, -1, -1);
+    assertFalse("Explicit cursor jump to 0 must end Avro composing", handler.isAvroComposingActive());
+  }
+
+  @Test
+  public void testAvroDisabledInPasswordAndTypeNullFields()
+  {
+    KeyEventHandler.IReceiver receiver = new KeyEventHandler.IReceiver()
+    {
+      @Override public void handle_event_key(KeyValue.Event ev) {}
+      @Override public void set_shift_state(boolean state, boolean lock) {}
+      @Override public void set_compose_pending(boolean pending) {}
+      @Override public void selection_state_changed(boolean selection_is_ongoing) {}
+      @Override public InputConnection getCurrentInputConnection() { return null; }
+      @Override public Handler getHandler() { return null; }
+      @Override public void set_suggestions(Suggestions suggestions) {}
+      @Override public CharSequence getTextBeforeCursor(int n, int flags) { return ""; }
+    };
+
+    Config conf = new Config();
+    conf.is_avro_mode = true;
+    conf.is_bengali_mode = true;
+    conf.editor_config.is_password = true;
+
+    Suggestions s = new Suggestions(receiver, conf, null);
+    KeyEventHandler handler = new KeyEventHandler(receiver, s);
+    handler.started(conf);
+    assertFalse("Avro must be disabled in password fields", handler.isAvroActive());
+
+    conf.editor_config.is_password = false;
+    conf.editor_config.should_move_cursor_force_fallback = true;
+    assertFalse("Avro must be disabled in TYPE_NULL / raw key fields", handler.isAvroActive());
+  }
+
+  @Test
+  public void testMathSolverSuggestionOpensInAvroMode()
+  {
+    final String[] openedProblem = new String[]{null};
+    final InputConnection dummyIc = new BaseInputConnection(null, false)
+    {
+      @Override public boolean setComposingText(CharSequence text, int newCursorPosition) { return true; }
+      @Override public boolean commitText(CharSequence text, int newCursorPosition)
+      {
+        fail("Math solver suggestion must not be committed as text in Avro mode");
+        return true;
+      }
+      @Override public CharSequence getTextBeforeCursor(int n, int flags) { return "(a+b)^2="; }
+    };
+
+    KeyEventHandler.IReceiver receiver = new KeyEventHandler.IReceiver()
+    {
+      @Override public void showMathSolver(String mathProblem) { openedProblem[0] = mathProblem; }
+      @Override public void handle_event_key(KeyValue.Event ev) {}
+      @Override public void set_shift_state(boolean state, boolean lock) {}
+      @Override public void set_compose_pending(boolean pending) {}
+      @Override public void selection_state_changed(boolean selection_is_ongoing) {}
+      @Override public InputConnection getCurrentInputConnection() { return dummyIc; }
+      @Override public Handler getHandler() { return null; }
+      @Override public void set_suggestions(Suggestions suggestions) {}
+      @Override public CharSequence getTextBeforeCursor(int n, int flags) { return "(a+b)^2="; }
+    };
+
+    Config conf = new Config();
+    conf.is_avro_mode = true;
+    conf.is_bengali_mode = true;
+    Suggestions s = new Suggestions(receiver, conf, null);
+    KeyEventHandler handler = new KeyEventHandler(receiver, s);
+    handler.started(conf);
+    handler.send_text("k");
+    assertTrue(handler.isAvroComposingActive());
+
+    handler.suggestion_entered("🧮 AI সমাধান (স্টেপ বাই স্টেপ)");
+    assertEquals("(a+b)^2=", openedProblem[0]);
+  }
 }

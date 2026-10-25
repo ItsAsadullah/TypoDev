@@ -23,10 +23,10 @@ import typodev.keyboard.R;
 /** A bounded IME panel: preview first, explicitly insert only into the original editor. */
 @android.annotation.SuppressLint("ViewConstructor") // Created with its IME owner, never inflated from XML.
 public final class AiWritingResultsView extends LinearLayout {
-  public enum Task { REPLY, COMPLETE, REWRITE, COMMAND }
+  public enum Task { REPLY, COMPLETE, REWRITE }
   private final Keyboard2 keyboard;
   private final Handler main = new Handler(Looper.getMainLooper());
-  private final TextView body, page, previous, next, title;
+  private final TextView body, page, previous, next;
   private final ImageView regenerate;
   private final ProgressBar progress;
   private final LinearLayout tones;
@@ -41,7 +41,6 @@ public final class AiWritingResultsView extends LinearLayout {
   private int fieldId;
   private byte[] image;
   private Task task;
-  private SlashCommand.Input command;
   private boolean loading;
   private final int foreground, surface, accent;
 
@@ -58,7 +57,7 @@ public final class AiWritingResultsView extends LinearLayout {
     ImageView back = iconButton(R.drawable.ic_ai_back,
         context.getString(R.string.ai_writing_back), () -> keyboard.closeWritingResults());
     back.setContentDescription(context.getString(R.string.ai_writing_back));
-    title = label(context.getString(R.string.ai_writing_title), 17);
+    TextView title = label(context.getString(R.string.ai_writing_title), 17);
     title.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
     title.setTypeface(null, Typeface.BOLD);
     header.addView(title, new LayoutParams(0, dp(48), 1));
@@ -148,11 +147,6 @@ public final class AiWritingResultsView extends LinearLayout {
     addView(toneScroll, new LayoutParams(-1, dp(36)));
   }
 
-  public void startCommand(SlashCommand.Input input) {
-    command = input;
-    start(input.argument, null, "default", Task.COMMAND);
-  }
-
   public void start(String text, byte[] bytes, String selectedTone, Task selectedTask) {
     source = text; image = bytes; task = selectedTask;
     tone = selectedTone == null ? "স্বাভাবিক" : selectedTone;
@@ -172,13 +166,12 @@ public final class AiWritingResultsView extends LinearLayout {
   public AiWritingDraft getDraft() {
     if (results.isEmpty()) return null;
     return new AiWritingDraft(source, image, resultTone, task, results, index,
-        before, after, selection, editorPackage, fieldId, command);
+        before, after, selection, editorPackage, fieldId);
   }
 
   /** Restore the preview without another API call; only bind a matching editor. */
   public void restore(AiWritingDraft draft) {
     source = draft.source; image = draft.getImage(); tone = draft.tone; task = draft.task;
-    command = draft.command;
     resultTone = draft.tone;
     before = draft.before; after = draft.after; selection = draft.selection;
     editorPackage = draft.editorPackage; fieldId = draft.fieldId;
@@ -195,9 +188,6 @@ public final class AiWritingResultsView extends LinearLayout {
 
   private void populateTones() {
     tones.removeAllViews();
-    ((View)tones.getParent()).setVisibility(task == Task.COMMAND ? GONE : VISIBLE);
-    title.setText(task == Task.COMMAND ? command.command.token() : getContext().getString(R.string.ai_writing_title));
-    if (task == Task.COMMAND) return;
     String[] options = task == Task.REWRITE
         ? new String[] {"প্রুফরিড", "রিফ্রেজ", "প্রফেশনাল", "বন্ধুত্বপূর্ণ", "সংক্ষিপ্ত"}
         : new String[] {"স্বাভাবিক", "প্রফেশনাল", "বন্ধুত্বপূর্ণ", "প্রশংসা", "মজার", "বুদ্ধিদীপ্ত", "রোস্ট", "ইসলামিক"};
@@ -227,9 +217,7 @@ public final class AiWritingResultsView extends LinearLayout {
     final long id = ++request;
     setLoading(true);
     String prompt;
-    if (task == Task.COMMAND) {
-      prompt = command.command.systemPrompt();
-    } else if (task == Task.REPLY) {
+    if (task == Task.REPLY) {
       prompt = image == null ? AiVisionHelper.buildTextCommentPrompt(source, tone)
           : AiVisionHelper.buildCommentPrompt(tone);
     } else {
@@ -239,11 +227,11 @@ public final class AiWritingResultsView extends LinearLayout {
       @Override public void onSuccess(String result) {
         main.post(() -> {
           if (id != request || !sameSession()) return;
-          List<String> parsed = parseResults(task, result);
+          List<String> parsed = AiVisionHelper.parseGeneratedComments(result);
           setLoading(false);
           boolean proofread = task == Task.REWRITE && "প্রুফরিড".equals(tone);
-          if (parsed.isEmpty() || (task != Task.COMMAND && !proofread && parsed.size() != 3)) {
-            showError(getContext().getString(task == Task.COMMAND ? R.string.slash_empty_result : R.string.ai_writing_incomplete)); return;
+          if (parsed.isEmpty() || (!proofread && parsed.size() != 3)) {
+            showError(getContext().getString(R.string.ai_writing_incomplete)); return;
           }
           results.clear(); results.addAll(parsed); resultTone = tone; index = 0; render();
         });
@@ -255,21 +243,8 @@ public final class AiWritingResultsView extends LinearLayout {
         });
       }
     };
-    if (image == null) AiProvider.Manager.getActiveProvider(getContext()).generate(getContext(), prompt,
-        task == Task.COMMAND ? source : "",
-        new AiProvider.Callback() {
-          @Override public void onSuccess(String result) { callback.onSuccess(result); }
-          @Override public void onError(String error) { callback.onError(error); }
-        });
+    if (image == null) GeminiAiService.processPrompt(getContext(), prompt, callback);
     else GeminiAiService.processPromptWithImage(getContext(), prompt, image, "image/jpeg", callback);
-  }
-
-  /** Commands produce one complete email/code block, not three one-line comments. */
-  public static List<String> parseResults(Task task, String result) {
-    if (task != Task.COMMAND) return AiVisionHelper.parseGeneratedComments(result);
-    List<String> full = new ArrayList<>();
-    if (result != null && !result.trim().isEmpty()) full.add(result.trim());
-    return full;
   }
 
   private void setLoading(boolean value) {
@@ -324,16 +299,10 @@ public final class AiWritingResultsView extends LinearLayout {
     final String insertSource = source;
     final String insertSelection = selection;
     final String insertBefore = before;
-    final SlashCommand.Input insertCommand = command;
     boolean committed = false;
     editor.beginBatchEdit();
     try {
       editor.finishComposingText();
-      if (insertTask == Task.COMMAND) {
-        if (insertCommand == null || !insertBefore.endsWith(insertCommand.raw)
-            || !SlashCommandEditor.matches(editor, insertCommand)
-            || !editor.deleteSurroundingText(insertCommand.raw.length(), 0)) return;
-      }
       if (insertTask == Task.REWRITE && insertSelection.isEmpty()) {
         if (!editor.deleteSurroundingText(insertSource.length(), 0)) return;
       }

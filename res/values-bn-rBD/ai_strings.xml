@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="ai_back_keyboard">কীবোর্ডে ফিরুন</string>
+  <string name="ai_settings">AI সেটিংস</string>
+  <string name="ai_write_prompt">কী করতে হবে লিখুন…</string>
+  <string name="ai_retry">আবার তৈরি করুন</string>
+  <string name="ai_cancel">বাতিল</string>
+  <string name="ai_generate">তৈরি করুন</string>
+  <string name="ai_empty_response">কোনো লেখা পাওয়া যায়নি। আবার চেষ্টা করুন।</string>
+  <string name="ai_paste">পেস্ট</string>
+  <string name="ai_show_key">API কী দেখান</string>
+  <string name="ai_hide_key">API কী লুকান</string>
+  <string name="ai_clear">মুছুন</string>
+  <string name="ai_magic_shortcuts">Writing tools</string>
+</resources>

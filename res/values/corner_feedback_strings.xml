@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="pref_corner_feedback_title">Extra sound &amp; haptic on corner selection</string>
+  <string name="pref_corner_feedback_summary">Give feedback again when a swipe selects a corner character. Uses your existing sound and haptic switches. Turn off for feedback only on the initial touch.</string>
+</resources>

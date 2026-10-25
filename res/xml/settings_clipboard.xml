@@ -4,6 +4,15 @@
   <PreferenceCategory
       android:title="@string/pref_category_clipboard"
       android:layout="@layout/pref_category_header">
+    <Preference
+        android:key="otp_autofill_service"
+        android:title="@string/otp_autofill_title"
+        android:summary="@string/otp_autofill_summary" />
+    <Preference android:key="otp_autofill_test"
+        android:title="@string/otp_autofill_test_title"
+        android:summary="@string/otp_autofill_test_summary" />
+    <Preference android:key="otp_browser_settings"
+        android:title="@string/otp_browser_title" android:summary="@string/otp_browser_summary" />
     <SwitchPreference
         android:key="clipboard_history_enabled"
         android:title="@string/pref_clipboard_history_enabled"

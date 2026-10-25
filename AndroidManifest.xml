@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" android:hardwareAccelerated="false">
   <uses-permission android:name="android.permission.VIBRATE"/>
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
   <uses-permission android:name="android.permission.RECORD_AUDIO"/>
@@ -11,10 +12,19 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/>
 
   <application android:label="@string/app_name" android:allowBackup="false" android:fullBackupContent="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:hardwareAccelerated="false" android:largeHeap="true">
-    <activity android:name="typodev.keyboard.ai.ImageTextActivity"
-              android:theme="@style/SnippetManagerTheme" android:exported="false"
-              android:configChanges="orientation|screenSize|keyboardHidden"
-              android:windowSoftInputMode="stateAlwaysHidden|adjustResize" />
+    <service android:name=".autofill.TypoDevAutofillService"
+             android:enabled="@bool/otp_autofill_supported"
+             android:label="@string/otp_autofill_title"
+             android:permission="android.permission.BIND_AUTOFILL_SERVICE"
+             android:exported="true">
+      <intent-filter><action android:name="android.service.autofill.AutofillService" /></intent-filter>
+      <meta-data android:name="android.autofill" android:resource="@xml/typo_dev_autofill_service" />
+    </service>
+    <activity android:name=".autofill.OtpAutofillActivity"
+              android:theme="@style/settingsTheme" android:exported="false"
+              android:excludeFromRecents="true" />
+    <activity android:name=".autofill.OtpAutofillTestActivity"
+              android:theme="@style/settingsTheme" android:exported="false" />
     <activity android:name="typodev.keyboard.clipboard.ClipboardShortcutActivity"
               android:theme="@style/SnippetManagerTheme" android:exported="false"
               android:windowSoftInputMode="stateVisible|adjustResize" />
@@ -47,7 +57,7 @@
               android:exported="false"
               android:directBootAware="true" />
 
-    <activity android:name="typodev.keyboard.LauncherActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/appTheme" android:exported="true" android:directBootAware="true">
+    <activity android:name="typodev.keyboard.LauncherActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/LauncherTheme" android:exported="true" android:directBootAware="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>

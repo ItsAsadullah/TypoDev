@@ -160,22 +160,6 @@
     </HorizontalScrollView>
 
     <HorizontalScrollView
-        android:id="@+id/slash_commands_scroll"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:scrollbars="none"
-        android:overScrollMode="never"
-        android:visibility="gone">
-      <LinearLayout
-          android:id="@+id/slash_commands_row"
-          android:layout_width="wrap_content"
-          android:layout_height="match_parent"
-          android:orientation="horizontal"
-          android:gravity="center_vertical" />
-    </HorizontalScrollView>
-
-    <HorizontalScrollView
         android:id="@+id/suggestions_scroll"
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -247,6 +231,25 @@
           android:text="@string/voice_listening_hint" />
     </LinearLayout>
 
+    <HorizontalScrollView
+        android:id="@+id/ai_comments_scroll"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="6dp"
+        android:scrollbars="none"
+        android:clipChildren="true"
+        android:clipToPadding="true"
+        android:visibility="gone">
+      <LinearLayout
+          android:id="@+id/ai_comments_container"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:orientation="horizontal"
+          android:gravity="center_vertical" />
+    </HorizontalScrollView>
+
     <!-- Legacy hidden stubs so legacy code safely finds them without showing them -->
     <TextView android:id="@+id/candidates_lang_name" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
     <Button android:id="@+id/dictionary_switch" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
@@ -261,7 +264,7 @@
           android:scaleType="centerInside"
           android:src="@drawable/ic_toolbar_magic"
           android:tint="?attr/colorLabel"
-          android:contentDescription="Writing Tools" />
+          android:contentDescription="@string/ai_magic_shortcuts" />
       <ProgressBar
           android:id="@+id/magic_autocomplete_progress"
           style="?android:attr/progressBarStyleSmall"

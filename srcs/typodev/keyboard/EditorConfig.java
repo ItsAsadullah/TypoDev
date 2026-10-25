@@ -53,7 +53,6 @@ public final class EditorConfig
   {
     int inputType = info.inputType & InputType.TYPE_MASK_CLASS;
     int options = info.imeOptions;
-    allow_personalized_learning = (options & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) == 0;
     /* Selection mode.
        Editors with [TYPE_NULL] are for example Termux and Emacs. */
     selection_mode_enabled = inputType != InputType.TYPE_NULL;
@@ -112,6 +111,7 @@ public final class EditorConfig
     boolean developerMode = (conf != null && conf.developer_mode);
     is_password = CandidatesView.isPasswordField(info);
     should_show_candidates_view = CandidatesView.should_show(info, showInTerminals, developerMode);
+    allow_personalized_learning = !is_password && (info.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) == 0;
   }
 
   String actionLabel_of_imeAction(int action, Resources res)

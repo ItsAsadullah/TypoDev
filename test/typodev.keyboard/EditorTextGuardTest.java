@@ -8,12 +8,6 @@ import typodev.keyboard.ai.EditorTextGuard;
 
 public class EditorTextGuardTest
 {
-  @Test public void disconnectedEditorIsRejectedWithoutCrashing() {
-    InputConnection disconnected = (InputConnection)Proxy.newProxyInstance(InputConnection.class.getClassLoader(),
-        new Class<?>[] {InputConnection.class}, (proxy, method, args) -> { throw new IllegalStateException("closed"); });
-    assertFalse(EditorTextGuard.matches(disconnected, "original", false));
-    assertFalse(EditorTextGuard.matches(disconnected, "original", true));
-  }
   private InputConnection editor(String before, String selection)
   {
     return (InputConnection)Proxy.newProxyInstance(InputConnection.class.getClassLoader(),

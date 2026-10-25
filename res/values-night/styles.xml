@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <style name="appTheme" parent="@android:style/Theme.DeviceDefault"/>
+  <style name="LauncherTheme" parent="settingsTheme">
+    <item name="android:windowBackground">@color/settings_bg</item>
+    <item name="android:colorBackground">@color/settings_bg</item>
+    <item name="android:fitsSystemWindows">true</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:windowActionBar">false</item>
+  </style>
 </resources>

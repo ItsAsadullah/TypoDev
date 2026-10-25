@@ -22,9 +22,6 @@
           android:layout="@layout/pref_category_header">
         <typodev.keyboard.prefs.CustomExtraKeysPreference/>
       </PreferenceCategory>
-      <typodev.keyboard.prefs.MathExtraKeysPreference
-          android:title="@string/pref_math_extra_keys_title"
-          android:layout="@layout/pref_category_header"/>
       <typodev.keyboard.prefs.ExtraKeysPreference android:title="@string/pref_extra_keys_internal"/>
     </PreferenceScreen>
     <ListPreference
@@ -89,24 +86,28 @@
         android:title="@string/pref_get_api_key_title"
         android:summary="@string/pref_get_api_key_summary"/>
 
-    <!-- OpenAI / DeepSeek / Groq -->
-    <EditTextPreference
-        android:key="openai_base_url"
-        android:title="Base URL (OpenAI / DeepSeek / Groq / Ollama)"
-        android:dialogTitle="API Base URL"
-        android:defaultValue="https://api.openai.com/v1"
-        android:summary="https://api.openai.com/v1"/>
+    <!-- Groq / xAI Grok / OpenAI / DeepSeek -->
     <EditTextPreference
         android:key="openai_api_key"
-        android:title="OpenAI / DeepSeek / Groq API Key"
-        android:dialogTitle="API Key"
-        android:summary="Enter your API key (sk-...)"/>
+        android:title="Groq / Grok / OpenAI API Key"
+        android:dialogTitle="API Key (gsk_... / xai-... / sk-...)"
+        android:summary="Enter your Groq (gsk_...), Grok (xai-...), or OpenAI (sk-...) key"/>
+    <Preference
+        android:key="pref_get_groq_api_key"
+        android:title="🔑 Get Free Groq API Key"
+        android:summary="Open GroqCloud Console (console.groq.com/keys) to create a free API key"/>
+    <EditTextPreference
+        android:key="openai_base_url"
+        android:title="Base URL (Groq / Grok / OpenAI / DeepSeek / Ollama)"
+        android:dialogTitle="API Base URL"
+        android:defaultValue="https://api.groq.com/openai/v1"
+        android:summary="https://api.groq.com/openai/v1"/>
     <ListPreference
         android:key="openai_model"
-        android:title="OpenAI / DeepSeek Model"
-        android:dialogTitle="Select OpenAI / DeepSeek Model"
+        android:title="Groq / Grok / OpenAI Model"
+        android:dialogTitle="Select Model"
         android:summary="%s"
-        android:defaultValue="gpt-4o-mini"
+        android:defaultValue="llama-3.3-70b-versatile"
         android:entries="@array/pref_openai_model_entries"
         android:entryValues="@array/pref_openai_model_values"/>
 

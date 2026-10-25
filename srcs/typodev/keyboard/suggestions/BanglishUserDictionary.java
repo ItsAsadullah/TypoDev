@@ -149,18 +149,21 @@ public class BanglishUserDictionary
     if (latinWord == null) return Collections.emptyList();
     String key = latinWord.trim().toLowerCase(Locale.ROOT);
 
-    List<Entry> list = _mappings.get(key);
-    if (list == null || list.isEmpty()) return Collections.emptyList();
-
-    List<Candidate> results = new ArrayList<>(list.size());
-    for (Entry e : list)
+    synchronized (_mappings)
     {
-      int freq = Math.min(255, 240 + Math.min(15, e.frequency * 3));
-      Candidate c = new Candidate(e.bangla, Candidate.Source.AUTOCORRECT, freq, 0, 1.0f);
-      c.recencyScore = 1.0f;
-      results.add(c);
+      List<Entry> list = _mappings.get(key);
+      if (list == null || list.isEmpty()) return Collections.emptyList();
+
+      List<Candidate> results = new ArrayList<>(list.size());
+      for (Entry e : list)
+      {
+        int freq = Math.min(255, 240 + Math.min(15, e.frequency * 3));
+        Candidate c = new Candidate(e.bangla, Candidate.Source.AUTOCORRECT, freq, 0, 1.0f);
+        c.recencyScore = 1.0f;
+        results.add(c);
+      }
+      return results;
     }
-    return results;
   }
 
   /**
@@ -170,12 +173,15 @@ public class BanglishUserDictionary
   {
     if (latinWord == null) return null;
     String key = latinWord.trim().toLowerCase(Locale.ROOT);
-    List<Entry> list = _mappings.get(key);
-    if (list != null && !list.isEmpty())
+    synchronized (_mappings)
     {
-      return list.get(0).bangla;
+      List<Entry> list = _mappings.get(key);
+      if (list != null && !list.isEmpty())
+      {
+        return list.get(0).bangla;
+      }
+      return null;
     }
-    return null;
   }
 
   /**
@@ -227,12 +233,15 @@ public class BanglishUserDictionary
     try (FileOutputStream fos = new FileOutputStream(file);
          OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8))
     {
-      for (Map.Entry<String, List<Entry>> mapEntry : _mappings.entrySet())
+      synchronized (_mappings)
       {
-        String latin = mapEntry.getKey();
-        for (Entry e : mapEntry.getValue())
+        for (Map.Entry<String, List<Entry>> mapEntry : _mappings.entrySet())
         {
-          osw.write(latin + "\t" + e.bangla + "\t" + e.frequency + "\t" + e.lastUsedTime + "\n");
+          String latin = mapEntry.getKey();
+          for (Entry e : mapEntry.getValue())
+          {
+            osw.write(latin + "\t" + e.bangla + "\t" + e.frequency + "\t" + e.lastUsedTime + "\n");
+          }
         }
       }
       osw.flush();

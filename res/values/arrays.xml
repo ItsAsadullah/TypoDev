@@ -172,7 +172,7 @@
   </string-array>
   <string-array name="pref_ai_provider_entries">
     <item>Google Gemini</item>
-    <item>OpenAI / DeepSeek / Groq</item>
+    <item>Groq / xAI Grok / OpenAI / DeepSeek</item>
   </string-array>
   <string-array name="pref_ai_provider_values">
     <item>gemini</item>
@@ -197,22 +197,28 @@
   </string-array>
 
   <string-array name="pref_openai_model_entries">
+    <item>llama-3.3-70b-versatile (Groq Recommended &amp; Ultra Fast)</item>
+    <item>llama-3.1-8b-instant (Groq Instant Low-Latency)</item>
+    <item>meta-llama/llama-4-scout-17b-16e-instruct (Groq Llama 4 Vision &amp; Text)</item>
+    <item>qwen/qwen3-32b (Groq Qwen 3 32B)</item>
+    <item>grok-3-mini (xAI Grok 3 Mini)</item>
+    <item>grok-2-latest (xAI Grok 2)</item>
     <item>gpt-4o-mini (OpenAI Fast &amp; Affordable)</item>
     <item>gpt-4o (OpenAI Flagship)</item>
     <item>deepseek-chat (DeepSeek V3)</item>
     <item>deepseek-reasoner (DeepSeek R1)</item>
-    <item>llama-3.3-70b-versatile (Groq Ultra Fast)</item>
-    <item>claude-3-5-sonnet-20241022 (Claude 3.5 Sonnet)</item>
-    <item>gemini-2.0-flash (Gemini via Proxy/OpenRouter)</item>
   </string-array>
   <string-array name="pref_openai_model_values">
+    <item>llama-3.3-70b-versatile</item>
+    <item>llama-3.1-8b-instant</item>
+    <item>meta-llama/llama-4-scout-17b-16e-instruct</item>
+    <item>qwen/qwen3-32b</item>
+    <item>grok-3-mini</item>
+    <item>grok-2-latest</item>
     <item>gpt-4o-mini</item>
     <item>gpt-4o</item>
     <item>deepseek-chat</item>
     <item>deepseek-reasoner</item>
-    <item>llama-3.3-70b-versatile</item>
-    <item>claude-3-5-sonnet-20241022</item>
-    <item>gemini-2.0-flash</item>
   </string-array>
 
   <string-array name="pref_one_hand_side_entries">

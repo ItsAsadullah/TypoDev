@@ -9,7 +9,7 @@ public interface AiProvider
   enum ProviderType
   {
     GEMINI("Google Gemini"),
-    OPENAI_COMPATIBLE("OpenAI / DeepSeek / Groq");
+    OPENAI_COMPATIBLE("Groq / Grok / OpenAI / DeepSeek");
 
     private final String displayName;
 
@@ -45,23 +45,71 @@ public interface AiProvider
 
   class Manager
   {
+    public static boolean isOpenAiCompatibleKey(String key)
+    {
+      if (key == null) return false;
+      String k = key.trim();
+      return k.startsWith("gsk_") || k.startsWith("xai-") || k.startsWith("sk-");
+    }
+
+    public static boolean isGeminiKey(String key)
+    {
+      if (key == null) return false;
+      return key.trim().startsWith("AIza");
+    }
+
     public static ProviderType getActiveProviderType(Context context)
     {
       SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-      String val = prefs.getString(PREF_AI_PROVIDER, "gemini");
+      String val = prefs.getString(PREF_AI_PROVIDER, "");
+      if (val == null || val.isEmpty())
+      {
+        try
+        {
+          SharedPreferences dp = typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context);
+          val = dp.getString(PREF_AI_PROVIDER, "gemini");
+        }
+        catch (Throwable ignored)
+        {
+          val = "gemini";
+        }
+      }
+
+      String openAiKey = OpenAiCompatibleProvider.getApiKey(context);
+      String geminiKey = GeminiAiService.getGeminiApiKey(context);
+
       if ("openai".equalsIgnoreCase(val) || "openai_compatible".equalsIgnoreCase(val))
+      {
+        if (!openAiKey.isEmpty() || geminiKey.isEmpty())
+        {
+          return ProviderType.OPENAI_COMPATIBLE;
+        }
+      }
+
+      // Auto-fallback: if Gemini key is empty (or actually a Groq/Grok/OpenAI key) and OpenAI-compatible key exists
+      if (geminiKey.isEmpty() && !openAiKey.isEmpty())
       {
         return ProviderType.OPENAI_COMPATIBLE;
       }
+
       return ProviderType.GEMINI;
     }
 
     public static void setActiveProviderType(Context context, ProviderType type)
     {
-      SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-      prefs.edit()
-          .putString(PREF_AI_PROVIDER, type == ProviderType.OPENAI_COMPATIBLE ? "openai" : "gemini")
+      String val = (type == ProviderType.OPENAI_COMPATIBLE) ? "openai" : "gemini";
+      PreferenceManager.getDefaultSharedPreferences(context)
+          .edit()
+          .putString(PREF_AI_PROVIDER, val)
           .apply();
+      try
+      {
+        typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
+            .edit()
+            .putString(PREF_AI_PROVIDER, val)
+            .apply();
+      }
+      catch (Throwable ignored) {}
     }
 
     public static AiProvider getActiveProvider(Context context)
@@ -76,12 +124,8 @@ public interface AiProvider
 
     public static boolean hasConfiguredApiKey(Context context)
     {
-      ProviderType type = getActiveProviderType(context);
-      if (type == ProviderType.OPENAI_COMPATIBLE)
-      {
-        return !OpenAiCompatibleProvider.getApiKey(context).isEmpty();
-      }
-      return !GeminiAiService.getApiKey(context).isEmpty();
+      return !OpenAiCompatibleProvider.getApiKey(context).isEmpty()
+          || !GeminiAiService.getGeminiApiKey(context).isEmpty();
     }
 
     public static float getTemperature(Context context)
@@ -89,7 +133,7 @@ public interface AiProvider
       SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
       try
       {
-        return normalizeTemperature(Float.parseFloat(prefs.getString(PREF_AI_TEMPERATURE, "0.7")));
+        return Float.parseFloat(prefs.getString(PREF_AI_TEMPERATURE, "0.7"));
       }
       catch (Exception ignored)
       {
@@ -101,12 +145,8 @@ public interface AiProvider
     {
       PreferenceManager.getDefaultSharedPreferences(context)
           .edit()
-          .putString(PREF_AI_TEMPERATURE, String.valueOf(normalizeTemperature(temp)))
+          .putString(PREF_AI_TEMPERATURE, String.valueOf(temp))
           .apply();
-    }
-
-    public static float normalizeTemperature(float value) {
-      return Float.isNaN(value) || Float.isInfinite(value) ? 0.7f : Math.max(0f, Math.min(2f, value));
     }
   }
 }

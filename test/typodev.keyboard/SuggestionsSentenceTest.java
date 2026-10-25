@@ -7,6 +7,28 @@ import static org.junit.Assert.*;
 
 public class SuggestionsSentenceTest
 {
+  @Test public void bareEqualsClearsMathSuggestionsFromPreviousInput()
+  {
+    MockCallback cb = new MockCallback();
+    Config conf = new Config();
+    conf.editor_config.should_show_candidates_view = true;
+    Suggestions suggestions = new Suggestions(cb, conf, null);
+    suggestions.started();
+    cb.textBefore = "a+2b=43";
+    suggestions.currently_typed_word("43");
+    assertNotNull(suggestions.getActiveMathProblem());
+    for (String input : new String[]{"=", " = ", "a+2b=43\n=", "solve x; ="})
+    {
+      cb.textBefore = input;
+      suggestions.currently_typed_word("=");
+      assertNull(input, suggestions.getActiveMathProblem());
+      for (int i = 0; i < suggestions.count; i++)
+        assertFalse(input, suggestions.isMathSolverSuggestion(suggestions.suggestions[i]));
+      suggestions.predict_sentence_completion(input);
+      assertNull(input, suggestions.getActiveMathProblem());
+    }
+  }
+
   @Test
   public void testClearedEditorDoesNotReusePreviousSentence()
   {

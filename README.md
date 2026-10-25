@@ -2,9 +2,9 @@
 
 Lightweight, privacy-conscious virtual keyboard for Android with Gemini AI integration and multi-language suggestions.
 
-Owner: [Asadullah](https://github.com/ItsAsadullah)
-
 Repository: [https://github.com/ItsAsadullah/TypoDev](https://github.com/ItsAsadullah/TypoDev)
+
+New to the AI writing tools? See the [Magic Tools guide / ম্যাজিক টুল গাইড](doc/magic-tools-guide.md), or open the quick guide from the keyboard’s magic menu.
 
 Usage: to apply the symbols located in the corners of each key, slide your finger in the direction of the symbols. For example, the Settings are opened by sliding in the left down corner.
 
@@ -12,6 +12,19 @@ Usage: to apply the symbols located in the corners of each key, slide your finge
 | --- | --- | --- |
 | <img src="/fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" alt="Screenshot-4" /> | <img src="/fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" alt="Screenshot-5" /> | <img src="/fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" alt="Screenshot-6" /> |
 
-## Building
+## Help translate the application
 
-For build and installation instructions, see [Building](BUILDING.md).
+Improve the application translations [using Weblate](https://hosted.weblate.org/engage/unexpected-keyboard/).
+
+[<img src="https://hosted.weblate.org/widget/unexpected-keyboard/multi-auto.svg" alt="État de la traduction" />](https://hosted.weblate.org/engage/unexpected-keyboard/)
+
+## Contributing
+
+For Google-consented SMS code filling, see the [OTP Autofill guide](doc/otp-autofill-guide.md).
+
+For instructions on building the application, see
+[Contributing](CONTRIBUTING.md).
+
+## Acknowledgement
+
+The [NLnet foundation](https://nlnet.nl/) funded the work on the spell checking feature.

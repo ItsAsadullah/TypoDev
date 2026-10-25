@@ -8,3 +8,5 @@ Automatic capitalisation at beginning of sentences.
 Added e-ink oriented theme.
 New pane for greek letters and mathematical symbols.
 Improvements to the layouts and various bug fixes.
+
+Thanks to the contributors: @nanno, @Quantenzitrone, @eandersons, @iamrasel, @ChristianGynnild, @igorSilCar, @CastixGitHub, @94KONG, @ptrm, @Validbit

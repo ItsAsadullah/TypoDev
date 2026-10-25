@@ -339,6 +339,7 @@ public class ClipboardSearchBarView extends LinearLayout
       switch (item.category)
       {
         case URL: tvIcon.setText("\u2197"); break; // ↗ for URL
+        case CODE_OTP: tvIcon.setText("#"); break; // # for OTP/code
         case EMAIL: tvIcon.setText("@"); break; // @ for email
         case PHONE: tvIcon.setText("\u2706"); break; // ✆ for phone
         default: tvIcon.setText("\u00b6"); break; // ¶ for text

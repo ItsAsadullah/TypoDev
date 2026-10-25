@@ -1,0 +1,18 @@
+<resources>
+  <string name="otp_browser_title">Browser Autofill settings</string>
+  <string name="otp_browser_summary">Chrome-এ Settings → Autofill services → Autofill using another service নির্বাচন করে Chrome restart করুন।</string>
+  <string name="otp_autofill_test_title">OTP Autofill পরীক্ষা</string>
+  <string name="otp_autofill_test_summary">Autofill চালু আছে কি না দেখুন এবং একটি সমর্থিত OTP ঘরে পরীক্ষা করুন।</string>
+  <string name="otp_autofill_test_instructions">Request OTP Autofill-এ ট্যাপ করে Get SMS verification code বেছে নিন। এই পরীক্ষায় বোঝা যাবে browser বা website Autofill আটকে দিচ্ছে কি না। এটি SMS পাঠায় না।</string>
+  <string name="otp_autofill_test_hint">SMS যাচাইকরণ কোড</string>
+  <string name="otp_autofill_test_request">Request OTP Autofill</string>
+  <string name="otp_autofill_selected">TypoDev Autofill provider হিসেবে নির্বাচিত আছে।</string>
+  <string name="otp_autofill_not_selected">TypoDev Autofill provider হিসেবে নির্বাচিত নেই।</string>
+  <string name="otp_diag_no_request">এখনও Autofill request আসেনি।</string>
+  <string name="otp_diag_request">Android Autofill service-এ request পাঠিয়েছে।</string>
+  <string name="otp_diag_no_field">অ্যাপ বা browser থেকে শনাক্তযোগ্য OTP ঘর পাওয়া যায়নি।</string>
+  <string name="otp_diag_ongoing">অ্যাপ নিজেই SMS code সংগ্রহ করছে; TypoDev পাশাপাশি prompt দেখাতে পারবে না।</string>
+  <string name="otp_diag_denied">Google OTP access-এর অনুমতি দেওয়া হয়নি। ফোনের Google settings-এ SMS verification-code settings দেখুন।</string>
+  <string name="otp_diag_unavailable">Google OTP API পাওয়া যাচ্ছে না বা সাড়া দেয়নি। Google Play services এবং Autofill provider পরীক্ষা করুন।</string>
+  <string name="otp_diag_prompt">OTP suggestion Android-এ পাঠানো হয়েছে। না দেখা গেলে অ্যাপ বা browser-এর Autofill settings দেখুন।</string>
+</resources>

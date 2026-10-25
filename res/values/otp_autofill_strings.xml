@@ -1,0 +1,8 @@
+<resources>
+  <string name="otp_autofill_title">TypoDev OTP Autofill</string>
+  <string name="otp_autofill_summary">Select TypoDev as your Autofill service to fill SMS verification codes with Google consent (Android 9+). This replaces your current Autofill provider.</string>
+  <string name="otp_autofill_prompt">Get SMS verification code</string>
+  <string name="otp_autofill_waiting">Waiting for an SMS verification code…</string>
+  <string name="otp_autofill_failed">OTP retrieval unavailable, denied, or timed out. You can enter the code manually.</string>
+  <string name="otp_autofill_unsupported">OTP Autofill requires Android 9 or newer.</string>
+</resources>

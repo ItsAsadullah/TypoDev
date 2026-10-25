@@ -45,7 +45,7 @@ A literal tab character, which is different from `tab` in certain apps. | `\t`
 `>` | `&gt;`
 `"` | `&quot;`
 
-The characters `\` (unless followed by n or t), `?`, `#`, and `@` do not need to be escaped when writing custom layouts. When writing a layout to be included in the app (in [srcs/layouts](https://github.com/ItsAsadullah/TypoDev/tree/master/srcs/layouts)), they are represented by typing `\\`, `\?`, `\#`, and `\@`.
+The characters `\` (unless followed by n or t), `?`, `#`, and `@` do not need to be escaped when writing custom layouts. When writing a layout to be included in the app (in [srcs/layouts](https://github.com/Julow/Unexpected-Keyboard/tree/master/srcs/layouts)), they are represented by typing `\\`, `\?`, `\#`, and `\@`.
 
 The characters `,` and `:` can be escaped in a key value, using single quotes. For example, this macro defines a key with legend `http` that sends a string containing `:`: `<key c="http:home,'https://'" />` For simplicity, `,` and `:` cannot be escaped in the key legend.
 
@@ -175,12 +175,12 @@ Keys ending in `_placeholder` are normally hidden unless the Fn key is pressed.
 ## Keyboard behavior keys
 Value                  | Meaning
 :--------------------- | :------
-`config`               | Gear icon; opens TypoDev settings.
+`config`               | Gear icon; opens Unexpected Keyboard settings.
 `switch_text`          | Switch to the text layer (main layer).
 `switch_numeric`       | Switch to the numeric layer.
 `switch_emoji`         | Switch to the emoji layer.
 `switch_back_emoji`    | Switch to the text layer from the emoji layer.
-`switch_forward`       | Change the keyboard layout, as long as TypoDev has multiple keyboard layouts enabled in the settings.
+`switch_forward`       | Change the keyboard layout, as long as Unexpected Keyboard has multiple keyboard layouts enabled in the settings.
 `switch_backward`      | Change the keyboard layout to the previous one in the list.
 `switch_greekmath`     | Switch to the Greek & Math Symbols layer.
 `switch_clipboard`     | Switch to the clipboard pane.

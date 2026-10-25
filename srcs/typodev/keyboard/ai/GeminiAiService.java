@@ -26,15 +26,13 @@ public class GeminiAiService
   public static final String PREF_GEMINI_MODELS_LAST_FETCH = "pref_gemini_models_last_fetch";
   public static final String PREF_AI_EMOJIFY = "pref_ai_emojify";
 
-  public static final String DEFAULT_MODEL = "gemini-2.5-flash";
+  public static final String DEFAULT_MODEL = "gemini-2.0-flash";
 
   // Official, high-performance Gemini models matching FrostKeys architecture
   private static final String[] CANDIDATE_MODELS = {
-    "gemini-2.5-flash",
-    "gemini-3.5-flash",
     "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
     "gemini-1.5-flash",
+    "gemini-2.0-flash-lite",
     "gemini-1.5-flash-8b",
     "gemini-1.5-pro"
   };
@@ -110,31 +108,72 @@ public class GeminiAiService
   private static final ExecutorService _executor = Executors.newSingleThreadExecutor();
   private static final Handler _mainHandler = new Handler(Looper.getMainLooper());
 
-  public static String getApiKey(Context context)
+  public static String getGeminiApiKey(Context context)
   {
     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    String raw = prefs.getString(PREF_GEMINI_API_KEY, "").trim();
-    if (raw.startsWith("\"") && raw.endsWith("\"") && raw.length() >= 2)
-      raw = raw.substring(1, raw.length() - 1);
-    if (raw.startsWith("key="))
-      raw = raw.substring(4);
-    if (raw.startsWith("Bearer "))
-      raw = raw.substring(7);
-    return raw.trim();
+    String raw = OpenAiCompatibleProvider.cleanApiKey(prefs.getString(PREF_GEMINI_API_KEY, ""));
+    if (raw.isEmpty())
+    {
+      try
+      {
+        SharedPreferences dp = typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context);
+        raw = OpenAiCompatibleProvider.cleanApiKey(dp.getString(PREF_GEMINI_API_KEY, ""));
+      }
+      catch (Throwable ignored) {}
+    }
+    if (AiProvider.Manager.isOpenAiCompatibleKey(raw))
+    {
+      return "";
+    }
+    return raw;
+  }
+
+  public static String getApiKey(Context context)
+  {
+    if (AiProvider.Manager.getActiveProviderType(context) == AiProvider.ProviderType.OPENAI_COMPATIBLE)
+    {
+      String openAiKey = OpenAiCompatibleProvider.getApiKey(context);
+      if (!openAiKey.isEmpty()) return openAiKey;
+    }
+    String geminiKey = getGeminiApiKey(context);
+    if (!geminiKey.isEmpty()) return geminiKey;
+    return OpenAiCompatibleProvider.getApiKey(context);
+  }
+
+  public static void setGeminiApiKeyOnly(Context context, String apiKey)
+  {
+    String cleaned = OpenAiCompatibleProvider.cleanApiKey(apiKey);
+    PreferenceManager.getDefaultSharedPreferences(context)
+        .edit()
+        .putString(PREF_GEMINI_API_KEY, cleaned)
+        .apply();
+    try
+    {
+      typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
+          .edit()
+          .putString(PREF_GEMINI_API_KEY, cleaned)
+          .apply();
+    }
+    catch (Throwable ignored) {}
   }
 
   public static void setApiKey(Context context, String apiKey)
   {
-    String cleaned = apiKey == null ? "" : apiKey.trim();
-    if (cleaned.startsWith("\"") && cleaned.endsWith("\"") && cleaned.length() >= 2)
-      cleaned = cleaned.substring(1, cleaned.length() - 1);
-    if (cleaned.startsWith("key="))
-      cleaned = cleaned.substring(4);
-    if (cleaned.startsWith("Bearer "))
-      cleaned = cleaned.substring(7);
-
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    prefs.edit().putString(PREF_GEMINI_API_KEY, cleaned.trim()).apply();
+    String cleaned = OpenAiCompatibleProvider.cleanApiKey(apiKey);
+    if (AiProvider.Manager.isOpenAiCompatibleKey(cleaned))
+    {
+      OpenAiCompatibleProvider.setApiKey(context, cleaned);
+      AiProvider.Manager.setActiveProviderType(context, AiProvider.ProviderType.OPENAI_COMPATIBLE);
+      // Clear if a non-Gemini key was previously stored in PREF_GEMINI_API_KEY
+      SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+      String existingGem = OpenAiCompatibleProvider.cleanApiKey(prefs.getString(PREF_GEMINI_API_KEY, ""));
+      if (AiProvider.Manager.isOpenAiCompatibleKey(existingGem))
+      {
+        setGeminiApiKeyOnly(context, "");
+      }
+      return;
+    }
+    setGeminiApiKeyOnly(context, cleaned);
   }
 
   public static String getModel(Context context)
@@ -534,7 +573,7 @@ public class GeminiAiService
 
   private static boolean isSupportedTextFlashModel(String model)
   {
-    String lower = model.toLowerCase(java.util.Locale.ROOT);
+    String lower = model.toLowerCase();
     if (!lower.contains("flash") && !lower.contains("pro")) return false;
     String[] unsupported = {"tts", "image", "imagen", "embedding", "embed", "live", "audio", "video"};
     for (String u : unsupported)
@@ -549,6 +588,12 @@ public class GeminiAiService
     processPromptWithImage(context, promptText, null, null, callback);
   }
 
+  /** Worked math needs more room than a short keyboard writing suggestion. */
+  public static void processMathPrompt(final Context context, final String promptText, final AiCallback callback)
+  {
+    processPromptWithImage(context, promptText, null, null, 8192, callback);
+  }
+
   public static void processPromptWithImage(
       final Context context,
       final String promptText,
@@ -556,23 +601,43 @@ public class GeminiAiService
       final String mimeType,
       final AiCallback callback)
   {
-    processPromptWithImage(context, promptText, imageBytes, mimeType,
-        imageBytes != null ? 0.7f : 0.3f, 1024, callback);
-  }
-
-  public static void extractImageText(Context context, byte[] image, AiCallback callback) {
-    processPromptWithImage(context, ImageTextExtractor.PROMPT, image, "image/jpeg", 0f, 8192, callback);
+    processPromptWithImage(context, promptText, imageBytes, mimeType, 1024, callback);
   }
 
   private static void processPromptWithImage(
       final Context context, final String promptText, final byte[] imageBytes,
-      final String mimeType, final float temperature, final int maxOutputTokens,
-      final AiCallback callback)
+      final String mimeType, final int maxOutputTokens, final AiCallback callback)
   {
-    final String apiKey = getApiKey(context);
+    if (AiProvider.Manager.getActiveProviderType(context) == AiProvider.ProviderType.OPENAI_COMPATIBLE)
+    {
+      OpenAiCompatibleProvider.instance().generateWithOptions(
+          context,
+          null,
+          promptText,
+          imageBytes,
+          mimeType,
+          maxOutputTokens,
+          new AiProvider.Callback()
+          {
+            @Override
+            public void onSuccess(String resultText)
+            {
+              if (callback != null) callback.onSuccess(resultText);
+            }
+
+            @Override
+            public void onError(String errorMessage)
+            {
+              if (callback != null) callback.onError(errorMessage);
+            }
+          });
+      return;
+    }
+
+    final String apiKey = getGeminiApiKey(context);
     if (apiKey.isEmpty())
     {
-      callback.onError("Gemini API key is missing. Please configure it in settings.");
+      callback.onError("AI API key is missing. Please configure your Gemini or Groq API key in settings.");
       return;
     }
 
@@ -674,7 +739,7 @@ public class GeminiAiService
 
               // GenerationConfig to speed up response and save tokens (FrostKeys style)
               JSONObject genConfig = new JSONObject();
-              genConfig.put("temperature", temperature);
+              genConfig.put("temperature", imageBytes != null ? 0.7 : 0.3);
               genConfig.put("maxOutputTokens", maxOutputTokens);
               requestBody.put("generationConfig", genConfig);
 
@@ -715,7 +780,10 @@ public class GeminiAiService
                 {
                   JSONObject candidate = candidates.getJSONObject(0);
                   if (maxOutputTokens > 1024 && "MAX_TOKENS".equals(candidate.optString("finishReason")))
-                    throw new Exception("Image contains too much text. Please crop it into smaller sections.");
+                  {
+                    _mainHandler.post(() -> callback.onError(context.getString(typodev.keyboard.R.string.math_incomplete)));
+                    return;
+                  }
                   JSONObject content = candidate.optJSONObject("content");
                   if (content != null)
                   {
@@ -861,7 +929,7 @@ public class GeminiAiService
   {
     if (code == 429)
     {
-      return "⚠️ Google AI রিকোয়েস্ট লিমিট (429) সাময়িকভাবে পূর্ণ হয়েছে। দয়া করে ১৫-২০ সেকেন্ড অপেক্ষা করুন।";
+      return "⚠️ Google AI রিকোয়েস্ট লিমিট (429) সাময়িকভাবে পূর্ণ হয়েছে। দয়া করে ১৫-২০ seconds.";
     }
     try
     {
@@ -873,9 +941,9 @@ public class GeminiAiService
         if (!msg.isEmpty())
         {
           if (msg.contains("Resource has been exhausted") || msg.contains("quota"))
-            return "⚠️ Google AI কোটা লিমিট (429) সাময়িকভাবে শেষ হয়েছে। দয়া করে কিছুক্ষণ অপেক্ষা করুন।";
+            return "The usage limit has been reached. Please try again later.";
           if (msg.contains("API key not valid"))
-            return "❌ Gemini API Key সঠিক নয়। দয়া করে সেটিংসে সঠিক কি দিন।";
+            return "Your API key is invalid. Update it in settings.";
           return "API Error (" + code + "): " + msg;
         }
       }

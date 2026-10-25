@@ -46,6 +46,8 @@ public final class Config
   public float slide_step_px;
   public boolean suggestions_enabled;
   public boolean vibrate_enabled;
+  // Optional second sound/haptic when a swipe selects a corner character.
+  public boolean corner_feedback_enabled;
   // Let the system handle vibration when false.
   public boolean vibrate_custom;
   // Control the vibration if [vibrate_custom] is true.
@@ -186,6 +188,7 @@ public final class Config
     float slider_sensitivity = Float.valueOf(_prefs.getString("slider_sensitivity", "30")) / 100.f;
     slide_step_px = slider_sensitivity * swipe_scaling;
     vibrate_enabled = _prefs.getBoolean("vibrate_enabled", true);
+    corner_feedback_enabled = _prefs.getBoolean("corner_feedback_enabled", false);
     vibrate_custom = _prefs.getBoolean("vibrate_custom", false);
     vibrate_duration = _prefs.getInt("vibrate_duration", 20);
     one_hand_enabled = _prefs.getBoolean("pref_one_hand_enabled", false);
@@ -261,10 +264,13 @@ public final class Config
     else
       current_layout_narrow = l;
 
-    SharedPreferences.Editor e = _prefs.edit();
-    e.putInt("current_layout_portrait", current_layout_narrow);
-    e.putInt("current_layout_landscape", current_layout_wide);
-    e.apply();
+    if (_prefs != null)
+    {
+      SharedPreferences.Editor e = _prefs.edit();
+      e.putInt("current_layout_portrait", current_layout_narrow);
+      e.putInt("current_layout_landscape", current_layout_wide);
+      e.apply();
+    }
   }
 
   public void set_clipboard_history_enabled(boolean e)
