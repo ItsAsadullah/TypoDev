@@ -688,8 +688,10 @@ public class AiSettingsDialog
     final String[] popularOpenAiModels = {
       "llama-3.3-70b-versatile",
       "llama-3.1-8b-instant",
+      "openai/gpt-oss-120b",
+      "openai/gpt-oss-20b",
       "meta-llama/llama-4-scout-17b-16e-instruct",
-      "qwen/qwen3-32b",
+      "compound-beta",
       "grok-3-mini",
       "grok-2-latest",
       "gpt-4o-mini",
@@ -697,9 +699,13 @@ public class AiSettingsDialog
       "deepseek-chat",
       "deepseek-reasoner"
     };
-    String[] spinnerOptions = new String[popularOpenAiModels.length + 1];
+    final java.util.List<String> dynamicModelsList = new java.util.ArrayList<>(java.util.Arrays.asList(popularOpenAiModels));
+    String[] spinnerOptions = new String[dynamicModelsList.size() + 1];
     spinnerOptions[0] = "-- Choose to autofill popular model --";
-    System.arraycopy(popularOpenAiModels, 0, spinnerOptions, 1, popularOpenAiModels.length);
+    for (int i = 0; i < dynamicModelsList.size(); i++)
+    {
+      spinnerOptions[i + 1] = dynamicModelsList.get(i);
+    }
 
     final Spinner spinnerOpenAi = new Spinner(context);
     ArrayAdapter<String> openAiAdapter = DialogTheme.createThemedAdapter(context, spinnerOptions, palette, density);
@@ -710,9 +716,9 @@ public class AiSettingsDialog
       @Override
       public void onItemSelected(AdapterView<?> parent, View view, int position, long id)
       {
-        if (position > 0)
+        if (position > 0 && position <= dynamicModelsList.size())
         {
-          etOpenAiModel.setText(popularOpenAiModels[position - 1]);
+          etOpenAiModel.setText(dynamicModelsList.get(position - 1));
         }
       }
 
@@ -720,6 +726,79 @@ public class AiSettingsDialog
       public void onNothingSelected(AdapterView<?> parent) {}
     });
     llOpenAi.addView(spinnerOpenAi);
+
+    final Runnable refreshLiveModels = new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        final String keyNow = etOpenAiKey.getText().toString().trim();
+        final String urlNow = etBaseUrl.getText().toString().trim();
+        if (keyNow.isEmpty()) return;
+        OpenAiCompatibleProvider.fetchModelsAsync(urlNow, keyNow, new OpenAiCompatibleProvider.ModelsCallback()
+        {
+          @Override
+          public void onModelsFetched(java.util.List<String> models)
+          {
+            if (models == null || models.isEmpty()) return;
+            dynamicModelsList.clear();
+            dynamicModelsList.addAll(models);
+            String[] updatedOpts = new String[dynamicModelsList.size() + 1];
+            updatedOpts[0] = "-- Choose from " + dynamicModelsList.size() + " available models --";
+            for (int i = 0; i < dynamicModelsList.size(); i++)
+            {
+              updatedOpts[i + 1] = dynamicModelsList.get(i);
+            }
+            ArrayAdapter<String> newAdapter = DialogTheme.createThemedAdapter(context, updatedOpts, palette, density);
+            spinnerOpenAi.setAdapter(newAdapter);
+
+            String curModel = etOpenAiModel.getText().toString().trim();
+            if (curModel.isEmpty() || !dynamicModelsList.contains(curModel))
+            {
+              etOpenAiModel.setText(dynamicModelsList.get(0));
+            }
+          }
+        });
+      }
+    };
+
+    if (!savedOpenAiKey.isEmpty())
+    {
+      refreshLiveModels.run();
+    }
+
+    etOpenAiKey.addTextChangedListener(new android.text.TextWatcher()
+    {
+      @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+      @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+      @Override
+      public void afterTextChanged(android.text.Editable s)
+      {
+        String keyStr = s != null ? s.toString().trim() : "";
+        if (keyStr.startsWith("gsk_") && keyStr.length() >= 20)
+        {
+          etBaseUrl.setText(OpenAiCompatibleProvider.GROQ_BASE_URL);
+          if (!OpenAiCompatibleProvider.isCompatibleGroqModel(etOpenAiModel.getText().toString()))
+          {
+            etOpenAiModel.setText(OpenAiCompatibleProvider.GROQ_DEFAULT_MODEL);
+          }
+          refreshLiveModels.run();
+        }
+        else if (keyStr.startsWith("xai-") && keyStr.length() >= 20)
+        {
+          etBaseUrl.setText(OpenAiCompatibleProvider.XAI_BASE_URL);
+          if (!etOpenAiModel.getText().toString().toLowerCase().contains("grok"))
+          {
+            etOpenAiModel.setText(OpenAiCompatibleProvider.XAI_DEFAULT_MODEL);
+          }
+          refreshLiveModels.run();
+        }
+        else if (keyStr.startsWith("sk-") && keyStr.length() >= 20)
+        {
+          refreshLiveModels.run();
+        }
+      }
+    });
 
     root.addView(llOpenAi);
 

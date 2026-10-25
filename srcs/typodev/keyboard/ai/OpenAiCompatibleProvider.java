@@ -39,15 +39,21 @@ public class OpenAiCompatibleProvider implements AiProvider
   private static final String[] GROQ_FALLBACK_MODELS = {
     "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
     "meta-llama/llama-4-scout-17b-16e-instruct",
-    "qwen/qwen3-32b"
+    "compound-beta"
   };
 
   private static final String[] XAI_FALLBACK_MODELS = {
     "grok-3-mini",
-    "grok-2-latest",
-    "grok-beta"
+    "grok-3",
+    "grok-2-latest"
   };
+
+  private static volatile String _cachedModelsKey = "";
+  private static volatile long _cachedModelsTimeMs = 0L;
+  private static volatile List<String> _cachedModelsList = new ArrayList<>();
 
   private static OpenAiCompatibleProvider _instance;
   private static final ExecutorService _executor = Executors.newSingleThreadExecutor();
@@ -231,37 +237,22 @@ public class OpenAiCompatibleProvider implements AiProvider
     String k = (apiKey != null) ? apiKey.trim() : "";
     if (k.startsWith("gsk_"))
     {
-      String lower = u.toLowerCase(Locale.ROOT);
-      if (u.isEmpty()
-          || lower.contains("api.openai.com")
-          || lower.contains("api.deepseek.com")
-          || lower.contains("api.x.ai")
-          || lower.equals("https://api.groq.com")
-          || lower.equals("https://api.groq.com/v1")
-          || lower.equals("http://api.groq.com")
-          || lower.equals("http://api.groq.com/v1"))
-      {
-        return GROQ_BASE_URL;
-      }
+      return GROQ_BASE_URL;
     }
     else if (k.startsWith("xai-"))
     {
-      String lower = u.toLowerCase(Locale.ROOT);
-      if (u.isEmpty()
-          || lower.contains("api.openai.com")
-          || lower.contains("groq.com")
-          || lower.contains("api.deepseek.com")
-          || lower.equals("https://api.x.ai"))
-      {
-        return XAI_BASE_URL;
-      }
+      return XAI_BASE_URL;
     }
     else if (k.startsWith("sk-or-"))
     {
+      return OPENROUTER_BASE_URL;
+    }
+    else if (k.startsWith("sk-"))
+    {
       String lower = u.toLowerCase(Locale.ROOT);
-      if (u.isEmpty() || lower.contains("api.openai.com"))
+      if (u.isEmpty() || lower.contains("groq.com") || lower.contains("api.x.ai"))
       {
-        return OPENROUTER_BASE_URL;
+        return DEFAULT_OPENAI_BASE_URL;
       }
     }
 
@@ -326,7 +317,12 @@ public class OpenAiCompatibleProvider implements AiProvider
         || lower.equals("deepseek-reasoner")
         || lower.startsWith("claude-")
         || lower.startsWith("gemini-")
-        || lower.startsWith("grok-"))
+        || lower.startsWith("grok-")
+        || lower.equals("qwen/qwen3-32b")
+        || lower.equals("llama3-70b-8192")
+        || lower.equals("llama3-8b-8192")
+        || lower.equals("mixtral-8x7b-32768")
+        || lower.equals("gemma2-9b-it"))
     {
       return false;
     }
@@ -393,6 +389,157 @@ public class OpenAiCompatibleProvider implements AiProvider
     return cleaned.isEmpty() ? text.trim() : cleaned;
   }
 
+  public interface ModelsCallback
+  {
+    void onModelsFetched(List<String> models);
+  }
+
+  public static boolean isSupportedChatModelId(String id)
+  {
+    if (id == null || id.trim().isEmpty()) return false;
+    String lower = id.trim().toLowerCase(Locale.ROOT);
+    String[] excluded = {
+      "whisper", "tts", "playai", "guard", "safeguard", "embed",
+      "moderation", "orpheus", "allam", "rerank", "audio", "speech",
+      "dall-e", "imagen", "babbage", "davinci", "realtime", "transcribe"
+    };
+    for (String ex : excluded)
+    {
+      if (lower.contains(ex)) return false;
+    }
+    return true;
+  }
+
+  private static int getModelPriorityScore(String id)
+  {
+    if (id == null) return 999;
+    String lower = id.toLowerCase(Locale.ROOT);
+    if (lower.equals("llama-3.3-70b-versatile")) return 1;
+    if (lower.equals("openai/gpt-oss-120b")) return 2;
+    if (lower.contains("llama-4-maverick")) return 3;
+    if (lower.contains("llama-4-scout")) return 4;
+    if (lower.contains("kimi-k2")) return 5;
+    if (lower.equals("llama-3.1-8b-instant")) return 6;
+    if (lower.equals("openai/gpt-oss-20b")) return 7;
+    if (lower.contains("llama-3.3") || lower.contains("llama-3.1")) return 8;
+    if (lower.contains("compound-beta")) return 9;
+    if (lower.contains("grok-3-mini")) return 10;
+    if (lower.contains("grok-3") || lower.contains("grok-2")) return 11;
+    if (lower.equals("gpt-4o-mini")) return 12;
+    if (lower.equals("gpt-4o")) return 13;
+    if (lower.equals("deepseek-chat")) return 14;
+    if (lower.contains("deepseek")) return 15;
+    if (lower.contains("qwen")) return 16;
+    if (lower.contains("llama") || lower.contains("gemma") || lower.contains("mixtral")) return 20;
+    return 50;
+  }
+
+  public static List<String> fetchAccessibleChatModels(String baseUrl, String apiKey, boolean forceRefresh)
+  {
+    if (baseUrl == null || baseUrl.isEmpty() || apiKey == null || apiKey.isEmpty())
+    {
+      return new ArrayList<>();
+    }
+    String cacheKey = baseUrl + "|" + apiKey.hashCode();
+    long now = System.currentTimeMillis();
+    if (!forceRefresh
+        && cacheKey.equals(_cachedModelsKey)
+        && !_cachedModelsList.isEmpty()
+        && (now - _cachedModelsTimeMs < 10L * 60 * 1000))
+    {
+      return new ArrayList<>(_cachedModelsList);
+    }
+
+    List<String> discovered = new ArrayList<>();
+    HttpURLConnection conn = null;
+    try
+    {
+      URL url = new URL(baseUrl + "/models");
+      conn = (HttpURLConnection) url.openConnection();
+      conn.setRequestMethod("GET");
+      conn.setConnectTimeout(8000);
+      conn.setReadTimeout(10000);
+      conn.setRequestProperty("Accept", "application/json");
+      conn.setRequestProperty("User-Agent", "TypoBoard/1.0 (Android; OpenAI-Compatible)");
+      conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+
+      if (conn.getResponseCode() == 200)
+      {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)))
+        {
+          String line;
+          while ((line = br.readLine()) != null) sb.append(line);
+        }
+        JSONObject root = new JSONObject(sb.toString());
+        JSONArray data = root.optJSONArray("data");
+        if (data != null)
+        {
+          for (int i = 0; i < data.length(); i++)
+          {
+            JSONObject m = data.optJSONObject(i);
+            if (m == null) continue;
+            if (m.has("active") && !m.optBoolean("active", true)) continue;
+            String id = m.optString("id", "").trim();
+            if (isSupportedChatModelId(id) && !discovered.contains(id))
+            {
+              discovered.add(id);
+            }
+          }
+        }
+        java.util.Collections.sort(discovered, new java.util.Comparator<String>()
+        {
+          @Override
+          public int compare(String a, String b)
+          {
+            int pa = getModelPriorityScore(a);
+            int pb = getModelPriorityScore(b);
+            if (pa != pb) return pa - pb;
+            return a.compareTo(b);
+          }
+        });
+        if (!discovered.isEmpty())
+        {
+          _cachedModelsKey = cacheKey;
+          _cachedModelsTimeMs = now;
+          _cachedModelsList = new ArrayList<>(discovered);
+        }
+      }
+    }
+    catch (Exception ignored) {}
+    finally
+    {
+      if (conn != null) conn.disconnect();
+    }
+    return discovered;
+  }
+
+  public static void fetchModelsAsync(
+      final String baseUrl,
+      final String apiKey,
+      final ModelsCallback callback)
+  {
+    _executor.execute(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        final List<String> list = fetchAccessibleChatModels(
+            normalizeBaseUrl(baseUrl, apiKey),
+            cleanApiKey(apiKey),
+            true);
+        runOnMainThread(new Runnable()
+        {
+          @Override
+          public void run()
+          {
+            if (callback != null) callback.onModelsFetched(list);
+          }
+        });
+      }
+    });
+  }
+
   @Override
   public void generate(final Context context, final String systemPrompt, final String userText, final Callback callback)
   {
@@ -429,32 +576,59 @@ public class OpenAiCompatibleProvider implements AiProvider
         boolean isXai = apiKey.startsWith("xai-") || baseUrl.toLowerCase(Locale.ROOT).contains("api.x.ai");
         boolean hasImage = imageBytes != null && imageBytes.length > 0;
 
+        // Dynamically query GET {baseUrl}/models to discover active models accessible by this API key
+        List<String> liveModels = fetchAccessibleChatModels(baseUrl, apiKey, false);
+
         if (hasImage)
         {
-          if (isGroq) modelsToTry.add(GROQ_VISION_MODEL);
-          else if (isXai) modelsToTry.add(XAI_VISION_MODEL);
-        }
-
-        if (!modelsToTry.contains(configuredModel))
-        {
-          modelsToTry.add(configuredModel);
-        }
-
-        if (isGroq)
-        {
-          for (String m : GROQ_FALLBACK_MODELS)
+          if (isGroq && (liveModels.isEmpty() || liveModels.contains(GROQ_VISION_MODEL)))
           {
-            if (!modelsToTry.contains(m)) modelsToTry.add(m);
+            modelsToTry.add(GROQ_VISION_MODEL);
           }
-        }
-        else if (isXai)
-        {
-          for (String m : XAI_FALLBACK_MODELS)
+          else if (isXai)
           {
-            if (!modelsToTry.contains(m)) modelsToTry.add(m);
+            modelsToTry.add(XAI_VISION_MODEL);
           }
         }
 
+        if (!liveModels.isEmpty())
+        {
+          if (liveModels.contains(configuredModel) && !modelsToTry.contains(configuredModel))
+          {
+            modelsToTry.add(configuredModel);
+          }
+          for (String live : liveModels)
+          {
+            if (!modelsToTry.contains(live))
+            {
+              modelsToTry.add(live);
+              if (modelsToTry.size() >= 6) break;
+            }
+          }
+        }
+        else
+        {
+          if (!modelsToTry.contains(configuredModel))
+          {
+            modelsToTry.add(configuredModel);
+          }
+          if (isGroq)
+          {
+            for (String m : GROQ_FALLBACK_MODELS)
+            {
+              if (!modelsToTry.contains(m)) modelsToTry.add(m);
+            }
+          }
+          else if (isXai)
+          {
+            for (String m : XAI_FALLBACK_MODELS)
+            {
+              if (!modelsToTry.contains(m)) modelsToTry.add(m);
+            }
+          }
+        }
+
+        String primaryErr = null;
         String lastErr = "Request failed";
 
         for (int i = 0; i < modelsToTry.size(); i++)
@@ -477,7 +651,7 @@ public class OpenAiCompatibleProvider implements AiProvider
 
             JSONObject root = new JSONObject();
             root.put("model", model);
-            root.put("temperature", (double)temp);
+            root.put("temperature", Math.round(temp * 100.0) / 100.0);
             if (maxOutputTokens > 0)
             {
               int safeMaxTokens = isGroq ? Math.min(maxOutputTokens, 4096) : maxOutputTokens;
@@ -560,6 +734,11 @@ public class OpenAiCompatibleProvider implements AiProvider
                 JSONObject message = first.optJSONObject("message");
                 if (message != null)
                 {
+                  // Persist verified working model if different
+                  if (!model.equals(configuredModel) && !hasImage)
+                  {
+                    setModel(context, model);
+                  }
                   String content = stripReasoningThinkTags(message.optString("content", ""));
                   postSuccess(callback, content);
                   return;
@@ -588,14 +767,23 @@ public class OpenAiCompatibleProvider implements AiProvider
               }
               catch (Exception ignored) {}
 
+              if (primaryErr == null) primaryErr = errMsg;
               lastErr = errMsg;
-              // Retry next candidate model on 400/404 (model decommissioned/invalid) or 429 (rate limit) or 503
-              if ((statusCode == 400 || statusCode == 404 || statusCode == 429 || statusCode == 503)
-                  && i < modelsToTry.size() - 1)
+
+              String lowerErr = errMsg.toLowerCase(Locale.ROOT);
+              boolean isModelOrRateErr = statusCode == 404
+                  || statusCode == 429
+                  || statusCode == 503
+                  || (statusCode == 400 && (lowerErr.contains("model")
+                      || lowerErr.contains("decommissioned")
+                      || lowerErr.contains("not exist")
+                      || lowerErr.contains("not supported")));
+
+              if (isModelOrRateErr && i < modelsToTry.size() - 1)
               {
                 continue;
               }
-              postError(callback, errMsg);
+              postError(callback, primaryErr != null ? primaryErr : errMsg);
               return;
             }
           }
@@ -614,7 +802,7 @@ public class OpenAiCompatibleProvider implements AiProvider
           }
         }
 
-        postError(callback, lastErr);
+        postError(callback, primaryErr != null ? primaryErr : lastErr);
       }
     });
   }
