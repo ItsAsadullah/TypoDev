@@ -24,7 +24,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.List;
-import java.util.Locale;
 import typodev.keyboard.Keyboard2;
 import typodev.keyboard.Logs;
 import typodev.keyboard.R;
@@ -32,11 +31,12 @@ import typodev.keyboard.R;
 /**
  * Fast, icon-driven in-keyboard AI Assistant view.
  *
- * Designed for 1-tap speed and clarity:
- * - Zero emojis in UI controls (uses crisp vector drawables throughout).
- * - Top 1-Tap Quick Actions strip for instant execution (Fix Grammar, BN↔EN, Banglish→বাংলা, Professional, Islamic, Reply, Summarize, Math).
- * - Clean 3-column visual Category Grid when browsing tools, switching smoothly to a dedicated
- *   Result Preview + Bottom Action Dock when generating or viewing output.
+ * Designed for maximum speed and preview clarity (matching the Magic Tools preview style):
+ * - No "AI Assistant" or provider name clutter in the header.
+ * - High-contrast vector icons in both Dark Mode and Light Mode.
+ * - In Tools Mode: Top bar (Back, Ask AI, Source toggle, Emoji toggle, Settings) + Quick/Sub-option strip + 3-column Category Grid.
+ * - In Result Preview Mode: Top bar holds Back + Replace + Insert + Copy + Regenerate + Settings,
+ *   followed by a single sub-option chip row and a full-height Result Preview card (no bottom bar or clipboard clutter).
  */
 public class AiPaneView extends LinearLayout
 {
@@ -70,41 +70,48 @@ public class AiPaneView extends LinearLayout
   private long _requestRevision;
   private String _currentCustomPrompt = "";
 
-  // Header & Context Views
-  private TextView _tvProviderBadge;
+  // Top Header Views
+  private ImageView _btnBack;
+  private LinearLayout _toolsHeaderGroup;
+  private LinearLayout _btnAskHeader;
+  private ImageView _ivAskHeaderIcon;
+  private TextView _tvAskHeaderLabel;
+  private LinearLayout _btnSourceToggle;
+  private ImageView _ivSourceIcon;
+  private TextView _tvSourceLabel;
   private LinearLayout _btnEmojifyToggle;
   private ImageView _ivEmojifyIcon;
   private TextView _tvEmojifyLabel;
-  private ImageView _ivSourceIcon;
-  private TextView _tvSourceBadge;
-  private TextView _tvInputSnippet;
-  private TextView _btnToggleSource;
-  private LinearLayout _cardSetupNotice;
 
-  // Quick Actions & Custom Prompt Views
-  private HorizontalScrollView _scrollQuick;
-  private LinearLayout _rowQuickActions;
+  private LinearLayout _resultHeaderActionsGroup;
+  private LinearLayout _btnTopReplace;
+  private LinearLayout _btnTopInsert;
+  private LinearLayout _btnTopCopy;
+  private ImageView _btnTopRegen;
+  private ImageView _btnSettings;
+
+  // Setup notice & Custom prompt
+  private LinearLayout _cardSetupNotice;
   private LinearLayout _llCustomPrompt;
   private TextView _tvCustomPromptDisplay;
 
-  // Sub-options & Tone Strip
-  private LinearLayout _sectionSubOptions;
-  private TextView _tvSelectedCategoryTitle;
+  // Horizontal Chips Strip (Quick actions in Tools Mode / Sub-options in Category or Result Mode)
   private HorizontalScrollView _scrollSubOptions;
   private LinearLayout _rowSubOptions;
   private HorizontalScrollView _scrollTone;
   private LinearLayout _rowToneChips;
 
-  // Tools Grid vs Result Preview containers
-  private ScrollView _scrollBody;
+  // Tools Grid Mode container
+  private ScrollView _scrollGrid;
   private GridLayout _gridCategories;
-  private LinearLayout _resultContainer;
+
+  // Full-Height Result Preview Mode container (Magic button preview style)
+  private LinearLayout _resultCard;
+  private LinearLayout _loadingRow;
   private ProgressBar _progressBar;
-  private ImageView _ivStatusIcon;
-  private TextView _tvStatus;
-  private TextView _btnShowToolsGrid;
+  private TextView _tvLoadingStatus;
+  private ScrollView _scrollResult;
   private TextView _tvResultPreview;
-  private LinearLayout _rowActionButtons;
 
   public AiPaneView(Context context)
   {
@@ -133,12 +140,38 @@ public class AiPaneView extends LinearLayout
   {
     _colorKeyboard = resolveColor(context, R.attr.colorKeyboard, Color.parseColor("#1B1B1B"));
     _colorKey = resolveColor(context, R.attr.colorKey, Color.parseColor("#2C2C2C"));
-    _colorKeyActivated = resolveColor(context, R.attr.colorKeyActivated, Color.parseColor("#2196F3"));
     _colorLabel = resolveColor(context, R.attr.colorLabel, Color.WHITE);
     _colorSubLabel = resolveColor(context, R.attr.colorSubLabel, Color.parseColor("#AAAAAA"));
 
-    double darkness = 1 - (0.299 * Color.red(_colorKeyboard) + 0.587 * Color.green(_colorKeyboard) + 0.114 * Color.blue(_colorKeyboard)) / 255;
+    try
+    {
+      typodev.keyboard.Config cfg = typodev.keyboard.Config.globalConfig();
+      typodev.keyboard.CustomThemeStore cs = typodev.keyboard.CustomThemeStore.instance(context);
+      if (cs != null && cs.isCustomThemeActive(cfg))
+      {
+        _colorKeyboard = cs.getKeyboardBg();
+        _colorKey = cs.getKeyNormal();
+        _colorLabel = cs.getLabelColor();
+        _colorSubLabel = cs.getSubLabelColor();
+      }
+    }
+    catch (Throwable ignored) {}
+
+    double darkness = 1 - (0.299 * Color.red(_colorKeyboard) + 0.587 * Color.green(_colorKeyboard) + 0.114 * Color.blue(_colorKeyboard)) / 255.0;
     _isDark = darkness >= 0.5;
+    // Always use a vibrant, visible accent color rather than R.attr.colorKeyActivated (which is dark gray in dark themes)
+    _colorKeyActivated = _isDark ? Color.parseColor("#2563EB") : Color.parseColor("#1D4ED8");
+  }
+
+  /** High-contrast icon tint that is always bright and clear in Dark Mode and crisp in Light Mode. */
+  private int getIconColor()
+  {
+    return _isDark ? Color.parseColor("#38BDF8") : Color.parseColor("#1D4ED8");
+  }
+
+  private int getPrimaryIconColor()
+  {
+    return _isDark ? Color.WHITE : _colorLabel;
   }
 
   public int getColorKeyboard() { return _colorKeyboard; }
@@ -170,16 +203,9 @@ public class AiPaneView extends LinearLayout
 
   private void updateBottomPadding(int rawBottomSafety)
   {
-    int minSafeBottom = dp(28);
+    int minSafeBottom = dp(12);
     _bottomSafety = Math.max(rawBottomSafety, minSafeBottom);
-    if (_rowActionButtons != null)
-    {
-      _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
-    }
-    if (_gridCategories != null)
-    {
-      _gridCategories.setPadding(dp(2), dp(2), dp(2), dp(6) + _bottomSafety);
-    }
+    setPadding(dp(10), dp(6), dp(10), dp(6) + _bottomSafety);
   }
 
   @Override
@@ -202,109 +228,130 @@ public class AiPaneView extends LinearLayout
 
     setOrientation(VERTICAL);
     setBackgroundColor(_colorKeyboard);
+    setPadding(dp(10), dp(6), dp(10), dp(18));
 
     // ==========================================
-    // 1. Sleek Top Header Bar (Vector Icons Only)
+    // 1. Sleek Top Header Bar
+    //    - No "AI Assistant" text
+    //    - No "Gemini / Groq / OpenAI" badge
+    //    - Holds Tools Controls in Tools Mode, and Replace / Insert / Copy / Regen in Result Mode!
     // ==========================================
     LinearLayout headerBar = new LinearLayout(context);
     headerBar.setOrientation(HORIZONTAL);
     headerBar.setGravity(Gravity.CENTER_VERTICAL);
-    headerBar.setPadding(dp(8), dp(4), dp(8), dp(4));
 
-    ImageView btnBack = createCircleIconButton(context, R.drawable.ic_ai_back, dp(34), dp(8), new OnClickListener()
+    _btnBack = createCircleIconButton(context, R.drawable.ic_ai_back, dp(36), dp(9), new OnClickListener()
     {
       @Override
       public void onClick(View v)
       {
-        if (_showingResultMode && !_isGenerating)
+        if (_showingResultMode)
         {
+          ++_requestRevision;
+          _isGenerating = false;
           showToolsGridMode();
+          return;
+        }
+        if (_activeCategory != null)
+        {
+          _activeCategory = null;
+          _activeOptionId = "";
+          _llCustomPrompt.setVisibility(GONE);
+          _scrollTone.setVisibility(GONE);
+          buildQuickOrSubOptionStrip();
+          buildCategoryGrid();
           return;
         }
         if (_keyboard != null) _keyboard.closeAiPane();
       }
     });
-    headerBar.addView(btnBack);
+    headerBar.addView(_btnBack);
 
-    ImageView ivBrand = new ImageView(context);
-    ivBrand.setImageResource(R.drawable.ic_toolbar_ai);
-    int accent = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
-    ivBrand.setColorFilter(accent, PorterDuff.Mode.SRC_IN);
-    LinearLayout.LayoutParams lpBrand = new LinearLayout.LayoutParams(dp(18), dp(18));
-    lpBrand.setMargins(dp(6), 0, dp(4), 0);
-    headerBar.addView(ivBrand, lpBrand);
+    // 1A. Tools Mode Header Group (Ask AI + Source Toggle + Emoji Toggle)
+    _toolsHeaderGroup = new LinearLayout(context);
+    _toolsHeaderGroup.setOrientation(HORIZONTAL);
+    _toolsHeaderGroup.setGravity(Gravity.CENTER_VERTICAL);
+    LinearLayout.LayoutParams lpToolsHeader = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+    lpToolsHeader.setMargins(dp(6), 0, dp(4), 0);
+    _toolsHeaderGroup.setLayoutParams(lpToolsHeader);
 
-    TextView tvTitle = new TextView(context);
-    tvTitle.setText("AI Assistant");
-    tvTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-    tvTitle.setTypeface(null, Typeface.BOLD);
-    tvTitle.setTextColor(_colorLabel);
-    headerBar.addView(tvTitle);
-
-    _tvProviderBadge = new TextView(context);
-    _tvProviderBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
-    _tvProviderBadge.setTextColor(_colorLabel);
-    _tvProviderBadge.setTypeface(null, Typeface.BOLD);
-    _tvProviderBadge.setPadding(dp(7), dp(2), dp(7), dp(2));
-    _tvProviderBadge.setBackground(createPillBackground(
-        adjustAlpha(accent, 0.22f),
-        dp(10),
-        adjustAlpha(accent, 0.55f)));
-    _tvProviderBadge.setOnClickListener(new OnClickListener()
+    // Ask AI Button
+    _btnAskHeader = new LinearLayout(context);
+    _btnAskHeader.setOrientation(HORIZONTAL);
+    _btnAskHeader.setGravity(Gravity.CENTER_VERTICAL);
+    _btnAskHeader.setPadding(dp(10), 0, dp(10), 0);
+    _ivAskHeaderIcon = new ImageView(context);
+    _ivAskHeaderIcon.setImageResource(R.drawable.ic_ai_send);
+    LinearLayout.LayoutParams lpAskIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
+    lpAskIcon.setMargins(0, 0, dp(5), 0);
+    _btnAskHeader.addView(_ivAskHeaderIcon, lpAskIcon);
+    _tvAskHeaderLabel = new TextView(context);
+    _tvAskHeaderLabel.setText("Ask AI");
+    _tvAskHeaderLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    _tvAskHeaderLabel.setTypeface(null, Typeface.BOLD);
+    _btnAskHeader.addView(_tvAskHeaderLabel);
+    _btnAskHeader.setOnClickListener(new OnClickListener()
     {
       @Override
       public void onClick(View v)
       {
-        openSettingsDialog();
+        _activeCategory = AiActionEngine.Category.ASK_AI;
+        _llCustomPrompt.setVisibility(VISIBLE);
+        openKeyboardForPrompt();
       }
     });
-    LinearLayout.LayoutParams lpBadge = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpBadge.setMargins(dp(6), 0, dp(4), 0);
-    headerBar.addView(_tvProviderBadge, lpBadge);
+    LinearLayout.LayoutParams lpAskBtn = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
+    lpAskBtn.setMargins(0, 0, dp(6), 0);
+    _toolsHeaderGroup.addView(_btnAskHeader, lpAskBtn);
 
-    View spacerHeader = new View(context);
-    headerBar.addView(spacerHeader, new LinearLayout.LayoutParams(0, 1, 1.0f));
+    // Compact Source Toggle Pill (Typed vs Clipboard)
+    _btnSourceToggle = new LinearLayout(context);
+    _btnSourceToggle.setOrientation(HORIZONTAL);
+    _btnSourceToggle.setGravity(Gravity.CENTER_VERTICAL);
+    _btnSourceToggle.setPadding(dp(9), 0, dp(9), 0);
+    _ivSourceIcon = new ImageView(context);
+    _ivSourceIcon.setImageResource(R.drawable.ic_ai_edit);
+    LinearLayout.LayoutParams lpSrcIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
+    lpSrcIcon.setMargins(0, 0, dp(5), 0);
+    _btnSourceToggle.addView(_ivSourceIcon, lpSrcIcon);
+    _tvSourceLabel = new TextView(context);
+    _tvSourceLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    _tvSourceLabel.setTypeface(null, Typeface.BOLD);
+    _tvSourceLabel.setSingleLine(true);
+    _btnSourceToggle.addView(_tvSourceLabel);
+    _btnSourceToggle.setOnClickListener(new OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        _usingClipboard = !_usingClipboard;
+        _currentWorkingText = _usingClipboard ? _clipboardText : _inputFieldText;
+        updateContextDisplay();
+        if (_activeCategory == null) buildQuickOrSubOptionStrip();
+        Toast.makeText(getContext(), _usingClipboard ? "Using Clipboard text" : "Using Typed text", Toast.LENGTH_SHORT).show();
+      }
+    });
+    LinearLayout.LayoutParams lpSrcBtn = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
+    lpSrcBtn.setMargins(0, 0, dp(6), 0);
+    _toolsHeaderGroup.addView(_btnSourceToggle, lpSrcBtn);
 
-    // 1-Tap "Ask AI" Prompt Button in Header
-    LinearLayout btnAskHeader = createIconPillChip(
-        context,
-        R.drawable.ic_ai_send,
-        "Ask AI",
-        adjustAlpha(accent, 0.22f),
-        adjustAlpha(accent, 0.55f),
-        _colorLabel,
-        accent,
-        dp(28),
-        new OnClickListener()
-        {
-          @Override
-          public void onClick(View v)
-          {
-            _activeCategory = AiActionEngine.Category.ASK_AI;
-            _llCustomPrompt.setVisibility(VISIBLE);
-            openKeyboardForPrompt();
-          }
-        });
-    LinearLayout.LayoutParams lpAsk = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.WRAP_CONTENT, dp(28));
-    lpAsk.setMargins(dp(2), 0, dp(4), 0);
-    headerBar.addView(btnAskHeader, lpAsk);
+    View toolsSpacer = new View(context);
+    _toolsHeaderGroup.addView(toolsSpacer, new LinearLayout.LayoutParams(0, 1, 1.0f));
 
-    // Emojify Toggle Button (Vector Icon + Label)
+    // Emojify Toggle Pill
     _btnEmojifyToggle = new LinearLayout(context);
     _btnEmojifyToggle.setOrientation(HORIZONTAL);
     _btnEmojifyToggle.setGravity(Gravity.CENTER_VERTICAL);
-    _btnEmojifyToggle.setPadding(dp(7), 0, dp(7), 0);
+    _btnEmojifyToggle.setPadding(dp(9), 0, dp(9), 0);
     _ivEmojifyIcon = new ImageView(context);
     _ivEmojifyIcon.setImageResource(R.drawable.ic_ai_humor);
-    _ivEmojifyIcon.setLayoutParams(new LinearLayout.LayoutParams(dp(13), dp(13)));
+    LinearLayout.LayoutParams lpEmoIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
+    lpEmoIcon.setMargins(0, 0, dp(4), 0);
+    _btnEmojifyToggle.addView(_ivEmojifyIcon, lpEmoIcon);
     _tvEmojifyLabel = new TextView(context);
-    _tvEmojifyLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-    _tvEmojifyLabel.setPadding(dp(4), 0, 0, 0);
-    _btnEmojifyToggle.addView(_ivEmojifyIcon);
+    _tvEmojifyLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    _tvEmojifyLabel.setTypeface(null, Typeface.BOLD);
     _btnEmojifyToggle.addView(_tvEmojifyLabel);
-    updateEmojifyButtonState();
     _btnEmojifyToggle.setOnClickListener(new OnClickListener()
     {
       @Override
@@ -316,13 +363,93 @@ public class AiPaneView extends LinearLayout
         Toast.makeText(getContext(), !cur ? "Emoji in output: ON" : "Plain text output: ON", Toast.LENGTH_SHORT).show();
       }
     });
-    LinearLayout.LayoutParams lpEmo = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.WRAP_CONTENT, dp(28));
-    lpEmo.setMargins(dp(2), 0, dp(4), 0);
-    headerBar.addView(_btnEmojifyToggle, lpEmo);
+    LinearLayout.LayoutParams lpEmoBtn = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
+    _toolsHeaderGroup.addView(_btnEmojifyToggle, lpEmoBtn);
 
-    // Settings Icon Button
-    ImageView btnSettings = createCircleIconButton(context, R.drawable.ic_ai_settings, dp(34), dp(8), new OnClickListener()
+    headerBar.addView(_toolsHeaderGroup);
+
+    // 1B. Result Mode Header Actions Group (Replace, Insert, Copy, Regenerate in Top Bar!)
+    _resultHeaderActionsGroup = new LinearLayout(context);
+    _resultHeaderActionsGroup.setOrientation(HORIZONTAL);
+    _resultHeaderActionsGroup.setGravity(Gravity.CENTER_VERTICAL);
+    LinearLayout.LayoutParams lpResHeader = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+    lpResHeader.setMargins(dp(6), 0, dp(4), 0);
+    _resultHeaderActionsGroup.setLayoutParams(lpResHeader);
+    _resultHeaderActionsGroup.setVisibility(GONE);
+
+    _btnTopReplace = createTopActionButton(
+        context,
+        R.drawable.ic_ai_check,
+        "Replace",
+        Color.parseColor("#059669"),
+        Color.parseColor("#34D399"),
+        new OnClickListener()
+        {
+          @Override
+          public void onClick(View v)
+          {
+            applyResultToField(true);
+          }
+        });
+    LinearLayout.LayoutParams lpTopReplace = new LinearLayout.LayoutParams(0, dp(34), 1.15f);
+    lpTopReplace.setMargins(0, 0, dp(5), 0);
+    _resultHeaderActionsGroup.addView(_btnTopReplace, lpTopReplace);
+
+    _btnTopInsert = createTopActionButton(
+        context,
+        R.drawable.ic_clip_add,
+        "Insert",
+        Color.parseColor("#2563EB"),
+        Color.parseColor("#60A5FA"),
+        new OnClickListener()
+        {
+          @Override
+          public void onClick(View v)
+          {
+            applyResultToField(false);
+          }
+        });
+    LinearLayout.LayoutParams lpTopInsert = new LinearLayout.LayoutParams(0, dp(34), 1.05f);
+    lpTopInsert.setMargins(0, 0, dp(5), 0);
+    _resultHeaderActionsGroup.addView(_btnTopInsert, lpTopInsert);
+
+    _btnTopCopy = createTopActionButton(
+        context,
+        R.drawable.ic_clip_copy,
+        "Copy",
+        Color.parseColor("#374151"),
+        Color.parseColor("#6B7280"),
+        new OnClickListener()
+        {
+          @Override
+          public void onClick(View v)
+          {
+            copyResultToClipboard();
+          }
+        });
+    LinearLayout.LayoutParams lpTopCopy = new LinearLayout.LayoutParams(0, dp(34), 0.95f);
+    lpTopCopy.setMargins(0, 0, dp(5), 0);
+    _resultHeaderActionsGroup.addView(_btnTopCopy, lpTopCopy);
+
+    _btnTopRegen = createCircleIconButton(
+        context,
+        R.drawable.ic_ai_refresh,
+        dp(34),
+        dp(8),
+        new OnClickListener()
+        {
+          @Override
+          public void onClick(View v)
+          {
+            triggerExecution();
+          }
+        });
+    _resultHeaderActionsGroup.addView(_btnTopRegen);
+
+    headerBar.addView(_resultHeaderActionsGroup);
+
+    // Settings Icon Button (Rightmost)
+    _btnSettings = createCircleIconButton(context, R.drawable.ic_ai_settings, dp(36), dp(9), new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -330,29 +457,24 @@ public class AiPaneView extends LinearLayout
         openSettingsDialog();
       }
     });
-    headerBar.addView(btnSettings);
+    LinearLayout.LayoutParams lpSettings = new LinearLayout.LayoutParams(dp(36), dp(36));
+    lpSettings.setMargins(dp(4), 0, 0, 0);
+    headerBar.addView(_btnSettings, lpSettings);
 
-    addView(headerBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42)));
+    addView(headerBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)));
 
     // ==========================================
-    // 2. Main Scrollable Body
+    // 2. API Key Setup Notice (Only if no key is configured)
     // ==========================================
-    _scrollBody = new ScrollView(context);
-    _scrollBody.setFillViewport(true);
-    _scrollBody.setVerticalScrollBarEnabled(false);
-    _scrollBody.setHorizontalScrollBarEnabled(false);
-    _scrollBody.setOverScrollMode(View.OVER_SCROLL_NEVER);
-
-    LinearLayout bodyContent = new LinearLayout(context);
-    bodyContent.setOrientation(VERTICAL);
-    bodyContent.setPadding(dp(8), dp(2), dp(8), dp(4));
-
-    // 2.1 API Key Setup Notice (shown only if not configured)
     _cardSetupNotice = new LinearLayout(context);
     _cardSetupNotice.setOrientation(HORIZONTAL);
     _cardSetupNotice.setGravity(Gravity.CENTER_VERTICAL);
-    _cardSetupNotice.setPadding(dp(10), dp(6), dp(10), dp(6));
+    _cardSetupNotice.setPadding(dp(10), dp(5), dp(10), dp(5));
     _cardSetupNotice.setBackground(createPillBackground(adjustAlpha(Color.parseColor("#FF9800"), 0.18f), dp(8), Color.parseColor("#FF9800")));
+    LinearLayout.LayoutParams lpNotice = new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    lpNotice.setMargins(0, dp(4), 0, dp(2));
+    _cardSetupNotice.setLayoutParams(lpNotice);
 
     ImageView ivWarn = new ImageView(context);
     ivWarn.setImageResource(R.drawable.ic_toolbar_key);
@@ -385,78 +507,23 @@ public class AiPaneView extends LinearLayout
     });
     _cardSetupNotice.addView(btnSetup, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(26)));
     _cardSetupNotice.setVisibility(GONE);
-    bodyContent.addView(_cardSetupNotice);
+    addView(_cardSetupNotice);
 
-    // 2.2 Sleek Single-Line Context Bar (Source Icon + Snippet + Switch Button)
-    LinearLayout cardContext = new LinearLayout(context);
-    cardContext.setOrientation(HORIZONTAL);
-    cardContext.setGravity(Gravity.CENTER_VERTICAL);
-    cardContext.setPadding(dp(8), dp(4), dp(6), dp(4));
-    cardContext.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.45f), dp(8), adjustAlpha(_colorLabel, 0.12f)));
-    LinearLayout.LayoutParams lpCard = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT, dp(34));
-    lpCard.setMargins(0, dp(2), 0, dp(4));
-    cardContext.setLayoutParams(lpCard);
-
-    _ivSourceIcon = new ImageView(context);
-    _ivSourceIcon.setImageResource(R.drawable.ic_ai_edit);
-    _ivSourceIcon.setColorFilter(accent, PorterDuff.Mode.SRC_IN);
-    LinearLayout.LayoutParams lpSrcIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
-    lpSrcIcon.setMargins(0, 0, dp(5), 0);
-    cardContext.addView(_ivSourceIcon, lpSrcIcon);
-
-    _tvSourceBadge = new TextView(context);
-    _tvSourceBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-    _tvSourceBadge.setTypeface(null, Typeface.BOLD);
-    _tvSourceBadge.setTextColor(_colorLabel);
-    _tvSourceBadge.setPadding(0, 0, dp(6), 0);
-    cardContext.addView(_tvSourceBadge);
-
-    _tvInputSnippet = new TextView(context);
-    _tvInputSnippet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-    _tvInputSnippet.setSingleLine(true);
-    _tvInputSnippet.setEllipsize(TextUtils.TruncateAt.END);
-    _tvInputSnippet.setTextColor(adjustAlpha(_colorLabel, 0.80f));
-    cardContext.addView(_tvInputSnippet, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
-
-    _btnToggleSource = new TextView(context);
-    _btnToggleSource.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-    _btnToggleSource.setTypeface(null, Typeface.BOLD);
-    _btnToggleSource.setTextColor(_colorLabel);
-    _btnToggleSource.setGravity(Gravity.CENTER);
-    _btnToggleSource.setPadding(dp(8), dp(2), dp(8), dp(2));
-    _btnToggleSource.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.8f), dp(8), adjustAlpha(_colorLabel, 0.18f)));
-    _btnToggleSource.setOnClickListener(new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        _usingClipboard = !_usingClipboard;
-        _currentWorkingText = _usingClipboard ? _clipboardText : _inputFieldText;
-        updateContextDisplay();
-        rebuildQuickActions();
-      }
-    });
-    LinearLayout.LayoutParams lpToggle = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(24));
-    lpToggle.setMargins(dp(6), 0, 0, 0);
-    cardContext.addView(_btnToggleSource, lpToggle);
-    bodyContent.addView(cardContext);
-
-    // 2.3 Custom Prompt Bar (Visible when Ask AI is chosen or prompt is active)
+    // ==========================================
+    // 3. Custom Prompt Bar (Only visible when Ask AI is active)
+    // ==========================================
     _llCustomPrompt = new LinearLayout(context);
     _llCustomPrompt.setOrientation(HORIZONTAL);
     _llCustomPrompt.setGravity(Gravity.CENTER_VERTICAL);
-    _llCustomPrompt.setPadding(0, dp(2), 0, dp(4));
+    _llCustomPrompt.setPadding(0, dp(4), 0, dp(2));
 
     _tvCustomPromptDisplay = new TextView(context);
     _tvCustomPromptDisplay.setText("Tap to type custom instruction for AI...");
-    _tvCustomPromptDisplay.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-    _tvCustomPromptDisplay.setTextColor(adjustAlpha(_colorLabel, 0.55f));
-    _tvCustomPromptDisplay.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.55f), dp(8), adjustAlpha(_colorLabel, 0.22f)));
-    _tvCustomPromptDisplay.setPadding(dp(10), dp(6), dp(10), dp(6));
+    _tvCustomPromptDisplay.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
     _tvCustomPromptDisplay.setSingleLine(true);
     _tvCustomPromptDisplay.setEllipsize(TextUtils.TruncateAt.END);
     _tvCustomPromptDisplay.setGravity(Gravity.CENTER_VERTICAL);
+    _tvCustomPromptDisplay.setPadding(dp(10), 0, dp(10), 0);
     _tvCustomPromptDisplay.setOnClickListener(new OnClickListener()
     {
       @Override
@@ -467,15 +534,12 @@ public class AiPaneView extends LinearLayout
     });
     _llCustomPrompt.addView(_tvCustomPromptDisplay, new LinearLayout.LayoutParams(0, dp(34), 1.0f));
 
-    LinearLayout btnSendPrompt = createIconPillChip(
+    LinearLayout btnSendPrompt = createTopActionButton(
         context,
         R.drawable.ic_ai_send,
         "Run",
-        Color.parseColor("#1976D2"),
+        Color.parseColor("#2563EB"),
         Color.TRANSPARENT,
-        Color.WHITE,
-        Color.WHITE,
-        dp(34),
         new OnClickListener()
         {
           @Override
@@ -489,74 +553,26 @@ public class AiPaneView extends LinearLayout
     lpSend.setMargins(dp(6), 0, 0, 0);
     _llCustomPrompt.addView(btnSendPrompt, lpSend);
     _llCustomPrompt.setVisibility(GONE);
-    bodyContent.addView(_llCustomPrompt);
+    addView(_llCustomPrompt);
 
-    // 2.4 1-Tap Instant Quick Actions Strip (Always Accessible)
-    _scrollQuick = new HorizontalScrollView(context);
-    _scrollQuick.setHorizontalScrollBarEnabled(false);
-    _scrollQuick.setVerticalScrollBarEnabled(false);
-    _scrollQuick.setOverScrollMode(View.OVER_SCROLL_NEVER);
-    _rowQuickActions = new LinearLayout(context);
-    _rowQuickActions.setOrientation(HORIZONTAL);
-    _rowQuickActions.setGravity(Gravity.CENTER_VERTICAL);
-    _scrollQuick.addView(_rowQuickActions);
-    LinearLayout.LayoutParams lpQuick = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpQuick.setMargins(0, 0, 0, dp(4));
-    _scrollQuick.setLayoutParams(lpQuick);
-    bodyContent.addView(_scrollQuick);
-
-    // 2.5 Active Category Sub-Options Strip (Shown when a category is selected)
-    _sectionSubOptions = new LinearLayout(context);
-    _sectionSubOptions.setOrientation(VERTICAL);
-    _sectionSubOptions.setPadding(dp(6), dp(5), dp(6), dp(5));
-    _sectionSubOptions.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.38f), dp(10), adjustAlpha(accent, 0.35f)));
-    LinearLayout.LayoutParams lpSubSec = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpSubSec.setMargins(0, 0, 0, dp(5));
-    _sectionSubOptions.setLayoutParams(lpSubSec);
-
-    LinearLayout subHeaderRow = new LinearLayout(context);
-    subHeaderRow.setOrientation(HORIZONTAL);
-    subHeaderRow.setGravity(Gravity.CENTER_VERTICAL);
-    subHeaderRow.setPadding(dp(2), 0, dp(2), dp(4));
-
-    _tvSelectedCategoryTitle = new TextView(context);
-    _tvSelectedCategoryTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-    _tvSelectedCategoryTitle.setTypeface(null, Typeface.BOLD);
-    _tvSelectedCategoryTitle.setTextColor(_colorLabel);
-    subHeaderRow.addView(_tvSelectedCategoryTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
-
-    TextView btnCloseSub = new TextView(context);
-    btnCloseSub.setText("All Categories");
-    btnCloseSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-    btnCloseSub.setTextColor(accent);
-    btnCloseSub.setTypeface(null, Typeface.BOLD);
-    btnCloseSub.setPadding(dp(6), dp(2), dp(6), dp(2));
-    btnCloseSub.setOnClickListener(new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        _activeCategory = null;
-        _activeOptionId = "";
-        _sectionSubOptions.setVisibility(GONE);
-        showToolsGridMode();
-        buildCategoryGrid();
-      }
-    });
-    subHeaderRow.addView(btnCloseSub);
-    _sectionSubOptions.addView(subHeaderRow);
-
+    // ==========================================
+    // 4. Single Horizontal Option / Quick Chips Row
+    // ==========================================
     _scrollSubOptions = new HorizontalScrollView(context);
     _scrollSubOptions.setHorizontalScrollBarEnabled(false);
+    _scrollSubOptions.setVerticalScrollBarEnabled(false);
     _scrollSubOptions.setOverScrollMode(View.OVER_SCROLL_NEVER);
     _rowSubOptions = new LinearLayout(context);
     _rowSubOptions.setOrientation(HORIZONTAL);
+    _rowSubOptions.setGravity(Gravity.CENTER_VERTICAL);
     _scrollSubOptions.addView(_rowSubOptions);
-    _sectionSubOptions.addView(_scrollSubOptions);
+    LinearLayout.LayoutParams lpSubScroll = new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, dp(36));
+    lpSubScroll.setMargins(0, dp(4), 0, dp(4));
+    _scrollSubOptions.setLayoutParams(lpSubScroll);
+    addView(_scrollSubOptions);
 
-    // Optional Tone Row inside Sub-options
+    // Optional Tone Strip
     _scrollTone = new HorizontalScrollView(context);
     _scrollTone.setHorizontalScrollBarEnabled(false);
     _scrollTone.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -565,220 +581,165 @@ public class AiPaneView extends LinearLayout
     _rowToneChips.setGravity(Gravity.CENTER_VERTICAL);
     _scrollTone.addView(_rowToneChips);
     LinearLayout.LayoutParams lpTone = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpTone.setMargins(0, dp(4), 0, 0);
+        ViewGroup.LayoutParams.MATCH_PARENT, dp(28));
+    lpTone.setMargins(0, 0, 0, dp(4));
     _scrollTone.setLayoutParams(lpTone);
     _scrollTone.setVisibility(GONE);
-    _sectionSubOptions.addView(_scrollTone);
+    addView(_scrollTone);
 
-    _sectionSubOptions.setVisibility(GONE);
-    bodyContent.addView(_sectionSubOptions);
+    // ==========================================
+    // 5A. [TOOLS MODE] 3-Column Visual Category Grid
+    // ==========================================
+    _scrollGrid = new ScrollView(context);
+    _scrollGrid.setFillViewport(true);
+    _scrollGrid.setVerticalScrollBarEnabled(false);
+    _scrollGrid.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
-    // 2.6 [MODE A] 3-Column Visual Category Grid (Fast & Scannable)
     _gridCategories = new GridLayout(context);
     _gridCategories.setColumnCount(3);
     _gridCategories.setUseDefaultMargins(false);
-    bodyContent.addView(_gridCategories, new LinearLayout.LayoutParams(
+    _scrollGrid.addView(_gridCategories, new ScrollView.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-    // 2.7 [MODE B] Result Preview Container (Shown when generating or viewing output)
-    _resultContainer = new LinearLayout(context);
-    _resultContainer.setOrientation(VERTICAL);
-    _resultContainer.setVisibility(GONE);
+    addView(_scrollGrid, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
-    LinearLayout rowStatus = new LinearLayout(context);
-    rowStatus.setOrientation(HORIZONTAL);
-    rowStatus.setGravity(Gravity.CENTER_VERTICAL);
-    rowStatus.setPadding(dp(2), dp(2), dp(2), dp(3));
+    // ==========================================
+    // 5B. [RESULT MODE] Full-Height Result Preview Card (Magic Button Style!)
+    // ==========================================
+    _resultCard = new LinearLayout(context);
+    _resultCard.setOrientation(VERTICAL);
+    _resultCard.setPadding(dp(14), dp(10), dp(14), dp(10));
+    _resultCard.setVisibility(GONE);
+
+    _loadingRow = new LinearLayout(context);
+    _loadingRow.setOrientation(HORIZONTAL);
+    _loadingRow.setGravity(Gravity.CENTER_VERTICAL);
+    _loadingRow.setPadding(0, 0, 0, dp(6));
+    _loadingRow.setVisibility(GONE);
 
     _progressBar = new ProgressBar(context, null, android.R.attr.progressBarStyleSmall);
-    _progressBar.setVisibility(GONE);
-    rowStatus.addView(_progressBar);
+    _loadingRow.addView(_progressBar, new LinearLayout.LayoutParams(dp(20), dp(20)));
 
-    _ivStatusIcon = new ImageView(context);
-    _ivStatusIcon.setImageResource(R.drawable.ic_ai_check);
-    _ivStatusIcon.setColorFilter(Color.parseColor("#10B981"), PorterDuff.Mode.SRC_IN);
-    _ivStatusIcon.setVisibility(GONE);
-    LinearLayout.LayoutParams lpStIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
-    lpStIcon.setMargins(0, 0, dp(4), 0);
-    rowStatus.addView(_ivStatusIcon, lpStIcon);
+    _tvLoadingStatus = new TextView(context);
+    _tvLoadingStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+    _tvLoadingStatus.setPadding(dp(8), 0, 0, 0);
+    _loadingRow.addView(_tvLoadingStatus);
+    _resultCard.addView(_loadingRow);
 
-    _tvStatus = new TextView(context);
-    _tvStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-    _tvStatus.setTextColor(adjustAlpha(_colorLabel, 0.85f));
-    _tvStatus.setPadding(dp(4), 0, 0, 0);
-    rowStatus.addView(_tvStatus, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+    _scrollResult = new ScrollView(context);
+    _scrollResult.setFillViewport(true);
+    _scrollResult.setVerticalScrollBarEnabled(false);
+    _scrollResult.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
-    _btnShowToolsGrid = new TextView(context);
-    _btnShowToolsGrid.setText("Browse All Tools");
-    _btnShowToolsGrid.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-    _btnShowToolsGrid.setTypeface(null, Typeface.BOLD);
-    _btnShowToolsGrid.setTextColor(accent);
-    _btnShowToolsGrid.setPadding(dp(8), dp(3), dp(8), dp(3));
-    _btnShowToolsGrid.setBackground(createPillBackground(adjustAlpha(accent, 0.16f), dp(8), adjustAlpha(accent, 0.4f)));
-    _btnShowToolsGrid.setOnClickListener(new OnClickListener()
+    _tvResultPreview = new TextView(context);
+    _tvResultPreview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+    _tvResultPreview.setGravity(Gravity.TOP);
+    _tvResultPreview.setLineSpacing(dp(3), 1.0f);
+    _tvResultPreview.setHint("Generated text will appear here...");
+    _tvResultPreview.setOnClickListener(new OnClickListener()
     {
       @Override
       public void onClick(View v)
       {
-        showToolsGridMode();
+        if (!_isGenerating && _lastGeneratedResult != null && !_lastGeneratedResult.trim().isEmpty())
+        {
+          applyResultToField(true);
+        }
       }
     });
-    rowStatus.addView(_btnShowToolsGrid);
-    _resultContainer.addView(rowStatus);
-
-    _tvResultPreview = new TextView(context);
-    _tvResultPreview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-    _tvResultPreview.setTextColor(_colorLabel);
-    _tvResultPreview.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
-    _tvResultPreview.setHint("Generated text will appear here...");
-    _tvResultPreview.setMinLines(4);
-    _tvResultPreview.setMaxLines(14);
-    _tvResultPreview.setGravity(Gravity.TOP);
-    _tvResultPreview.setLineSpacing(dp(2), 1.0f);
-    _tvResultPreview.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.45f), dp(10), adjustAlpha(_colorLabel, 0.22f)));
-    _tvResultPreview.setPadding(dp(12), dp(10), dp(12), dp(10));
-    _tvResultPreview.setFocusable(false);
-    _tvResultPreview.setFocusableInTouchMode(false);
-    LinearLayout.LayoutParams lpResult = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-    lpResult.setMargins(0, dp(2), 0, dp(4));
-    _tvResultPreview.setLayoutParams(lpResult);
-    _resultContainer.addView(_tvResultPreview);
-
-    bodyContent.addView(_resultContainer);
-
-    _scrollBody.addView(bodyContent);
-    addView(_scrollBody, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
-
-    // ==========================================
-    // 3. Fixed Bottom Action Dock (Shown only in Result Mode)
-    // ==========================================
-    _bottomSafety = dp(28);
-    _rowActionButtons = new LinearLayout(context);
-    _rowActionButtons.setOrientation(HORIZONTAL);
-    _rowActionButtons.setGravity(Gravity.CENTER_VERTICAL);
-    _rowActionButtons.setBackgroundColor(adjustAlpha(_colorKeyboard, 0.98f));
-    _rowActionButtons.setPadding(dp(8), dp(6), dp(8), dp(6) + _bottomSafety);
-    _rowActionButtons.setVisibility(GONE);
-
-    // 3.1 Replace Button
-    LinearLayout btnReplace = createActionDockButton(
-        context,
-        R.drawable.ic_ai_check,
-        "Replace",
-        Color.parseColor("#059669"),
-        Color.parseColor("#34D399"),
-        new OnClickListener()
+    _tvResultPreview.setOnLongClickListener(new OnLongClickListener()
+    {
+      @Override
+      public boolean onLongClick(View v)
+      {
+        if (!_isGenerating && _lastGeneratedResult != null && !_lastGeneratedResult.trim().isEmpty())
         {
-          @Override
-          public void onClick(View v)
-          {
-            applyResultToField(true);
-          }
-        });
-    LinearLayout.LayoutParams lpReplace = new LinearLayout.LayoutParams(0, dp(38), 1.25f);
-    lpReplace.setMargins(dp(3), 0, dp(3), 0);
-    _rowActionButtons.addView(btnReplace, lpReplace);
+          copyResultToClipboard();
+          return true;
+        }
+        return false;
+      }
+    });
+    _scrollResult.addView(_tvResultPreview, new ScrollView.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-    // 3.2 Insert Button
-    LinearLayout btnInsert = createActionDockButton(
-        context,
-        R.drawable.ic_clip_add,
-        "Insert",
-        Color.parseColor("#1D4ED8"),
-        Color.parseColor("#60A5FA"),
-        new OnClickListener()
-        {
-          @Override
-          public void onClick(View v)
-          {
-            applyResultToField(false);
-          }
-        });
-    LinearLayout.LayoutParams lpInsert = new LinearLayout.LayoutParams(0, dp(38), 1.1f);
-    lpInsert.setMargins(dp(3), 0, dp(3), 0);
-    _rowActionButtons.addView(btnInsert, lpInsert);
+    _resultCard.addView(_scrollResult, new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
-    // 3.3 Copy Button
-    LinearLayout btnCopy = createActionDockButton(
-        context,
-        R.drawable.ic_clip_copy,
-        "Copy",
-        Color.parseColor("#374151"),
-        Color.parseColor("#6B7280"),
-        new OnClickListener()
-        {
-          @Override
-          public void onClick(View v)
-          {
-            String res = (_lastGeneratedResult != null && !_lastGeneratedResult.trim().isEmpty())
-                ? _lastGeneratedResult
-                : _tvResultPreview.getText().toString();
-            if (res == null || res.trim().isEmpty())
-            {
-              Toast.makeText(context, "No generated text to copy", Toast.LENGTH_SHORT).show();
-              return;
-            }
-            try
-            {
-              ClipboardManager cm = (ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
-              if (cm != null)
-              {
-                cm.setPrimaryClip(ClipData.newPlainText("AI Generated", res));
-              }
-              typodev.keyboard.ClipboardHistoryService.setRecentCopiedClip(res);
-              typodev.keyboard.ClipboardHistoryService hs = typodev.keyboard.ClipboardHistoryService.get_service(context);
-              if (hs != null) hs.add_clip(res);
-              Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show();
-            }
-            catch (Throwable t)
-            {
-              Toast.makeText(context, "Failed to copy", Toast.LENGTH_SHORT).show();
-            }
-          }
-        });
-    LinearLayout.LayoutParams lpCopy = new LinearLayout.LayoutParams(0, dp(38), 1.0f);
-    lpCopy.setMargins(dp(3), 0, dp(3), 0);
-    _rowActionButtons.addView(btnCopy, lpCopy);
+    addView(_resultCard, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
+    refreshHeaderAndCardThemes();
+  }
 
-    // 3.4 Regenerate Icon Button
-    ImageView btnRegen = createCircleIconButton(
-        context,
-        R.drawable.ic_ai_refresh,
-        dp(38),
-        dp(9),
-        new OnClickListener()
-        {
-          @Override
-          public void onClick(View v)
-          {
-            triggerExecution();
-          }
-        });
-    btnRegen.setBackground(createPillBackground(Color.parseColor("#374151"), dp(19), Color.parseColor("#6B7280")));
-    btnRegen.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
-    LinearLayout.LayoutParams lpRegen = new LinearLayout.LayoutParams(dp(38), dp(38));
-    lpRegen.setMargins(dp(3), 0, dp(3), 0);
-    _rowActionButtons.addView(btnRegen, lpRegen);
+  private void refreshHeaderAndCardThemes()
+  {
+    setBackgroundColor(_colorKeyboard);
+    int iconWhiteOrDark = getPrimaryIconColor();
+    int iconAccent = getIconColor();
 
-    addView(_rowActionButtons, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    if (_btnBack != null)
+    {
+      _btnBack.setColorFilter(iconWhiteOrDark, PorterDuff.Mode.SRC_IN);
+      _btnBack.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.7f), dp(18), adjustAlpha(_colorLabel, 0.22f)));
+    }
+    if (_btnSettings != null)
+    {
+      _btnSettings.setColorFilter(iconWhiteOrDark, PorterDuff.Mode.SRC_IN);
+      _btnSettings.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.7f), dp(18), adjustAlpha(_colorLabel, 0.22f)));
+    }
+    if (_btnTopRegen != null)
+    {
+      _btnTopRegen.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+      _btnTopRegen.setBackground(createPillBackground(Color.parseColor("#374151"), dp(17), Color.parseColor("#6B7280")));
+    }
+    if (_btnAskHeader != null)
+    {
+      _btnAskHeader.setBackground(createPillBackground(
+          adjustAlpha(_colorKeyActivated, 0.25f), dp(16), adjustAlpha(iconAccent, 0.65f)));
+      _ivAskHeaderIcon.setColorFilter(iconAccent, PorterDuff.Mode.SRC_IN);
+      _tvAskHeaderLabel.setTextColor(_colorLabel);
+    }
+    if (_tvCustomPromptDisplay != null)
+    {
+      _tvCustomPromptDisplay.setBackground(createPillBackground(
+          adjustAlpha(_colorKey, 0.75f), dp(10), adjustAlpha(_colorLabel, 0.22f)));
+    }
+    if (_resultCard != null)
+    {
+      _resultCard.setBackground(createPillBackground(_colorKey, dp(16), adjustAlpha(_colorLabel, 0.14f)));
+    }
+    if (_tvResultPreview != null)
+    {
+      _tvResultPreview.setTextColor(_colorLabel);
+      _tvResultPreview.setHintTextColor(adjustAlpha(_colorLabel, 0.45f));
+    }
+    if (_tvLoadingStatus != null)
+    {
+      _tvLoadingStatus.setTextColor(adjustAlpha(_colorLabel, 0.8f));
+    }
+    updateContextDisplay();
+    updateEmojifyButtonState();
   }
 
   private void showToolsGridMode()
   {
     _showingResultMode = false;
-    if (_gridCategories != null) _gridCategories.setVisibility(VISIBLE);
-    if (_resultContainer != null) _resultContainer.setVisibility(GONE);
-    if (_rowActionButtons != null) _rowActionButtons.setVisibility(GONE);
+    if (_toolsHeaderGroup != null) _toolsHeaderGroup.setVisibility(VISIBLE);
+    if (_resultHeaderActionsGroup != null) _resultHeaderActionsGroup.setVisibility(GONE);
+    if (_scrollGrid != null) _scrollGrid.setVisibility(VISIBLE);
+    if (_resultCard != null) _resultCard.setVisibility(GONE);
+    buildQuickOrSubOptionStrip();
+    buildCategoryGrid();
   }
 
   private void showResultMode()
   {
     _showingResultMode = true;
-    if (_gridCategories != null) _gridCategories.setVisibility(GONE);
-    if (_resultContainer != null) _resultContainer.setVisibility(VISIBLE);
-    if (_rowActionButtons != null) _rowActionButtons.setVisibility(VISIBLE);
+    if (_toolsHeaderGroup != null) _toolsHeaderGroup.setVisibility(GONE);
+    if (_resultHeaderActionsGroup != null) _resultHeaderActionsGroup.setVisibility(VISIBLE);
+    if (_llCustomPrompt != null) _llCustomPrompt.setVisibility(GONE);
+    if (_scrollGrid != null) _scrollGrid.setVisibility(GONE);
+    if (_resultCard != null) _resultCard.setVisibility(VISIBLE);
+    buildQuickOrSubOptionStrip();
   }
 
   public void open(int targetHeight, int bottomSafety)
@@ -787,24 +748,21 @@ public class AiPaneView extends LinearLayout
     _isGenerating = false;
     _lastGeneratedResult = "";
     if (_tvResultPreview != null) _tvResultPreview.setText("");
-    if (_progressBar != null) _progressBar.setVisibility(GONE);
-    if (_ivStatusIcon != null) _ivStatusIcon.setVisibility(GONE);
+    if (_loadingRow != null) _loadingRow.setVisibility(GONE);
     _inputSessionId = _keyboard != null ? _keyboard.getInputSessionId() : -1;
     try
     {
       Context context = getContext();
       initThemeColors(context);
-      setBackgroundColor(_colorKeyboard);
+      refreshHeaderAndCardThemes();
 
       _activeCategory = null;
       _activeOptionId = "";
       _activeTone = "default";
       _currentCustomPrompt = "";
       updatePromptDisplay();
-      if (_sectionSubOptions != null) _sectionSubOptions.setVisibility(GONE);
       if (_scrollTone != null) _scrollTone.setVisibility(GONE);
       if (_llCustomPrompt != null) _llCustomPrompt.setVisibility(GONE);
-      showToolsGridMode();
 
       updateBottomPadding(bottomSafety);
 
@@ -817,16 +775,6 @@ public class AiPaneView extends LinearLayout
           setLayoutParams(lp);
         }
       }
-
-      if (_tvProviderBadge != null)
-      {
-        AiProvider provider = AiProvider.Manager.getActiveProvider(context);
-        if (provider != null)
-        {
-          _tvProviderBadge.setText(provider.getName());
-        }
-      }
-      updateEmojifyButtonState();
 
       boolean hasKey = AiProvider.Manager.hasConfiguredApiKey(context);
       if (_cardSetupNotice != null)
@@ -900,8 +848,7 @@ public class AiPaneView extends LinearLayout
       }
 
       updateContextDisplay();
-      rebuildQuickActions();
-      buildCategoryGrid();
+      showToolsGridMode();
     }
     catch (Throwable t)
     {
@@ -922,8 +869,6 @@ public class AiPaneView extends LinearLayout
       public void onSaved()
       {
         Context ctx = getContext();
-        AiProvider provider = AiProvider.Manager.getActiveProvider(ctx);
-        if (provider != null) _tvProviderBadge.setText(provider.getName());
         _cardSetupNotice.setVisibility(AiProvider.Manager.hasConfiguredApiKey(ctx) ? GONE : VISIBLE);
       }
     });
@@ -931,37 +876,27 @@ public class AiPaneView extends LinearLayout
 
   private void updateContextDisplay()
   {
-    int accent = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
+    if (_btnSourceToggle == null) return;
+    int iconColor = getIconColor();
+    _btnSourceToggle.setBackground(createPillBackground(
+        adjustAlpha(_colorKey, 0.75f), dp(16), adjustAlpha(_colorLabel, 0.22f)));
     if (_usingClipboard)
     {
       _ivSourceIcon.setImageResource(R.drawable.ic_toolbar_clipboard);
-      _tvSourceBadge.setText("Clipboard:");
-      _btnToggleSource.setText("Use Typed");
+      _tvSourceLabel.setText("Clipboard");
     }
     else if (_hasSelection)
     {
       _ivSourceIcon.setImageResource(R.drawable.ic_ai_edit);
-      _tvSourceBadge.setText("Selected:");
-      _btnToggleSource.setText("Clipboard");
+      _tvSourceLabel.setText("Selected");
     }
     else
     {
       _ivSourceIcon.setImageResource(R.drawable.ic_ai_edit);
-      _tvSourceBadge.setText("Input:");
-      _btnToggleSource.setText("Clipboard");
+      _tvSourceLabel.setText("Typed");
     }
-    _ivSourceIcon.setColorFilter(accent, PorterDuff.Mode.SRC_IN);
-
-    if (_currentWorkingText == null || _currentWorkingText.trim().isEmpty())
-    {
-      _tvInputSnippet.setText("Type in app, copy text, or tap Ask AI");
-      _tvInputSnippet.setTextColor(adjustAlpha(_colorLabel, 0.45f));
-    }
-    else
-    {
-      _tvInputSnippet.setText(_currentWorkingText.trim().replace('\n', ' '));
-      _tvInputSnippet.setTextColor(adjustAlpha(_colorLabel, 0.88f));
-    }
+    _ivSourceIcon.setColorFilter(iconColor, PorterDuff.Mode.SRC_IN);
+    _tvSourceLabel.setTextColor(_colorLabel);
   }
 
   private void updateEmojifyButtonState()
@@ -970,18 +905,18 @@ public class AiPaneView extends LinearLayout
     boolean enabled = GeminiAiService.isEmojifyEnabled(getContext());
     if (enabled)
     {
-      int activeBg = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
-      _btnEmojifyToggle.setBackground(createPillBackground(activeBg, dp(12), Color.TRANSPARENT));
+      _btnEmojifyToggle.setBackground(createPillBackground(_colorKeyActivated, dp(16), Color.TRANSPARENT));
       _ivEmojifyIcon.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
       _tvEmojifyLabel.setText("Emoji");
       _tvEmojifyLabel.setTextColor(Color.WHITE);
     }
     else
     {
-      _btnEmojifyToggle.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.55f), dp(12), adjustAlpha(_colorLabel, 0.2f)));
-      _ivEmojifyIcon.setColorFilter(adjustAlpha(_colorLabel, 0.7f), PorterDuff.Mode.SRC_IN);
+      _btnEmojifyToggle.setBackground(createPillBackground(
+          adjustAlpha(_colorKey, 0.75f), dp(16), adjustAlpha(_colorLabel, 0.22f)));
+      _ivEmojifyIcon.setColorFilter(getPrimaryIconColor(), PorterDuff.Mode.SRC_IN);
       _tvEmojifyLabel.setText("Plain");
-      _tvEmojifyLabel.setTextColor(adjustAlpha(_colorLabel, 0.7f));
+      _tvEmojifyLabel.setTextColor(_colorLabel);
     }
   }
 
@@ -997,17 +932,74 @@ public class AiPaneView extends LinearLayout
   }
 
   /**
-   * Builds the top 1-Tap Instant Actions strip so users can execute common tasks immediately in 1 tap.
+   * Populates the single horizontal chip strip:
+   * - If a category is active, shows that category's sub-options (e.g. Banglish, বাংলা, English...).
+   * - Otherwise, shows 1-tap instant quick actions (Fix Grammar, BN↔EN, Professional, Islamic, Smart Reply, Summarize, Math).
    */
-  private void rebuildQuickActions()
+  private void buildQuickOrSubOptionStrip()
   {
-    _rowQuickActions.removeAllViews();
+    if (_rowSubOptions == null) return;
+    _rowSubOptions.removeAllViews();
     final Context ctx = getContext();
-    final int accent = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
+
+    if (_activeCategory != null && _activeCategory != AiActionEngine.Category.ASK_AI)
+    {
+      List<AiActionEngine.ActionOption> options = AiActionEngine.getOptionsForCategory(_activeCategory);
+      for (final AiActionEngine.ActionOption opt : options)
+      {
+        final boolean isSelected = opt.id.equals(_activeOptionId);
+        TextView chip = new TextView(ctx);
+        chip.setText(opt.label);
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        chip.setGravity(Gravity.CENTER);
+        chip.setPadding(dp(12), 0, dp(12), 0);
+
+        if (isSelected)
+        {
+          chip.setBackground(createPillBackground(_colorKeyActivated, dp(17), Color.WHITE));
+          chip.setTextColor(Color.WHITE);
+          chip.setTypeface(null, Typeface.BOLD);
+        }
+        else
+        {
+          chip.setBackground(createPillBackground(_colorKey, dp(17), adjustAlpha(_colorLabel, 0.22f)));
+          chip.setTextColor(_colorLabel);
+        }
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
+        lp.setMargins(0, 0, dp(5), 0);
+        chip.setLayoutParams(lp);
+
+        chip.setOnClickListener(new OnClickListener()
+        {
+          @Override
+          public void onClick(View v)
+          {
+            _activeOptionId = opt.id;
+            buildQuickOrSubOptionStrip();
+
+            if ("select_tone".equals(opt.id))
+            {
+              buildToneChips();
+              _scrollTone.setVisibility(VISIBLE);
+              return;
+            }
+
+            _scrollTone.setVisibility(GONE);
+            triggerExecution();
+          }
+        });
+
+        _rowSubOptions.addView(chip);
+      }
+      return;
+    }
+
+    // Default 1-Tap Quick Actions when no category is selected yet
     final boolean hasBn = containsBengaliChars(_currentWorkingText);
 
-    // 1. Fix Grammar (1-Tap)
-    addQuickActionChip(ctx, R.drawable.ic_ai_grammar, "Fix Grammar", accent, new OnClickListener()
+    addQuickChip(ctx, R.drawable.ic_ai_grammar, "Fix Grammar", new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1016,8 +1008,7 @@ public class AiPaneView extends LinearLayout
       }
     });
 
-    // 2. Smart Translate BN <-> EN (1-Tap)
-    addQuickActionChip(ctx, R.drawable.ic_translate, hasBn ? "বাংলা → English" : "EN/Banglish → বাংলা", accent, new OnClickListener()
+    addQuickChip(ctx, R.drawable.ic_translate, hasBn ? "বাংলা → English" : "EN/Banglish → বাংলা", new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1026,8 +1017,7 @@ public class AiPaneView extends LinearLayout
       }
     });
 
-    // 3. Professional Rewrite (1-Tap)
-    addQuickActionChip(ctx, R.drawable.ic_ai_edit, "Professional", accent, new OnClickListener()
+    addQuickChip(ctx, R.drawable.ic_ai_edit, "Professional", new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1036,8 +1026,7 @@ public class AiPaneView extends LinearLayout
       }
     });
 
-    // 4. Islamic Style (1-Tap)
-    addQuickActionChip(ctx, R.drawable.ic_ai_islamic, "Islamic", accent, new OnClickListener()
+    addQuickChip(ctx, R.drawable.ic_ai_islamic, "Islamic", new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1046,8 +1035,7 @@ public class AiPaneView extends LinearLayout
       }
     });
 
-    // 5. Smart Reply (1-Tap)
-    addQuickActionChip(ctx, R.drawable.ic_ai_comment, "Smart Reply", accent, new OnClickListener()
+    addQuickChip(ctx, R.drawable.ic_ai_comment, "Smart Reply", new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1056,8 +1044,7 @@ public class AiPaneView extends LinearLayout
       }
     });
 
-    // 6. Summarize (1-Tap)
-    addQuickActionChip(ctx, R.drawable.ic_ai_summarize, "Summarize", accent, new OnClickListener()
+    addQuickChip(ctx, R.drawable.ic_ai_summarize, "Summarize", new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1066,8 +1053,7 @@ public class AiPaneView extends LinearLayout
       }
     });
 
-    // 7. Math Solver (1-Tap)
-    addQuickActionChip(ctx, R.drawable.ic_ai_math, "Math Solver", accent, new OnClickListener()
+    addQuickChip(ctx, R.drawable.ic_ai_math, "Math Solver", new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1081,8 +1067,7 @@ public class AiPaneView extends LinearLayout
       }
     });
 
-    // 8. Vision / Screen Tools (1-Tap)
-    addQuickActionChip(ctx, R.drawable.ic_ai_screen_scan, "Vision & Tools", accent, new OnClickListener()
+    addQuickChip(ctx, R.drawable.ic_ai_screen_scan, "Vision Tools", new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1096,23 +1081,24 @@ public class AiPaneView extends LinearLayout
     });
   }
 
-  private void addQuickActionChip(Context ctx, int iconRes, String label, int accent, OnClickListener listener)
+  private void addQuickChip(Context ctx, int iconRes, String label, OnClickListener listener)
   {
+    int iconColor = getIconColor();
     LinearLayout chip = createIconPillChip(
         ctx,
         iconRes,
         label,
-        adjustAlpha(accent, 0.16f),
-        adjustAlpha(accent, 0.42f),
+        _colorKey,
+        adjustAlpha(iconColor, 0.45f),
         _colorLabel,
-        accent,
-        dp(30),
+        iconColor,
+        dp(34),
         listener);
     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.WRAP_CONTENT, dp(30));
+        ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
     lp.setMargins(0, 0, dp(5), 0);
     chip.setLayoutParams(lp);
-    _rowQuickActions.addView(chip);
+    _rowSubOptions.addView(chip);
   }
 
   private void runDirectAction(AiActionEngine.Category cat, String optionId)
@@ -1121,21 +1107,18 @@ public class AiPaneView extends LinearLayout
     _activeOptionId = optionId;
     _activeTone = "default";
     _llCustomPrompt.setVisibility(GONE);
-    buildSubOptionChips();
-    _sectionSubOptions.setVisibility(VISIBLE);
-    buildCategoryGrid();
     triggerExecution();
   }
 
   /**
-   * Builds the 3-column visual Category Grid with crisp vector icons and clear titles.
+   * Builds the 3-column visual Category Grid with high-contrast vector icons.
    */
   private void buildCategoryGrid()
   {
     if (_gridCategories == null) return;
     _gridCategories.removeAllViews();
     final Context ctx = getContext();
-    final int accent = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
+    final int iconColor = getIconColor();
 
     AiActionEngine.Category[] categories = AiActionEngine.Category.values();
     for (int i = 0; i < categories.length; i++)
@@ -1146,22 +1129,22 @@ public class AiPaneView extends LinearLayout
       LinearLayout card = new LinearLayout(ctx);
       card.setOrientation(HORIZONTAL);
       card.setGravity(Gravity.CENTER_VERTICAL);
-      card.setPadding(dp(8), dp(7), dp(8), dp(7));
+      card.setPadding(dp(9), dp(7), dp(8), dp(7));
 
-      int bg = isSelected ? adjustAlpha(accent, 0.28f) : adjustAlpha(_colorKey, 0.55f);
-      int stroke = isSelected ? accent : adjustAlpha(_colorLabel, 0.12f);
-      card.setBackground(createPillBackground(bg, dp(10), stroke));
+      int bg = isSelected ? _colorKeyActivated : _colorKey;
+      int stroke = isSelected ? Color.WHITE : adjustAlpha(_colorLabel, 0.18f);
+      card.setBackground(createPillBackground(bg, dp(12), stroke));
 
       ImageView iv = new ImageView(ctx);
       iv.setImageResource(cat.getIconResId());
-      iv.setColorFilter(isSelected ? Color.WHITE : accent, PorterDuff.Mode.SRC_IN);
-      LinearLayout.LayoutParams lpIcon = new LinearLayout.LayoutParams(dp(16), dp(16));
-      lpIcon.setMargins(0, 0, dp(6), 0);
+      iv.setColorFilter(isSelected ? Color.WHITE : iconColor, PorterDuff.Mode.SRC_IN);
+      LinearLayout.LayoutParams lpIcon = new LinearLayout.LayoutParams(dp(18), dp(18));
+      lpIcon.setMargins(0, 0, dp(7), 0);
       card.addView(iv, lpIcon);
 
       TextView tv = new TextView(ctx);
       tv.setText(cat.getTitle());
-      tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+      tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
       tv.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
       tv.setTextColor(isSelected ? Color.WHITE : _colorLabel);
       tv.setSingleLine(true);
@@ -1170,7 +1153,7 @@ public class AiPaneView extends LinearLayout
 
       GridLayout.LayoutParams glp = new GridLayout.LayoutParams();
       glp.width = 0;
-      glp.height = dp(38);
+      glp.height = dp(40);
       glp.columnSpec = GridLayout.spec(i % 3, 1, 1.0f);
       glp.rowSpec = GridLayout.spec(i / 3);
       glp.setMargins(dp(3), dp(3), dp(3), dp(3));
@@ -1198,7 +1181,6 @@ public class AiPaneView extends LinearLayout
 
     if (cat == AiActionEngine.Category.ASK_AI)
     {
-      _sectionSubOptions.setVisibility(GONE);
       _llCustomPrompt.setVisibility(VISIBLE);
       updatePromptDisplay();
       if (_currentCustomPrompt.isEmpty())
@@ -1209,123 +1191,42 @@ public class AiPaneView extends LinearLayout
     }
 
     _llCustomPrompt.setVisibility(GONE);
-    buildSubOptionChips();
-    _sectionSubOptions.setVisibility(VISIBLE);
-    if (_scrollBody != null)
+    _scrollTone.setVisibility(GONE);
+    buildQuickOrSubOptionStrip();
+    if (_scrollSubOptions != null)
     {
-      _scrollBody.post(new Runnable()
-      {
-        @Override
-        public void run()
-        {
-          if (_scrollBody != null && _sectionSubOptions != null)
-          {
-            _scrollBody.smoothScrollTo(0, _sectionSubOptions.getTop());
-          }
-        }
-      });
-    }
-  }
-
-  private void buildSubOptionChips()
-  {
-    _rowSubOptions.removeAllViews();
-    if (_activeCategory == null || _activeCategory == AiActionEngine.Category.ASK_AI)
-    {
-      _sectionSubOptions.setVisibility(GONE);
-      return;
-    }
-
-    _tvSelectedCategoryTitle.setText(_activeCategory.getTitle() + " — Choose Option:");
-    final int accent = (_colorKeyActivated != 0) ? _colorKeyActivated : Color.parseColor("#2196F3");
-
-    List<AiActionEngine.ActionOption> options = AiActionEngine.getOptionsForCategory(_activeCategory);
-    for (final AiActionEngine.ActionOption opt : options)
-    {
-      final boolean isSelected = opt.id.equals(_activeOptionId);
-      TextView chip = new TextView(getContext());
-      chip.setText(opt.label);
-      chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-      chip.setGravity(Gravity.CENTER);
-      chip.setPadding(dp(10), 0, dp(10), 0);
-
-      if (isSelected)
-      {
-        chip.setBackground(createPillBackground(accent, dp(14), Color.TRANSPARENT));
-        chip.setTextColor(Color.WHITE);
-        chip.setTypeface(null, Typeface.BOLD);
-      }
-      else
-      {
-        chip.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.7f), dp(14), adjustAlpha(_colorLabel, 0.16f)));
-        chip.setTextColor(_colorLabel);
-      }
-
-      LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-          ViewGroup.LayoutParams.WRAP_CONTENT, dp(30));
-      lp.setMargins(0, 0, dp(5), 0);
-      chip.setLayoutParams(lp);
-
-      chip.setOnClickListener(new OnClickListener()
-      {
-        @Override
-        public void onClick(View v)
-        {
-          _activeOptionId = opt.id;
-          buildSubOptionChips();
-
-          if ("select_tone".equals(opt.id))
-          {
-            buildToneChips();
-            _scrollTone.setVisibility(VISIBLE);
-            return;
-          }
-
-          _scrollTone.setVisibility(GONE);
-          triggerExecution();
-        }
-      });
-
-      _rowSubOptions.addView(chip);
+      _scrollSubOptions.scrollTo(0, 0);
     }
   }
 
   private void buildToneChips()
   {
     _rowToneChips.removeAllViews();
-    TextView lbl = new TextView(getContext());
-    lbl.setText("Tone: ");
-    lbl.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-    lbl.setTypeface(null, Typeface.BOLD);
-    lbl.setTextColor(adjustAlpha(_colorLabel, 0.75f));
-    lbl.setGravity(Gravity.CENTER_VERTICAL);
-    _rowToneChips.addView(lbl);
-
     String[] tones = {"Islamic", "Professional", "Friendly", "Casual", "Formal", "Confident", "Funny", "Empathetic", "Persuasive"};
     for (final String tone : tones)
     {
       final boolean isSelected = tone.equalsIgnoreCase(_activeTone);
       TextView chip = new TextView(getContext());
       chip.setText(tone);
-      chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+      chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
       chip.setGravity(Gravity.CENTER);
-      chip.setPadding(dp(8), 0, dp(8), 0);
+      chip.setPadding(dp(10), 0, dp(10), 0);
 
       if (isSelected)
       {
-        chip.setBackground(createPillBackground(adjustAlpha(Color.parseColor("#10B981"), 0.35f), dp(10), Color.parseColor("#10B981")));
-        chip.setTextColor(Color.parseColor("#6EE7B7"));
+        chip.setBackground(createPillBackground(Color.parseColor("#059669"), dp(12), Color.WHITE));
+        chip.setTextColor(Color.WHITE);
         chip.setTypeface(null, Typeface.BOLD);
       }
       else
       {
-        chip.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.45f), dp(10), adjustAlpha(_colorLabel, 0.14f)));
-        chip.setTextColor(adjustAlpha(_colorLabel, 0.75f));
+        chip.setBackground(createPillBackground(_colorKey, dp(12), adjustAlpha(_colorLabel, 0.18f)));
+        chip.setTextColor(_colorLabel);
       }
 
       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-          ViewGroup.LayoutParams.WRAP_CONTENT, dp(24));
-      lp.setMargins(dp(2), 0, dp(3), 0);
+          ViewGroup.LayoutParams.WRAP_CONTENT, dp(26));
+      lp.setMargins(0, 0, dp(4), 0);
       chip.setLayoutParams(lp);
 
       chip.setOnClickListener(new OnClickListener()
@@ -1359,8 +1260,6 @@ public class AiPaneView extends LinearLayout
     {
       _activeCategory = AiActionEngine.Category.ASK_AI;
       _activeOptionId = "custom";
-      _llCustomPrompt.setVisibility(VISIBLE);
-      buildCategoryGrid();
       triggerExecution();
     }
   }
@@ -1371,7 +1270,7 @@ public class AiPaneView extends LinearLayout
     if (_currentCustomPrompt.isEmpty())
     {
       _tvCustomPromptDisplay.setText("Tap to type custom instruction for AI...");
-      _tvCustomPromptDisplay.setTextColor(adjustAlpha(_colorLabel, 0.5f));
+      _tvCustomPromptDisplay.setTextColor(adjustAlpha(_colorLabel, 0.55f));
     }
     else
     {
@@ -1408,9 +1307,9 @@ public class AiPaneView extends LinearLayout
     showResultMode();
     _isGenerating = true;
     final long revision = ++_requestRevision;
-    _progressBar.setVisibility(VISIBLE);
-    _ivStatusIcon.setVisibility(GONE);
-    _tvStatus.setText("Generating with " + AiProvider.Manager.getActiveProvider(getContext()).getName() + "...");
+    if (_loadingRow != null) _loadingRow.setVisibility(VISIBLE);
+    if (_tvLoadingStatus != null) _tvLoadingStatus.setText("Generating...");
+    if (_tvResultPreview != null) _tvResultPreview.setText("");
 
     String textToProcess = hasWorkingText ? _currentWorkingText : custom;
     boolean emojify = GeminiAiService.isEmojifyEnabled(getContext());
@@ -1431,14 +1330,10 @@ public class AiPaneView extends LinearLayout
             if (revision != _requestRevision || _keyboard == null
                 || _inputSessionId != _keyboard.getInputSessionId()) return;
             _isGenerating = false;
-            _progressBar.setVisibility(GONE);
-            _ivStatusIcon.setImageResource(R.drawable.ic_ai_check);
-            _ivStatusIcon.setColorFilter(Color.parseColor("#10B981"), PorterDuff.Mode.SRC_IN);
-            _ivStatusIcon.setVisibility(VISIBLE);
+            if (_loadingRow != null) _loadingRow.setVisibility(GONE);
             _lastGeneratedResult = resultText;
-            _tvStatus.setText("Ready to replace or insert");
             _tvResultPreview.setText(resultText);
-            _tvResultPreview.scrollTo(0, 0);
+            if (_scrollResult != null) _scrollResult.scrollTo(0, 0);
           }
 
           @Override
@@ -1447,14 +1342,40 @@ public class AiPaneView extends LinearLayout
             if (revision != _requestRevision || _keyboard == null
                 || _inputSessionId != _keyboard.getInputSessionId()) return;
             _isGenerating = false;
-            _progressBar.setVisibility(GONE);
-            _ivStatusIcon.setImageResource(R.drawable.ic_ai_close);
-            _ivStatusIcon.setColorFilter(Color.parseColor("#EF4444"), PorterDuff.Mode.SRC_IN);
-            _ivStatusIcon.setVisibility(VISIBLE);
-            _tvStatus.setText("Error: " + errorMessage);
+            if (_loadingRow != null) _loadingRow.setVisibility(GONE);
+            _tvResultPreview.setText(errorMessage);
             Toast.makeText(getContext(), errorMessage, Toast.LENGTH_LONG).show();
           }
         });
+  }
+
+  private void copyResultToClipboard()
+  {
+    Context context = getContext();
+    String res = (_lastGeneratedResult != null && !_lastGeneratedResult.trim().isEmpty())
+        ? _lastGeneratedResult
+        : (_tvResultPreview != null ? _tvResultPreview.getText().toString() : "");
+    if (res == null || res.trim().isEmpty())
+    {
+      Toast.makeText(context, "No generated text to copy", Toast.LENGTH_SHORT).show();
+      return;
+    }
+    try
+    {
+      ClipboardManager cm = (ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
+      if (cm != null)
+      {
+        cm.setPrimaryClip(ClipData.newPlainText("AI Generated", res));
+      }
+      typodev.keyboard.ClipboardHistoryService.setRecentCopiedClip(res);
+      typodev.keyboard.ClipboardHistoryService hs = typodev.keyboard.ClipboardHistoryService.get_service(context);
+      if (hs != null) hs.add_clip(res);
+      Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show();
+    }
+    catch (Throwable t)
+    {
+      Toast.makeText(context, "Failed to copy", Toast.LENGTH_SHORT).show();
+    }
   }
 
   private void applyResultToField(final boolean replaceOriginal)
@@ -1544,9 +1465,9 @@ public class AiPaneView extends LinearLayout
   {
     ImageView iv = new ImageView(context);
     iv.setImageResource(iconResId);
-    iv.setColorFilter(_colorLabel, PorterDuff.Mode.SRC_IN);
+    iv.setColorFilter(getPrimaryIconColor(), PorterDuff.Mode.SRC_IN);
     iv.setPadding(padPx, padPx, padPx, padPx);
-    iv.setBackground(createPillBackground(Color.TRANSPARENT, sizePx / (2f * _density), adjustAlpha(_colorLabel, 0.16f)));
+    iv.setBackground(createPillBackground(adjustAlpha(_colorKey, 0.7f), sizePx / (2f * _density), adjustAlpha(_colorLabel, 0.22f)));
     iv.setLayoutParams(new LinearLayout.LayoutParams(sizePx, sizePx));
     iv.setOnClickListener(listener);
     return iv;
@@ -1566,19 +1487,19 @@ public class AiPaneView extends LinearLayout
     LinearLayout ll = new LinearLayout(context);
     ll.setOrientation(HORIZONTAL);
     ll.setGravity(Gravity.CENTER_VERTICAL);
-    ll.setPadding(dp(9), 0, dp(9), 0);
+    ll.setPadding(dp(10), 0, dp(10), 0);
     ll.setBackground(createPillBackground(bgColor, heightPx / (2f * _density), strokeColor));
 
     ImageView iv = new ImageView(context);
     iv.setImageResource(iconResId);
     iv.setColorFilter(iconTint, PorterDuff.Mode.SRC_IN);
-    LinearLayout.LayoutParams lpIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
-    lpIcon.setMargins(0, 0, dp(5), 0);
+    LinearLayout.LayoutParams lpIcon = new LinearLayout.LayoutParams(dp(15), dp(15));
+    lpIcon.setMargins(0, 0, dp(6), 0);
     ll.addView(iv, lpIcon);
 
     TextView tv = new TextView(context);
     tv.setText(label);
-    tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
     tv.setTypeface(null, Typeface.BOLD);
     tv.setTextColor(textColor);
     tv.setSingleLine(true);
@@ -1588,7 +1509,7 @@ public class AiPaneView extends LinearLayout
     return ll;
   }
 
-  private LinearLayout createActionDockButton(
+  private LinearLayout createTopActionButton(
       Context context,
       int iconResId,
       String label,
@@ -1601,8 +1522,8 @@ public class AiPaneView extends LinearLayout
     ll.setGravity(Gravity.CENTER);
     ll.setPadding(dp(8), 0, dp(8), 0);
 
-    GradientDrawable normalBg = createPillBackground(bgColor, dp(19), strokeColor);
-    GradientDrawable pressedBg = createPillBackground(adjustAlpha(bgColor, 0.75f), dp(19), strokeColor);
+    GradientDrawable normalBg = createPillBackground(bgColor, dp(17), strokeColor);
+    GradientDrawable pressedBg = createPillBackground(adjustAlpha(bgColor, 0.75f), dp(17), strokeColor);
     StateListDrawable sld = new StateListDrawable();
     sld.addState(new int[]{android.R.attr.state_pressed}, pressedBg);
     sld.addState(new int[]{}, normalBg);
@@ -1611,8 +1532,8 @@ public class AiPaneView extends LinearLayout
     ImageView iv = new ImageView(context);
     iv.setImageResource(iconResId);
     iv.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
-    LinearLayout.LayoutParams lpIcon = new LinearLayout.LayoutParams(dp(15), dp(15));
-    lpIcon.setMargins(0, 0, dp(5), 0);
+    LinearLayout.LayoutParams lpIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
+    lpIcon.setMargins(0, 0, dp(4), 0);
     ll.addView(iv, lpIcon);
 
     TextView tv = new TextView(context);

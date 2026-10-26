@@ -284,7 +284,7 @@ public final class AiAssistantHubView
           : keyboard.getColorLabel());
     }
     else if (view instanceof ImageView)
-      ((ImageView)view).setColorFilter(keyboard.getColorKeyActivated() != 0 ? keyboard.getColorKeyActivated() : keyboard.getColorLabel());
+      ((ImageView)view).setColorFilter(keyboard.getColorLabel());
     if (view instanceof ViewGroup)
     {
       ViewGroup group = (ViewGroup)view;
