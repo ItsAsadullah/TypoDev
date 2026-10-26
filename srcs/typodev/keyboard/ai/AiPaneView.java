@@ -584,7 +584,7 @@ public class AiPaneView extends LinearLayout
     addView(_llCustomPrompt);
 
     // ==========================================
-    // 4. Single Horizontal Option / Quick Chips Row
+    // 4. Category Sub-Options Row (Only visible after selecting a category)
     // ==========================================
     _scrollSubOptions = new HorizontalScrollView(context);
     _scrollSubOptions.setHorizontalScrollBarEnabled(false);
@@ -598,6 +598,7 @@ public class AiPaneView extends LinearLayout
         ViewGroup.LayoutParams.MATCH_PARENT, dp(36));
     lpSubScroll.setMargins(0, dp(4), 0, dp(4));
     _scrollSubOptions.setLayoutParams(lpSubScroll);
+    _scrollSubOptions.setVisibility(GONE);
     addView(_scrollSubOptions);
 
     // Optional Tone Strip
@@ -956,18 +957,18 @@ public class AiPaneView extends LinearLayout
   }
 
   /**
-   * Populates the single horizontal chip strip:
-   * - If a category is active, shows that category's sub-options (e.g. Banglish, বাংলা, English...).
-   * - Otherwise, shows 1-tap instant quick actions (Fix Grammar, BN↔EN, Professional, Islamic, Smart Reply, Summarize, Math).
+   * Populates the category sub-option strip only when a category is selected.
+   * Hidden when no category is selected so no horizontal suggestion bar appears below Clipboard.
    */
   private void buildQuickOrSubOptionStrip()
   {
-    if (_rowSubOptions == null) return;
+    if (_rowSubOptions == null || _scrollSubOptions == null) return;
     _rowSubOptions.removeAllViews();
     final Context ctx = getContext();
 
     if (_activeCategory != null && _activeCategory != AiActionEngine.Category.ASK_AI)
     {
+      _scrollSubOptions.setVisibility(VISIBLE);
       List<AiActionEngine.ActionOption> options = AiActionEngine.getOptionsForCategory(_activeCategory);
       for (final AiActionEngine.ActionOption opt : options)
       {
@@ -1020,64 +1021,37 @@ public class AiPaneView extends LinearLayout
       return;
     }
 
-    // Default 1-Tap Quick Actions when no category is selected yet
-    final boolean hasBn = containsBengaliChars(_currentWorkingText);
+    _scrollSubOptions.setVisibility(GONE);
+  }
 
-    addQuickChip(ctx, R.drawable.ic_ai_grammar, "Fix Grammar", new OnClickListener()
+  /**
+   * Builds the 3-column visual Category Grid with high-contrast vector icons,
+   * including Math Solver and Vision AI.
+   */
+  private void buildCategoryGrid()
+  {
+    if (_gridCategories == null) return;
+    _gridCategories.removeAllViews();
+    final Context ctx = getContext();
+
+    AiActionEngine.Category[] categories = AiActionEngine.Category.values();
+    int gridIdx = 0;
+    for (int i = 0; i < categories.length; i++)
     {
-      @Override
-      public void onClick(View v)
+      final AiActionEngine.Category cat = categories[i];
+      final boolean isSelected = (cat == _activeCategory);
+      addGridToolCard(ctx, gridIdx++, cat.getIconResId(), cat.getTitle(), isSelected, new OnClickListener()
       {
-        runDirectAction(AiActionEngine.Category.GRAMMAR, "grammar_all");
-      }
-    });
+        @Override
+        public void onClick(View v)
+        {
+          onCategorySelected(cat);
+        }
+      });
+    }
 
-    addQuickChip(ctx, R.drawable.ic_translate, hasBn ? "বাংলা → English" : "EN/Banglish → বাংলা", new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        runDirectAction(AiActionEngine.Category.TRANSLATE, containsBengaliChars(_currentWorkingText) ? "tr_en" : "tr_bn");
-      }
-    });
-
-    addQuickChip(ctx, R.drawable.ic_ai_edit, "Professional", new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        runDirectAction(AiActionEngine.Category.REWRITE, "prof");
-      }
-    });
-
-    addQuickChip(ctx, R.drawable.ic_ai_islamic, "Islamic", new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        runDirectAction(AiActionEngine.Category.ISLAMIC, "islamic_standard");
-      }
-    });
-
-    addQuickChip(ctx, R.drawable.ic_ai_comment, "Smart Reply", new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        runDirectAction(AiActionEngine.Category.REPLY, "reply_friendly");
-      }
-    });
-
-    addQuickChip(ctx, R.drawable.ic_ai_summarize, "Summarize", new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        runDirectAction(AiActionEngine.Category.SUMMARIZE, "sum_short");
-      }
-    });
-
-    addQuickChip(ctx, R.drawable.ic_ai_math, "Math Solver", new OnClickListener()
+    // Add Math Solver to AI Tools Grid
+    addGridToolCard(ctx, gridIdx++, R.drawable.ic_ai_math, "Math Solver", false, new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1091,7 +1065,8 @@ public class AiPaneView extends LinearLayout
       }
     });
 
-    addQuickChip(ctx, R.drawable.ic_ai_screen_scan, "Vision Tools", new OnClickListener()
+    // Add Vision AI to AI Tools Grid
+    addGridToolCard(ctx, gridIdx++, R.drawable.ic_ai_screen_scan, "Vision AI", false, new OnClickListener()
     {
       @Override
       public void onClick(View v)
@@ -1105,95 +1080,50 @@ public class AiPaneView extends LinearLayout
     });
   }
 
-  private void addQuickChip(Context ctx, int iconRes, String label, OnClickListener listener)
+  private void addGridToolCard(
+      Context ctx,
+      int index,
+      int iconResId,
+      String title,
+      boolean isSelected,
+      OnClickListener listener)
   {
     int iconColor = getIconColor();
-    LinearLayout chip = createIconPillChip(
-        ctx,
-        iconRes,
-        label,
-        _colorKey,
-        adjustAlpha(iconColor, 0.45f),
-        _colorLabel,
-        iconColor,
-        dp(34),
-        listener);
-    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
-    lp.setMargins(0, 0, dp(5), 0);
-    chip.setLayoutParams(lp);
-    _rowSubOptions.addView(chip);
-  }
+    LinearLayout card = new LinearLayout(ctx);
+    card.setOrientation(HORIZONTAL);
+    card.setGravity(Gravity.CENTER_VERTICAL);
+    card.setPadding(dp(9), dp(7), dp(8), dp(7));
 
-  private void runDirectAction(AiActionEngine.Category cat, String optionId)
-  {
-    _activeCategory = cat;
-    _activeOptionId = optionId;
-    _activeTone = "default";
-    _llCustomPrompt.setVisibility(GONE);
-    triggerExecution();
-  }
+    int bg = isSelected ? _colorKeyActivated : _colorKey;
+    int stroke = isSelected ? Color.WHITE : adjustAlpha(_colorLabel, 0.18f);
+    card.setBackground(createPillBackground(bg, dp(12), stroke));
 
-  /**
-   * Builds the 3-column visual Category Grid with high-contrast vector icons.
-   */
-  private void buildCategoryGrid()
-  {
-    if (_gridCategories == null) return;
-    _gridCategories.removeAllViews();
-    final Context ctx = getContext();
-    final int iconColor = getIconColor();
+    ImageView iv = new ImageView(ctx);
+    iv.setImageResource(iconResId);
+    iv.setColorFilter(isSelected ? Color.WHITE : iconColor, PorterDuff.Mode.SRC_IN);
+    LinearLayout.LayoutParams lpIcon = new LinearLayout.LayoutParams(dp(18), dp(18));
+    lpIcon.setMargins(0, 0, dp(7), 0);
+    card.addView(iv, lpIcon);
 
-    AiActionEngine.Category[] categories = AiActionEngine.Category.values();
-    for (int i = 0; i < categories.length; i++)
-    {
-      final AiActionEngine.Category cat = categories[i];
-      final boolean isSelected = (cat == _activeCategory);
+    TextView tv = new TextView(ctx);
+    tv.setText(title);
+    tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+    tv.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
+    tv.setTextColor(isSelected ? Color.WHITE : _colorLabel);
+    tv.setSingleLine(true);
+    tv.setEllipsize(TextUtils.TruncateAt.END);
+    card.addView(tv, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
-      LinearLayout card = new LinearLayout(ctx);
-      card.setOrientation(HORIZONTAL);
-      card.setGravity(Gravity.CENTER_VERTICAL);
-      card.setPadding(dp(9), dp(7), dp(8), dp(7));
+    GridLayout.LayoutParams glp = new GridLayout.LayoutParams();
+    glp.width = 0;
+    glp.height = dp(40);
+    glp.columnSpec = GridLayout.spec(index % 3, 1, 1.0f);
+    glp.rowSpec = GridLayout.spec(index / 3);
+    glp.setMargins(dp(3), dp(3), dp(3), dp(3));
+    card.setLayoutParams(glp);
 
-      int bg = isSelected ? _colorKeyActivated : _colorKey;
-      int stroke = isSelected ? Color.WHITE : adjustAlpha(_colorLabel, 0.18f);
-      card.setBackground(createPillBackground(bg, dp(12), stroke));
-
-      ImageView iv = new ImageView(ctx);
-      iv.setImageResource(cat.getIconResId());
-      iv.setColorFilter(isSelected ? Color.WHITE : iconColor, PorterDuff.Mode.SRC_IN);
-      LinearLayout.LayoutParams lpIcon = new LinearLayout.LayoutParams(dp(18), dp(18));
-      lpIcon.setMargins(0, 0, dp(7), 0);
-      card.addView(iv, lpIcon);
-
-      TextView tv = new TextView(ctx);
-      tv.setText(cat.getTitle());
-      tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-      tv.setTypeface(null, isSelected ? Typeface.BOLD : Typeface.NORMAL);
-      tv.setTextColor(isSelected ? Color.WHITE : _colorLabel);
-      tv.setSingleLine(true);
-      tv.setEllipsize(TextUtils.TruncateAt.END);
-      card.addView(tv, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
-
-      GridLayout.LayoutParams glp = new GridLayout.LayoutParams();
-      glp.width = 0;
-      glp.height = dp(40);
-      glp.columnSpec = GridLayout.spec(i % 3, 1, 1.0f);
-      glp.rowSpec = GridLayout.spec(i / 3);
-      glp.setMargins(dp(3), dp(3), dp(3), dp(3));
-      card.setLayoutParams(glp);
-
-      card.setOnClickListener(new OnClickListener()
-      {
-        @Override
-        public void onClick(View v)
-        {
-          onCategorySelected(cat);
-        }
-      });
-
-      _gridCategories.addView(card);
-    }
+    card.setOnClickListener(listener);
+    _gridCategories.addView(card);
   }
 
   private void onCategorySelected(AiActionEngine.Category cat)
