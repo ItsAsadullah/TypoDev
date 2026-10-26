@@ -76,9 +76,6 @@ public class AiPaneView extends LinearLayout
   private LinearLayout _btnAskHeader;
   private ImageView _ivAskHeaderIcon;
   private TextView _tvAskHeaderLabel;
-  private LinearLayout _btnSourceToggle;
-  private ImageView _ivSourceIcon;
-  private TextView _tvSourceLabel;
   private LinearLayout _btnEmojifyToggle;
   private ImageView _ivEmojifyIcon;
   private TextView _tvEmojifyLabel;
@@ -90,8 +87,13 @@ public class AiPaneView extends LinearLayout
   private ImageView _btnTopRegen;
   private ImageView _btnSettings;
 
-  // Setup notice & Custom prompt
+  // Setup notice, Clipboard/Input context preview & Custom prompt
   private LinearLayout _cardSetupNotice;
+  private LinearLayout _cardContext;
+  private ImageView _ivContextIcon;
+  private TextView _tvSourceBadge;
+  private TextView _tvInputSnippet;
+  private TextView _btnToggleSource;
   private LinearLayout _llCustomPrompt;
   private TextView _tvCustomPromptDisplay;
 
@@ -304,37 +306,6 @@ public class AiPaneView extends LinearLayout
     lpAskBtn.setMargins(0, 0, dp(6), 0);
     _toolsHeaderGroup.addView(_btnAskHeader, lpAskBtn);
 
-    // Compact Source Toggle Pill (Typed vs Clipboard)
-    _btnSourceToggle = new LinearLayout(context);
-    _btnSourceToggle.setOrientation(HORIZONTAL);
-    _btnSourceToggle.setGravity(Gravity.CENTER_VERTICAL);
-    _btnSourceToggle.setPadding(dp(9), 0, dp(9), 0);
-    _ivSourceIcon = new ImageView(context);
-    _ivSourceIcon.setImageResource(R.drawable.ic_ai_edit);
-    LinearLayout.LayoutParams lpSrcIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
-    lpSrcIcon.setMargins(0, 0, dp(5), 0);
-    _btnSourceToggle.addView(_ivSourceIcon, lpSrcIcon);
-    _tvSourceLabel = new TextView(context);
-    _tvSourceLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-    _tvSourceLabel.setTypeface(null, Typeface.BOLD);
-    _tvSourceLabel.setSingleLine(true);
-    _btnSourceToggle.addView(_tvSourceLabel);
-    _btnSourceToggle.setOnClickListener(new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        _usingClipboard = !_usingClipboard;
-        _currentWorkingText = _usingClipboard ? _clipboardText : _inputFieldText;
-        updateContextDisplay();
-        if (_activeCategory == null) buildQuickOrSubOptionStrip();
-        Toast.makeText(getContext(), _usingClipboard ? "Using Clipboard text" : "Using Typed text", Toast.LENGTH_SHORT).show();
-      }
-    });
-    LinearLayout.LayoutParams lpSrcBtn = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
-    lpSrcBtn.setMargins(0, 0, dp(6), 0);
-    _toolsHeaderGroup.addView(_btnSourceToggle, lpSrcBtn);
-
     View toolsSpacer = new View(context);
     _toolsHeaderGroup.addView(toolsSpacer, new LinearLayout.LayoutParams(0, 1, 1.0f));
 
@@ -508,6 +479,63 @@ public class AiPaneView extends LinearLayout
     _cardSetupNotice.addView(btnSetup, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(26)));
     _cardSetupNotice.setVisibility(GONE);
     addView(_cardSetupNotice);
+
+    // ==========================================
+    // 2B. Clipboard / Input Context Preview Bar
+    //     Visible in Tools Mode when opening AI Assistant;
+    //     Hidden in Result Mode after generating!
+    // ==========================================
+    _cardContext = new LinearLayout(context);
+    _cardContext.setOrientation(HORIZONTAL);
+    _cardContext.setGravity(Gravity.CENTER_VERTICAL);
+    _cardContext.setPadding(dp(10), dp(5), dp(8), dp(5));
+    LinearLayout.LayoutParams lpCtx = new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, dp(34));
+    lpCtx.setMargins(0, dp(4), 0, dp(2));
+    _cardContext.setLayoutParams(lpCtx);
+
+    _ivContextIcon = new ImageView(context);
+    _ivContextIcon.setImageResource(R.drawable.ic_toolbar_clipboard);
+    LinearLayout.LayoutParams lpCtxIcon = new LinearLayout.LayoutParams(dp(15), dp(15));
+    lpCtxIcon.setMargins(0, 0, dp(6), 0);
+    _cardContext.addView(_ivContextIcon, lpCtxIcon);
+
+    _tvSourceBadge = new TextView(context);
+    _tvSourceBadge.setText("Clipboard:");
+    _tvSourceBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    _tvSourceBadge.setTypeface(null, Typeface.BOLD);
+    _tvSourceBadge.setPadding(0, 0, dp(6), 0);
+    _cardContext.addView(_tvSourceBadge);
+
+    _tvInputSnippet = new TextView(context);
+    _tvInputSnippet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+    _tvInputSnippet.setSingleLine(true);
+    _tvInputSnippet.setEllipsize(TextUtils.TruncateAt.END);
+    _cardContext.addView(_tvInputSnippet, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+
+    _btnToggleSource = new TextView(context);
+    _btnToggleSource.setText("Use Typed");
+    _btnToggleSource.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+    _btnToggleSource.setTypeface(null, Typeface.BOLD);
+    _btnToggleSource.setGravity(Gravity.CENTER);
+    _btnToggleSource.setPadding(dp(8), 0, dp(8), 0);
+    _btnToggleSource.setOnClickListener(new OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        _usingClipboard = !_usingClipboard;
+        _currentWorkingText = _usingClipboard ? _clipboardText : _inputFieldText;
+        updateContextDisplay();
+        if (_activeCategory == null) buildQuickOrSubOptionStrip();
+      }
+    });
+    LinearLayout.LayoutParams lpToggleSrc = new LinearLayout.LayoutParams(
+        ViewGroup.LayoutParams.WRAP_CONTENT, dp(24));
+    lpToggleSrc.setMargins(dp(6), 0, 0, 0);
+    _cardContext.addView(_btnToggleSource, lpToggleSrc);
+
+    addView(_cardContext);
 
     // ==========================================
     // 3. Custom Prompt Bar (Only visible when Ask AI is active)
@@ -725,6 +753,7 @@ public class AiPaneView extends LinearLayout
     _showingResultMode = false;
     if (_toolsHeaderGroup != null) _toolsHeaderGroup.setVisibility(VISIBLE);
     if (_resultHeaderActionsGroup != null) _resultHeaderActionsGroup.setVisibility(GONE);
+    if (_cardContext != null) _cardContext.setVisibility(VISIBLE);
     if (_scrollGrid != null) _scrollGrid.setVisibility(VISIBLE);
     if (_resultCard != null) _resultCard.setVisibility(GONE);
     buildQuickOrSubOptionStrip();
@@ -736,6 +765,7 @@ public class AiPaneView extends LinearLayout
     _showingResultMode = true;
     if (_toolsHeaderGroup != null) _toolsHeaderGroup.setVisibility(GONE);
     if (_resultHeaderActionsGroup != null) _resultHeaderActionsGroup.setVisibility(VISIBLE);
+    if (_cardContext != null) _cardContext.setVisibility(GONE);
     if (_llCustomPrompt != null) _llCustomPrompt.setVisibility(GONE);
     if (_scrollGrid != null) _scrollGrid.setVisibility(GONE);
     if (_resultCard != null) _resultCard.setVisibility(VISIBLE);
@@ -876,27 +906,43 @@ public class AiPaneView extends LinearLayout
 
   private void updateContextDisplay()
   {
-    if (_btnSourceToggle == null) return;
+    if (_cardContext == null) return;
     int iconColor = getIconColor();
-    _btnSourceToggle.setBackground(createPillBackground(
-        adjustAlpha(_colorKey, 0.75f), dp(16), adjustAlpha(_colorLabel, 0.22f)));
+    _cardContext.setBackground(createPillBackground(
+        adjustAlpha(_colorKey, 0.7f), dp(10), adjustAlpha(_colorLabel, 0.16f)));
+    _ivContextIcon.setColorFilter(iconColor, PorterDuff.Mode.SRC_IN);
+    _tvSourceBadge.setTextColor(iconColor);
+
     if (_usingClipboard)
     {
-      _ivSourceIcon.setImageResource(R.drawable.ic_toolbar_clipboard);
-      _tvSourceLabel.setText("Clipboard");
-    }
-    else if (_hasSelection)
-    {
-      _ivSourceIcon.setImageResource(R.drawable.ic_ai_edit);
-      _tvSourceLabel.setText("Selected");
+      _ivContextIcon.setImageResource(R.drawable.ic_toolbar_clipboard);
+      _tvSourceBadge.setText("Clipboard:");
+      _btnToggleSource.setText("Use Typed");
     }
     else
     {
-      _ivSourceIcon.setImageResource(R.drawable.ic_ai_edit);
-      _tvSourceLabel.setText("Typed");
+      _ivContextIcon.setImageResource(R.drawable.ic_ai_edit);
+      _tvSourceBadge.setText(_hasSelection ? "Selected:" : "Input:");
+      _btnToggleSource.setText("Use Clipboard");
     }
-    _ivSourceIcon.setColorFilter(iconColor, PorterDuff.Mode.SRC_IN);
-    _tvSourceLabel.setTextColor(_colorLabel);
+
+    _btnToggleSource.setTextColor(_colorLabel);
+    _btnToggleSource.setBackground(createPillBackground(
+        adjustAlpha(_colorKeyActivated, 0.25f), dp(8), adjustAlpha(iconColor, 0.55f)));
+
+    if (_currentWorkingText == null || _currentWorkingText.trim().isEmpty())
+    {
+      _tvInputSnippet.setText(_usingClipboard
+          ? "Clipboard is empty — copy text or switch to Typed"
+          : "Type, select, or copy text first...");
+      _tvInputSnippet.setTextColor(adjustAlpha(_colorLabel, 0.5f));
+    }
+    else
+    {
+      String singleLine = _currentWorkingText.replace('\n', ' ').replace('\r', ' ').trim();
+      _tvInputSnippet.setText(singleLine);
+      _tvInputSnippet.setTextColor(_colorLabel);
+    }
   }
 
   private void updateEmojifyButtonState()
