@@ -58,6 +58,7 @@ public class AiPaneView extends LinearLayout
   private boolean _hasSelection = false;
   private String _currentWorkingText = "";
   private boolean _usingClipboard = false;
+  private boolean _isContextExpanded = false;
 
   // AI execution state
   private AiActionEngine.Category _activeCategory = null;
@@ -484,15 +485,31 @@ public class AiPaneView extends LinearLayout
     // 2B. Clipboard / Input Context Preview Bar
     //     Visible in Tools Mode when opening AI Assistant;
     //     Hidden in Result Mode after generating!
+    //     Tap text to expand multi-line preview, tap again to collapse back to 1 line.
     // ==========================================
     _cardContext = new LinearLayout(context);
     _cardContext.setOrientation(HORIZONTAL);
     _cardContext.setGravity(Gravity.CENTER_VERTICAL);
+    _cardContext.setMinimumHeight(dp(34));
     _cardContext.setPadding(dp(10), dp(5), dp(8), dp(5));
     LinearLayout.LayoutParams lpCtx = new LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT, dp(34));
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     lpCtx.setMargins(0, dp(4), 0, dp(2));
     _cardContext.setLayoutParams(lpCtx);
+
+    OnClickListener toggleExpandListener = new OnClickListener()
+    {
+      @Override
+      public void onClick(View v)
+      {
+        if (_currentWorkingText != null && !_currentWorkingText.trim().isEmpty())
+        {
+          _isContextExpanded = !_isContextExpanded;
+          updateContextDisplay();
+        }
+      }
+    };
+    _cardContext.setOnClickListener(toggleExpandListener);
 
     _ivContextIcon = new ImageView(context);
     _ivContextIcon.setImageResource(R.drawable.ic_toolbar_clipboard);
@@ -505,12 +522,15 @@ public class AiPaneView extends LinearLayout
     _tvSourceBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
     _tvSourceBadge.setTypeface(null, Typeface.BOLD);
     _tvSourceBadge.setPadding(0, 0, dp(6), 0);
+    _tvSourceBadge.setOnClickListener(toggleExpandListener);
     _cardContext.addView(_tvSourceBadge);
 
     _tvInputSnippet = new TextView(context);
     _tvInputSnippet.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
     _tvInputSnippet.setSingleLine(true);
     _tvInputSnippet.setEllipsize(TextUtils.TruncateAt.END);
+    _tvInputSnippet.setLineSpacing(dp(2), 1.0f);
+    _tvInputSnippet.setOnClickListener(toggleExpandListener);
     _cardContext.addView(_tvInputSnippet, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
     _btnToggleSource = new TextView(context);
@@ -769,6 +789,7 @@ public class AiPaneView extends LinearLayout
       _activeOptionId = "";
       _activeTone = "default";
       _currentCustomPrompt = "";
+      _isContextExpanded = false;
       updatePromptDisplay();
       if (_scrollTone != null) _scrollTone.setVisibility(GONE);
       if (_llCustomPrompt != null) _llCustomPrompt.setVisibility(GONE);
@@ -911,13 +932,34 @@ public class AiPaneView extends LinearLayout
 
     if (_currentWorkingText == null || _currentWorkingText.trim().isEmpty())
     {
+      _isContextExpanded = false;
+      _cardContext.setGravity(Gravity.CENTER_VERTICAL);
+      _cardContext.setPadding(dp(10), dp(5), dp(8), dp(5));
+      _tvInputSnippet.setSingleLine(true);
+      _tvInputSnippet.setMaxLines(1);
+      _tvInputSnippet.setEllipsize(TextUtils.TruncateAt.END);
       _tvInputSnippet.setText(_usingClipboard
           ? "Clipboard is empty — copy text or switch to Typed"
           : "Type, select, or copy text first...");
       _tvInputSnippet.setTextColor(adjustAlpha(_colorLabel, 0.5f));
     }
+    else if (_isContextExpanded)
+    {
+      _cardContext.setGravity(Gravity.TOP);
+      _cardContext.setPadding(dp(10), dp(7), dp(8), dp(7));
+      _tvInputSnippet.setSingleLine(false);
+      _tvInputSnippet.setMaxLines(6);
+      _tvInputSnippet.setEllipsize(TextUtils.TruncateAt.END);
+      _tvInputSnippet.setText(_currentWorkingText.trim());
+      _tvInputSnippet.setTextColor(_colorLabel);
+    }
     else
     {
+      _cardContext.setGravity(Gravity.CENTER_VERTICAL);
+      _cardContext.setPadding(dp(10), dp(5), dp(8), dp(5));
+      _tvInputSnippet.setSingleLine(true);
+      _tvInputSnippet.setMaxLines(1);
+      _tvInputSnippet.setEllipsize(TextUtils.TruncateAt.END);
       String singleLine = _currentWorkingText.replace('\n', ' ').replace('\r', ' ').trim();
       _tvInputSnippet.setText(singleLine);
       _tvInputSnippet.setTextColor(_colorLabel);
