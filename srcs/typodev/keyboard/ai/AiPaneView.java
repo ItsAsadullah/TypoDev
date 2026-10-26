@@ -656,38 +656,16 @@ public class AiPaneView extends LinearLayout
 
     _scrollResult = new ScrollView(context);
     _scrollResult.setFillViewport(true);
-    _scrollResult.setVerticalScrollBarEnabled(false);
-    _scrollResult.setOverScrollMode(View.OVER_SCROLL_NEVER);
+    _scrollResult.setVerticalScrollBarEnabled(true);
+    _scrollResult.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
 
     _tvResultPreview = new TextView(context);
     _tvResultPreview.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
     _tvResultPreview.setGravity(Gravity.TOP);
     _tvResultPreview.setLineSpacing(dp(3), 1.0f);
     _tvResultPreview.setHint("Generated text will appear here...");
-    _tvResultPreview.setOnClickListener(new OnClickListener()
-    {
-      @Override
-      public void onClick(View v)
-      {
-        if (!_isGenerating && _lastGeneratedResult != null && !_lastGeneratedResult.trim().isEmpty())
-        {
-          applyResultToField(true);
-        }
-      }
-    });
-    _tvResultPreview.setOnLongClickListener(new OnLongClickListener()
-    {
-      @Override
-      public boolean onLongClick(View v)
-      {
-        if (!_isGenerating && _lastGeneratedResult != null && !_lastGeneratedResult.trim().isEmpty())
-        {
-          copyResultToClipboard();
-          return true;
-        }
-        return false;
-      }
-    });
+    _tvResultPreview.setClickable(false);
+    _tvResultPreview.setLongClickable(false);
     _scrollResult.addView(_tvResultPreview, new ScrollView.LayoutParams(
         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
