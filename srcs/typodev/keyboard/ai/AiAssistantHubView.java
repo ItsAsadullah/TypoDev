@@ -263,11 +263,12 @@ public final class AiAssistantHubView
       GradientDrawable surface = new GradientDrawable();
       surface.setColor(keyboard2.getColorKey());
       surface.setCornerRadius(12 * density);
+      surface.setStroke(Math.round(density), ColorUtils.setAlphaComponent(keyboard2.getColorLabel(), 35));
       action.setBackground(new RippleDrawable(ColorStateList.valueOf(
           ColorUtils.setAlphaComponent(keyboard2.getColorLabel(), 40)), surface, null));
       android.widget.LinearLayout.LayoutParams params =
           (android.widget.LinearLayout.LayoutParams)action.getLayoutParams();
-      params.bottomMargin = Math.round(4 * density);
+      params.bottomMargin = Math.round(6 * density);
       action.setLayoutParams(params);
     }
     return view;
@@ -283,7 +284,7 @@ public final class AiAssistantHubView
           : keyboard.getColorLabel());
     }
     else if (view instanceof ImageView)
-      ((ImageView)view).setColorFilter(keyboard.getColorLabel());
+      ((ImageView)view).setColorFilter(keyboard.getColorKeyActivated() != 0 ? keyboard.getColorKeyActivated() : keyboard.getColorLabel());
     if (view instanceof ViewGroup)
     {
       ViewGroup group = (ViewGroup)view;
@@ -293,8 +294,7 @@ public final class AiAssistantHubView
 
   private static boolean ensureApiKey(Context context, Keyboard2 keyboard2)
   {
-    String apiKey = GeminiAiService.getApiKey(context);
-    if (apiKey == null || apiKey.trim().isEmpty())
+    if (!AiProvider.Manager.hasConfiguredApiKey(context))
     {
       Toast.makeText(context, "Add your API key in Writing Settings to use these tools.", Toast.LENGTH_LONG).show();
       if (keyboard2 != null)

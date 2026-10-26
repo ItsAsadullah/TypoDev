@@ -136,6 +136,11 @@ public class AiActionEngineTest
   {
     for (AiActionEngine.Category cat : AiActionEngine.Category.values())
     {
+      assertTrue("Category " + cat.name() + " must have a vector icon resource ID", cat.getIconResId() != 0);
+      assertNotNull(cat.getTitle());
+      assertFalse(cat.getTitle().trim().isEmpty());
+      assertTrue("Category title should start with a letter, not an emoji: " + cat.getTitle(),
+          Character.isLetter(cat.getTitle().charAt(0)));
       List<AiActionEngine.ActionOption> opts = AiActionEngine.getOptionsForCategory(cat);
       assertNotNull("Options for " + cat.name() + " should not be null", opts);
       assertFalse("Options for " + cat.name() + " should not be empty", opts.isEmpty());

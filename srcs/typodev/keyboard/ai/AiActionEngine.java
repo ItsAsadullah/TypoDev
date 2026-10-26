@@ -5,40 +5,44 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import typodev.keyboard.R;
 
 public class AiActionEngine
 {
   public enum Category
   {
-    GRAMMAR("🔍 Grammar", "Fix spelling, punctuation & grammar"),
-    TRANSLATE("🔄 Translate", "Translate naturally into any language"),
-    REWRITE("✍️ Rewrite", "Rephrase, polish, or change writing style"),
-    ISLAMIC("🕌 Islamic", "Islamic tone, blessings, Salam & authentic Arabic"),
-    CONTENT("📰 Content", "Titles, descriptions, hooks, captions & outlines"),
-    REPLY("💬 Reply", "Generate contextual chat & comment replies"),
-    EMAIL("📧 Email", "Generate professional & formal emails"),
-    SOCIAL("📱 Social", "Create posts for Facebook, LinkedIn, X, Insta"),
-    SUMMARIZE("📝 Summarize", "Summarize into bullets, key points or short text"),
-    EXPLAIN("💡 Explain", "Explain concepts, ideas or programming code"),
-    NATURALIZE("✨ Naturalize", "Humanize AI text to sound authentic"),
-    TONE("🎭 Tone", "Adjust tone to professional, casual, confident..."),
-    EMOTION("❤️ Emotion", "Add heartfelt emotion to your message"),
-    HUMOR("😂 Humor", "Add funny, witty, or sarcastic humor"),
-    LENGTH("📏 Length", "Shorten or expand your writing"),
-    ASK_AI("🎯 Ask AI", "Type any custom instruction for AI"),
-    AUTOCOMPLETE("🪄 Autocomplete", "AI auto-completes or continues your text");
+    GRAMMAR("Grammar", "Fix spelling, punctuation & grammar", R.drawable.ic_ai_grammar),
+    TRANSLATE("Translate", "Translate naturally into any language", R.drawable.ic_translate),
+    REWRITE("Rewrite", "Rephrase, polish, or change writing style", R.drawable.ic_ai_edit),
+    ISLAMIC("Islamic", "Islamic tone, blessings, Salam & authentic Arabic", R.drawable.ic_ai_islamic),
+    CONTENT("Content", "Titles, descriptions, hooks, captions & outlines", R.drawable.ic_ai_content),
+    REPLY("Reply", "Generate contextual chat & comment replies", R.drawable.ic_ai_comment),
+    EMAIL("Email", "Generate professional & formal emails", R.drawable.ic_ai_email),
+    SOCIAL("Social", "Create posts for Facebook, LinkedIn, X, Insta", R.drawable.ic_ai_social),
+    SUMMARIZE("Summarize", "Summarize into bullets, key points or short text", R.drawable.ic_ai_summarize),
+    EXPLAIN("Explain", "Explain concepts, ideas or programming code", R.drawable.ic_ai_explain),
+    NATURALIZE("Naturalize", "Humanize AI text to sound authentic", R.drawable.ic_toolbar_ai),
+    TONE("Tone", "Adjust tone to professional, casual, confident...", R.drawable.ic_ai_tone),
+    EMOTION("Emotion", "Add heartfelt emotion to your message", R.drawable.ic_ai_emotion),
+    HUMOR("Humor", "Add funny, witty, or sarcastic humor", R.drawable.ic_ai_humor),
+    LENGTH("Length", "Shorten or expand your writing", R.drawable.ic_ai_length),
+    ASK_AI("Ask AI", "Type any custom instruction for AI", R.drawable.ic_ai_send),
+    AUTOCOMPLETE("Autocomplete", "AI auto-completes or continues your text", R.drawable.ic_toolbar_magic);
 
     private final String title;
     private final String subtitle;
+    private final int iconResId;
 
-    Category(String title, String subtitle)
+    Category(String title, String subtitle, int iconResId)
     {
       this.title = title;
       this.subtitle = subtitle;
+      this.iconResId = iconResId;
     }
 
     public String getTitle() { return title; }
     public String getSubtitle() { return subtitle; }
+    public int getIconResId() { return iconResId; }
   }
 
   public static class ActionOption
@@ -73,7 +77,7 @@ public class AiActionEngine
         break;
 
       case TRANSLATE:
-        list.add(new ActionOption("tr_banglish", "🔤 Banglish (বাংলিশ)", "Phonetic English letters e.g. Tumi kemon acho?"));
+        list.add(new ActionOption("tr_banglish", "Banglish (বাংলিশ)", "Phonetic English letters e.g. Tumi kemon acho?"));
         list.add(new ActionOption("tr_bn", "বাংলা (Bengali)", "Natural idiomatic Bengali"));
         list.add(new ActionOption("tr_en", "English", "Fluent modern English"));
         list.add(new ActionOption("tr_ar", "العربية (Arabic)", "Accurate modern Arabic"));

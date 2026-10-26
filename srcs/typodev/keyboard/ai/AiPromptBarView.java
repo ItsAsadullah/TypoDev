@@ -2,6 +2,7 @@ package typodev.keyboard.ai;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
@@ -14,10 +15,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.InputConnection;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import typodev.keyboard.R;
 
 /**
  * A sleek bar that sits directly above Keyboard2View when the user
@@ -36,8 +38,8 @@ public class AiPromptBarView extends LinearLayout
   }
 
   private EditText _etPrompt;
-  private Button _btnCancel;
-  private Button _btnConfirm;
+  private ImageView _btnCancel;
+  private LinearLayout _btnConfirm;
   private OnPromptActionListener _listener;
   private float _density;
 
@@ -72,13 +74,12 @@ public class AiPromptBarView extends LinearLayout
     setGravity(Gravity.CENTER_VERTICAL);
     setPadding(dp(6), dp(4), dp(6), dp(4));
 
-    // Cancel Button (←)
-    _btnCancel = new Button(context);
-    _btnCancel.setText("✕");
-    _btnCancel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-    _btnCancel.setTextColor(Color.WHITE);
-    _btnCancel.setPadding(0, 0, 0, 0);
-    _btnCancel.setBackground(createPillBackground(Color.parseColor("#374151"), dp(16), Color.TRANSPARENT));
+    // Cancel Icon Button
+    _btnCancel = new ImageView(context);
+    _btnCancel.setImageResource(R.drawable.ic_ai_close);
+    _btnCancel.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+    _btnCancel.setPadding(dp(9), dp(9), dp(9), dp(9));
+    _btnCancel.setBackground(createPillBackground(Color.parseColor("#374151"), dp(17), Color.TRANSPARENT));
     _btnCancel.setOnClickListener(new OnClickListener()
     {
       @Override
@@ -93,7 +94,7 @@ public class AiPromptBarView extends LinearLayout
 
     // Prompt Live Input / Display
     _etPrompt = new EditText(context);
-    _etPrompt.setHint("🎯 প্রম্পট লিখুন (এখানে দেখা যাবে)...");
+    _etPrompt.setHint("প্রম্পট লিখুন (Type prompt for AI)...");
     _etPrompt.setHintTextColor(Color.parseColor("#888888"));
     _etPrompt.setTextColor(Color.WHITE);
     _etPrompt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
@@ -101,19 +102,32 @@ public class AiPromptBarView extends LinearLayout
     _etPrompt.setPadding(dp(10), dp(6), dp(10), dp(6));
     _etPrompt.setSingleLine(true);
     _etPrompt.setEllipsize(TextUtils.TruncateAt.END);
-    _etPrompt.setFocusable(false); // Prevents Android OS from trying to pop up external IME
+    _etPrompt.setFocusable(false);
     _etPrompt.setFocusableInTouchMode(false);
     LinearLayout.LayoutParams lpEt = new LinearLayout.LayoutParams(0, dp(36), 1.0f);
     addView(_etPrompt, lpEt);
 
-    // Confirm / OK Button (✓ ওকে 🚀)
-    _btnConfirm = new Button(context);
-    _btnConfirm.setText("✓ ওকে 🚀");
-    _btnConfirm.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-    _btnConfirm.setTypeface(null, Typeface.BOLD);
-    _btnConfirm.setTextColor(Color.WHITE);
+    // Confirm / Generate Button with Vector Icon
+    _btnConfirm = new LinearLayout(context);
+    _btnConfirm.setOrientation(HORIZONTAL);
+    _btnConfirm.setGravity(Gravity.CENTER);
     _btnConfirm.setPadding(dp(10), 0, dp(10), 0);
     _btnConfirm.setBackground(createPillBackground(Color.parseColor("#059669"), dp(8), Color.TRANSPARENT));
+
+    ImageView ivSend = new ImageView(context);
+    ivSend.setImageResource(R.drawable.ic_ai_send);
+    ivSend.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+    LinearLayout.LayoutParams lpSendIcon = new LinearLayout.LayoutParams(dp(14), dp(14));
+    lpSendIcon.setMargins(0, 0, dp(5), 0);
+    _btnConfirm.addView(ivSend, lpSendIcon);
+
+    TextView tvSend = new TextView(context);
+    tvSend.setText("Generate");
+    tvSend.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+    tvSend.setTypeface(null, Typeface.BOLD);
+    tvSend.setTextColor(Color.WHITE);
+    _btnConfirm.addView(tvSend);
+
     _btnConfirm.setOnClickListener(new OnClickListener()
     {
       @Override
@@ -159,8 +173,8 @@ public class AiPromptBarView extends LinearLayout
     setBackgroundColor(colorKeyboard);
     if (_btnCancel != null)
     {
-      _btnCancel.setTextColor(colorLabel);
-      _btnCancel.setBackground(createPillBackground(colorKey, dp(16), adjustAlpha(colorLabel, 0.2f)));
+      _btnCancel.setColorFilter(colorLabel, PorterDuff.Mode.SRC_IN);
+      _btnCancel.setBackground(createPillBackground(colorKey, dp(17), adjustAlpha(colorLabel, 0.2f)));
     }
     if (_etPrompt != null)
     {
