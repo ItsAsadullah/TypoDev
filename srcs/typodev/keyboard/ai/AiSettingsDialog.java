@@ -87,7 +87,48 @@ public class AiSettingsDialog
     return "";
   }
 
+  /** True only if the settings dialog window is really visible right now. */
+  public static boolean isDialogShowing()
+  {
+    try
+    {
+      return sCurrentDialog != null && sCurrentDialog.isShowing();
+    }
+    catch (Throwable t)
+    {
+      return false;
+    }
+  }
+
+  /** Dismiss the dialog (if any) and always clear the static "showing" state. */
+  public static void dismissIfShowing()
+  {
+    AlertDialog d = sCurrentDialog;
+    sCurrentDialog = null;
+    sIsShowing = false;
+    try
+    {
+      if (d != null && d.isShowing()) d.dismiss();
+    }
+    catch (Throwable ignored) {}
+  }
+
   public static void show(final Context context, final Keyboard2 keyboard, final OnSettingsSavedListener listener)
+  {
+    try
+    {
+      showInternal(context, keyboard, listener);
+    }
+    catch (Throwable t)
+    {
+      // Never leave the keyboard stuck in "AI settings open" state if building the dialog failed.
+      typodev.keyboard.Logs.print_exception(t);
+      dismissIfShowing();
+      if (keyboard != null) keyboard.onAiSettingsClosed();
+    }
+  }
+
+  private static void showInternal(final Context context, final Keyboard2 keyboard, final OnSettingsSavedListener listener)
   {
     long now = System.currentTimeMillis();
     if (now - sLastShowTime < 1000)
@@ -1005,6 +1046,10 @@ public class AiSettingsDialog
       {
         sCurrentDialog = null;
         sIsShowing = false;
+        if (keyboard != null)
+        {
+          keyboard.onAiSettingsClosed();
+        }
       }
     });
 

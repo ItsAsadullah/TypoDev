@@ -626,6 +626,22 @@ public class Keyboard2 extends InputMethodService
   public void onWindowHidden() {
     super.onWindowHidden();
     typodev.keyboard.voice.OfflineVoiceTypingService.cancelListening();
+    // The AI settings dialog is attached to the IME window. If the keyboard is hidden
+    // while it is open, close it so the keyboard never stays stuck in "settings open" state.
+    if (_isAiSettingsOpen)
+    {
+      typodev.keyboard.ai.AiSettingsDialog.dismissIfShowing();
+      onAiSettingsClosed();
+    }
+  }
+
+  /** Returns true if the AI settings dialog is really visible. Clears a stale flag otherwise. */
+  private boolean isAiSettingsReallyOpen()
+  {
+    if (!_isAiSettingsOpen) return false;
+    if (typodev.keyboard.ai.AiSettingsDialog.isDialogShowing()) return true;
+    onAiSettingsClosed();
+    return false;
   }
 
   private void create_keyboard_view()
@@ -2078,7 +2094,7 @@ public class Keyboard2 extends InputMethodService
   {
     try
     {
-      if (_isAiSettingsOpen)
+      if (isAiSettingsReallyOpen())
       {
         return;
       }
@@ -2150,6 +2166,25 @@ public class Keyboard2 extends InputMethodService
     catch (Throwable t)
     {
       Logs.exn("Error in onStartInputView", t);
+      // Never leave the IME window empty: make sure the keyboard view is attached.
+      try
+      {
+        if (_keyboard_container_view == null) create_keyboard_view();
+        if (_keyboard_container_view != null)
+        {
+          if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
+          if (_keyboard_layout_view != null)
+          {
+            _keyboard_layout_view.setVisibility(View.VISIBLE);
+            _keyboard_layout_view.setKeyboard(current_layout());
+          }
+          setInputView(_keyboard_container_view);
+        }
+      }
+      catch (Throwable t2)
+      {
+        Logs.exn("Fallback setInputView failed", t2);
+      }
     }
   }
 
@@ -2171,10 +2206,27 @@ public class Keyboard2 extends InputMethodService
     if (v == null) return;
     try
     {
-      if (v != _currentInputView || v.getParent() == null)
+      // Only skip re-attaching when the view is already inside the IME's *current*
+      // input frame. After a configuration change / window re-creation the system
+      // builds a new input frame, and the view may still be parented to the old,
+      // detached one — skipping super.setInputView() then leaves the keyboard blank
+      // until the user switches to another IME and back.
+      ViewParent parent = v.getParent();
+      boolean attachedToCurrentFrame = false;
+      if (v == _currentInputView && parent != null && v.isAttachedToWindow())
       {
-        ViewParent parent = v.getParent();
-        if (parent != null && parent instanceof ViewGroup)
+        try
+        {
+          Dialog d = getWindow();
+          Window w = (d != null) ? d.getWindow() : null;
+          View inputArea = (w != null) ? w.findViewById(android.R.id.inputArea) : null;
+          attachedToCurrentFrame = (inputArea != null && parent == inputArea);
+        }
+        catch (Throwable ignored) {}
+      }
+      if (!attachedToCurrentFrame)
+      {
+        if (parent instanceof ViewGroup)
           ((ViewGroup)parent).removeView(v);
         super.setInputView(v);
         _currentInputView = v;
@@ -2298,7 +2350,7 @@ public class Keyboard2 extends InputMethodService
   public void onFinishInputView(boolean finishingInput)
   {
     super.onFinishInputView(finishingInput);
-    if (_isAiSettingsOpen)
+    if (isAiSettingsReallyOpen())
     {
       return;
     }
