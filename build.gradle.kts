@@ -29,8 +29,8 @@ android {
     applicationId = "typodev.keyboard"
     minSdk = 21
     targetSdk = 35
-    versionCode = 62
-    versionName = "2.1.6"
+    versionCode = 63
+    versionName = "2.1.7"
   }
 
   androidResources {

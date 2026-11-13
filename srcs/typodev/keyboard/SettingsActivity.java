@@ -54,6 +54,7 @@ public class SettingsActivity extends Activity
 
     setupHeader();
     setupCards();
+    AppUpdateChecker.checkAutomatically(this);
   }
 
   @Override

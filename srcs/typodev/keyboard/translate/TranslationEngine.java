@@ -124,7 +124,7 @@ public class TranslationEngine
 
   private static final String OFFLINE_PACK_FILENAME = "offline_en_bn_pack.json";
   private static final String OFFLINE_PACK_URL =
-      "https://raw.githubusercontent.com/ItsAsadullah/TypoDev/main/assets/offline_en_bn.json";
+      "https://raw.githubusercontent.com/ItsAsadullah/TypoDev/master/assets/offline_dict_en_bn.json";
 
   private static Map<String, String> _enToBnMap = null;
   private static Map<String, String> _bnToEnMap = null;

@@ -608,9 +608,25 @@ public class SettingsCategoryActivity extends PreferenceActivity
       });
     }
 
+    Preference checkUpdatesPref = findPreference("pref_check_updates");
+    if (checkUpdatesPref != null)
+    {
+      checkUpdatesPref.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener()
+      {
+        @Override
+        public boolean onPreferenceClick(Preference preference)
+        {
+          AppUpdateChecker.checkManually(SettingsCategoryActivity.this);
+          return true;
+        }
+      });
+    }
+
     Preference aboutPref = findPreference("pref_about_app");
     if (aboutPref != null)
     {
+      final String currentVer = AppUpdateChecker.getCurrentVersionName(this);
+      aboutPref.setSummary("Version " + currentVer + " • GitHub Open Source");
       aboutPref.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener()
       {
         @Override
@@ -618,8 +634,16 @@ public class SettingsCategoryActivity extends PreferenceActivity
         {
           new AlertDialog.Builder(SettingsCategoryActivity.this)
               .setTitle("TypoDev")
-              .setMessage("type faster, write smarter\n\nVersion 2.1.0 (with Gemini AI & Bengali Suggestions)\n\n• Privacy-focused, lightweight virtual keyboard\n• Smart Gemini AI Assistant\n• 43,000+ Bengali & Multi-language wordlists\n\nOpen Source on GitHub:\nhttps://github.com/ItsAsadullah/TypoDev")
+              .setMessage("type faster, write smarter\n\nVersion " + currentVer + " (with Gemini AI & Bengali Suggestions)\n\n• Privacy-focused, lightweight virtual keyboard\n• Smart Gemini & OpenAI-compatible AI Assistant\n• 43,000+ Bengali & Multi-language wordlists\n\nOpen Source on GitHub:\nhttps://github.com/ItsAsadullah/TypoDev")
               .setPositiveButton("OK", null)
+              .setNegativeButton("Check Updates", new DialogInterface.OnClickListener()
+              {
+                @Override
+                public void onClick(DialogInterface dialog, int which)
+                {
+                  AppUpdateChecker.checkManually(SettingsCategoryActivity.this);
+                }
+              })
               .setNeutralButton("GitHub", new DialogInterface.OnClickListener()
               {
                 @Override

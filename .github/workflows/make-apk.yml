@@ -35,14 +35,14 @@ jobs:
           TypoDev-${{ env.VERSION }}-release.apk
           SHA256SUMS.txt
         body: |
-          TypoDev ${{ env.VERSION }} is an Android keyboard with Bengali/Banglish typing, AI Assistant writing tools, Focus Mode, and customizable themes.
+          TypoDev ${{ env.VERSION }} is a fast, privacy-focused Android keyboard with Bengali/Avro/Jatiyo typing, AI Assistant & Math Solver, Clipboard & Snippets, Voice Typing, and customizable themes.
 
           ### What's New in ${{ env.VERSION }}
-          - **Redesigned AI Assistant**: High-contrast vector icons in Dark & Light modes, 3-column AI Tools grid (including Math Solver & Vision AI), top-bar result actions (Replace, Insert, Copy, Regenerate), and expandable/collapsible Clipboard preview bar.
-          - **Focus Mode**: Toggleable clean keyboard mode in All Tools that hides extra symbols from main keys while keeping Bengali sub-characters intact.
-          - **Voice Typing & Suggestions**: Improved voice typing stability, punctuation handling, and cleaned suggestion bar dictionary entries.
-          - **Math Extra Keys Restoration**: Restored Math symbols in Add to Key settings.
-          - **IME Window Stability Fix**: Fixed keyboard occasionally not opening after screen/window changes or AI Settings dialog state transitions.
+          - **Comprehensive Typing & Avro Fixes**: Eliminated composing word duplication across all in-keyboard bars (AI Prompt, Emoji Search, Clipboard Search/Add, Translate), added `kO` -> `কো` & `ৎ` phonetic protections, ZWNJ/ZWJ Bangla conjunct handling, surrogate-pair safe emoji deletion, and accurate `CAP_MODE_WORDS` / `CAP_MODE_CHARACTERS` autocapitalisation.
+          - **Smarter AI Assistant, Math Solver & Vision**: Fixed offline Bangla math regex (`(ক+খ)²`), preserved multi-line list formatting when stripping emojis, skipped Gemini 2.5 reasoning thought blocks, improved standalone Ask AI prompts, added vision fallback routing, and enforced password-field privacy guards.
+          - **Suggestions, Autocorrect & Inline Algebra**: Protected valid short English words (`id`, `shell`, `lets`) & prefix completions on spacebar, fixed ordinals (`11th`/`12th`/`13th`), fixed trinomial/binomial inline algebra expansion, and added unlearned word rejection tracking.
+          - **In-App GitHub Auto-Update Checker**: Automatic update check (every 12h in Launcher/Settings) plus manual **Check for Updates** in Settings -> About.
+          - **Performance, Direct Boot & R8 Optimization**: Enabled GPU hardware acceleration, unified Direct Boot safety across all stores, removed 2,600+ lines of dead legacy code, and hardened Manifest & ProGuard/R8 rules.
 
           ### Download and install
           Download **TypoDev-${{ env.VERSION }}-release.apk** below and install it. Android 5.0 or newer is supported (arm64-v8a, armeabi-v7a, x86, x86_64).

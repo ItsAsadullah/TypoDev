@@ -14,6 +14,10 @@
       android:title="Application Information"
       android:layout="@layout/pref_category_header">
     <Preference
+        android:key="pref_check_updates"
+        android:title="Check for Updates"
+        android:summary="Check GitHub Releases for the latest version of TypoDev"/>
+    <Preference
         android:key="pref_about_app"
         android:title="@string/pref_about_app_title"
         android:summary="@string/pref_about_app_summary"/>

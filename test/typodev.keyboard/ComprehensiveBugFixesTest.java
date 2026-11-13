@@ -386,6 +386,24 @@ public class ComprehensiveBugFixesTest
         assertEquals("false", act.getAttribute("android:exported"));
       }
     }
+
+    assertTrue(AppUpdateChecker.isNewerVersion("v2.1.8", "2.1.7"));
+    assertTrue(AppUpdateChecker.isNewerVersion("2.2.0", "2.1.9"));
+    assertFalse(AppUpdateChecker.isNewerVersion("v2.1.7", "2.1.7"));
+    assertFalse(AppUpdateChecker.isNewerVersion("2.1.6", "2.1.7"));
+
+    String sampleReleaseJson = "{"
+        + "\"tag_name\":\"v2.1.8\","
+        + "\"name\":\"TypoDev 2.1.8\","
+        + "\"body\":\"Bug fixes and improvements\","
+        + "\"html_url\":\"https://github.com/ItsAsadullah/TypoDev/releases/tag/v2.1.8\","
+        + "\"assets\":[{\"name\":\"SHA256SUMS.txt\",\"browser_download_url\":\"https://example.com/sum.txt\"},"
+        + "{\"name\":\"TypoDev-2.1.8-release.apk\",\"browser_download_url\":\"https://example.com/TypoDev-2.1.8-release.apk\"}]"
+        + "}";
+    AppUpdateChecker.ReleaseInfo parsed = AppUpdateChecker.parseLatestReleaseJson(sampleReleaseJson);
+    assertNotNull(parsed);
+    assertEquals("2.1.8", parsed.version);
+    assertEquals("https://example.com/TypoDev-2.1.8-release.apk", parsed.downloadUrl);
   }
 
   private static boolean containsCandidateWord(List<Candidate> list, String target)

@@ -340,6 +340,7 @@ public class LauncherActivity extends Activity implements Handler.Callback
       wireCard(R.id.card_launcher_dicts, DictionariesActivity.class, null);
       wireCard(R.id.card_launcher_keys, KeySymbolCustomizerActivity.class, null);
       wireCard(R.id.card_launcher_all_settings, SettingsActivity.class, null);
+      AppUpdateChecker.checkAutomatically(this);
     }
     catch (Throwable t)
     {
