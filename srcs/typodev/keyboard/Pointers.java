@@ -199,7 +199,6 @@ public final class Pointers implements Handler.Callback
       if (latched)
       {
         add_fake_pointer(key, kv, lock);
-        _handler.onPointerFlagsChanged(false);
       }
     }
     else if ((ptr.flags & FLAG_P_FAKE) == 0)
@@ -210,7 +209,8 @@ public final class Pointers implements Handler.Callback
       removePtr(ptr);
       if (latched)
         add_fake_pointer(key, kv, lock);
-      _handler.onPointerFlagsChanged(false);
+      else
+        _handler.onPointerFlagsChanged(false);
     }
     else if ((ptr.flags & FLAG_P_LOCKED) != 0)
     {} // Existing ptr is locked but [lock] is false, do not continue.
@@ -246,9 +246,12 @@ public final class Pointers implements Handler.Callback
     if (latched != null) // Already latched
     {
       removePtr(ptr); // Remove dupplicate
-      // Toggle lockable key, except if it's a fake pointer
-      if ((latched.flags & (FLAG_P_FAKE | FLAG_P_DOUBLE_TAP_LOCK)) == FLAG_P_DOUBLE_TAP_LOCK)
+      // Toggle lockable key when double-tap lock is enabled (convert fake autocap latch to real lock too)
+      if ((latched.flags & FLAG_P_DOUBLE_TAP_LOCK) != 0 && (latched.flags & FLAG_P_LOCKED) == 0)
+      {
+        latched.flags &= ~FLAG_P_FAKE;
         lockPointer(latched, false);
+      }
       else // Otherwise, unlatch
       {
         removePtr(latched);
@@ -828,11 +831,30 @@ public final class Pointers implements Handler.Callback
     }
 
     @Override
-    public int hashCode() { return Arrays.hashCode(_mods); }
+    public int hashCode()
+    {
+      int h = 1;
+      for (int i = 0; i < _size; i++)
+      {
+        KeyValue kv = _mods[i];
+        h = 31 * h + (kv == null ? 0 : kv.hashCode());
+      }
+      return h;
+    }
     @Override
     public boolean equals(Object obj)
     {
-      return Arrays.equals(_mods, ((Modifiers)obj)._mods);
+      if (this == obj) return true;
+      if (!(obj instanceof Modifiers)) return false;
+      Modifiers other = (Modifiers)obj;
+      if (_size != other._size) return false;
+      for (int i = 0; i < _size; i++)
+      {
+        KeyValue a = _mods[i];
+        KeyValue b = other._mods[i];
+        if (a == null ? b != null : !a.equals(b)) return false;
+      }
+      return true;
     }
 
     public static final Modifiers EMPTY =
@@ -840,7 +862,15 @@ public final class Pointers implements Handler.Callback
 
     protected static Modifiers ofArray(KeyValue[] mods, int size)
     {
-      // Sort and remove duplicates and nulls.
+      int nonNull = 0;
+      for (int i = 0; i < size; i++)
+      {
+        if (mods[i] != null)
+        {
+          mods[nonNull++] = mods[i];
+        }
+      }
+      size = nonNull;
       if (size > 1)
       {
         Arrays.sort(mods, 0, size);
@@ -848,7 +878,7 @@ public final class Pointers implements Handler.Callback
         for (int i = 0; i < size; i++)
         {
           KeyValue m = mods[i];
-          if (m != null && (i + 1 >= size || m != mods[i + 1]))
+          if (m != null && (i + 1 >= size || !m.equals(mods[i + 1])))
           {
             mods[j] = m;
             j++;

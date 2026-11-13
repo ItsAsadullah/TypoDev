@@ -44,7 +44,7 @@ public final class Config
   public boolean number_row_symbols;
   public float swipe_dist_px;
   public float slide_step_px;
-  public boolean suggestions_enabled;
+  public boolean suggestions_enabled = true;
   public boolean vibrate_enabled;
   // Optional second sound/haptic when a swipe selects a corner character.
   public boolean corner_feedback_enabled;

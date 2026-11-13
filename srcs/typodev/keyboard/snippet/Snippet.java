@@ -1,5 +1,8 @@
 package typodev.keyboard.snippet;
 
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * Represents a single user-defined snippet.
  * A snippet maps a short trigger (shortcut) to a longer expansion text.
@@ -12,7 +15,9 @@ package typodev.keyboard.snippet;
  */
 public final class Snippet
 {
-  /** Unique identifier (timestamp at creation). */
+  private static final AtomicLong LAST_ID = new AtomicLong(0L);
+
+  /** Unique identifier (monotonic timestamp at creation). */
   public final long id;
   /** Short trigger word the user types (e.g., "email", "greet"). */
   public String shortcut;
@@ -26,16 +31,30 @@ public final class Snippet
   public Snippet(long id, String shortcut, String expansion, String name, SnippetCategory category)
   {
     this.id = id;
-    this.shortcut = (shortcut != null) ? shortcut.trim().toLowerCase() : "";
+    this.shortcut = (shortcut != null) ? shortcut.trim().toLowerCase(Locale.ROOT) : "";
     this.expansion = (expansion != null) ? expansion : "";
     this.name = (name != null && !name.isEmpty()) ? name : shortcut;
     this.category = (category != null) ? category : SnippetCategory.PERSONAL;
   }
 
-  /** Create a new snippet with auto-generated id. */
+  private static long nextId()
+  {
+    long now = System.currentTimeMillis();
+    while (true)
+    {
+      long prev = LAST_ID.get();
+      long next = Math.max(now, prev + 1L);
+      if (LAST_ID.compareAndSet(prev, next))
+      {
+        return next;
+      }
+    }
+  }
+
+  /** Create a new snippet with strictly unique auto-generated id. */
   public static Snippet create(String shortcut, String expansion, String name, SnippetCategory category)
   {
-    return new Snippet(System.currentTimeMillis(), shortcut, expansion, name, category);
+    return new Snippet(nextId(), shortcut, expansion, name, category);
   }
 
   /**
@@ -45,7 +64,6 @@ public final class Snippet
    */
   public String serialize()
   {
-    // We encode expansion with a simple base64 approach to avoid delimiter issues
     String encodedExpansion = android.util.Base64.encodeToString(
         expansion.getBytes(java.nio.charset.StandardCharsets.UTF_8),
         android.util.Base64.NO_WRAP);

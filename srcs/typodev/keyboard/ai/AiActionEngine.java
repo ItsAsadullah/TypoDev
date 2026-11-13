@@ -92,6 +92,7 @@ public class AiActionEngine
 
       case REWRITE:
         list.add(new ActionOption("rephrase", "Rephrase", "Rewrite with better phrasing"));
+        list.add(new ActionOption("select_tone", "Select Tone", "Choose a custom tone for rewriting"));
         list.add(new ActionOption("prof", "Professional", "Polite and confident"));
         list.add(new ActionOption("rewrite_islamic", "Islamic Style", "Salam, InshaAllah & Islamic blessings"));
         list.add(new ActionOption("rewrite_islamic_ar", "Islamic + Arabic", "Salam with authentic Arabic script"));
@@ -382,17 +383,37 @@ public class AiActionEngine
     return buildSystemPrompt(category, optionId, globalTone, customPrompt, true);
   }
 
+  public static String buildSystemPrompt(Category category, String optionId, String globalTone, String customPrompt, boolean emojify)
+  {
+    boolean isStandaloneAskAi = (category == Category.ASK_AI && customPrompt != null && !customPrompt.trim().isEmpty());
+    return buildSystemPrompt(category, optionId, globalTone, customPrompt, emojify, !isStandaloneAskAi);
+  }
+
   /**
    * Builds the comprehensive, tailored system prompt for the chosen Category, Option, and optional global Tone.
    */
-  public static String buildSystemPrompt(Category category, String optionId, String globalTone, String customPrompt, boolean emojify)
+  public static String buildSystemPrompt(
+      Category category,
+      String optionId,
+      String globalTone,
+      String customPrompt,
+      boolean emojify,
+      boolean hasSourceText)
   {
     StringBuilder sb = new StringBuilder();
     sb.append("You are an expert, world-class AI writing assistant integrated into a mobile keyboard.\n");
     sb.append("CRITICAL RULES:\n");
-    sb.append(AiWritingPrompts.GROUNDING_RULES);
-    sb.append("1. Output ONLY the resulting text. Do NOT include any explanations, conversational remarks, preamble ('Here is...'), quotation marks, or meta-commentary.\n");
-    sb.append("2. Preserve the target language (if the input is in Bengali, output in natural Bengali; if English, output in English), unless specifically instructed to translate.\n");
+    if (category == Category.ASK_AI && !hasSourceText)
+    {
+      sb.append("1. Fulfill the user's instruction directly, accurately, and naturally. Output ONLY the requested text. Do NOT include explanations, conversational remarks, preamble ('Here is...'), quotation marks, or meta-commentary.\n");
+      sb.append("2. Respond in the language requested by the user, or match the language of the user's instruction if none is specified.\n");
+    }
+    else
+    {
+      sb.append(AiWritingPrompts.GROUNDING_RULES);
+      sb.append("1. Output ONLY the resulting text. Do NOT include any explanations, conversational remarks, preamble ('Here is...'), quotation marks, or meta-commentary.\n");
+      sb.append("2. Preserve the target language (if the input is in Bengali, output in natural Bengali; if English, output in English), unless specifically instructed to translate.\n");
+    }
     sb.append("3. Make the writing sound authentic, human, and modern. Avoid robotic clichés like 'delighted to inform', 'in conclusion', 'furthermore', or unnecessary jargon.\n");
     sb.append("4. BENGALI SCRIPT & ORTHOGRAPHY RULE: When generating Bengali (বাংলা), strictly follow modern standard Bengali orthography. Form proper conjuncts (ক্ষ, জ্ঞ, ঙ্ক, ঙ্গ, ঞ্চ, ঞ্জ, ষ্ণ, ষ্ঠ, ণ্ড, ণ্ট, ন্ধ, ম্প, ক্ত, ত্র, প্র ইত্যাদি) without broken spaces. Correctly attach all vowel matras (া, ি, ী, ু, ূ, ৃ, ে, ৈ, ো, ৌ). NEVER output disjointed or broken characters (যেমন ভুলভাবে 'ক ্ ষ' বা কার আলাদা করে ভাঙা শব্দ লেখা সম্পূর্ণ নিষেধ)।\n");
     if (emojify)
@@ -786,25 +807,30 @@ public class AiActionEngine
       final boolean emojify,
       final AiProvider.Callback callback)
   {
-    String input = (userText != null) ? userText.trim() : "";
+    String rawInput = (userText != null) ? userText.trim() : "";
     String prompt = (customPrompt != null) ? customPrompt.trim() : "";
 
-    if (input.isEmpty() && prompt.isEmpty())
+    if (rawInput.isEmpty() && prompt.isEmpty())
     {
       if (callback != null) callback.onError("No text or prompt provided.");
       return;
     }
 
-    // If no user text was selected but a custom prompt was entered (e.g. in Ask AI),
-    // treat the custom prompt as the subject/request
-    if (input.isEmpty())
+    boolean hasSourceText = !rawInput.isEmpty();
+    String inputForProvider;
+    if (category == Category.ASK_AI && !hasSourceText)
     {
-      input = prompt;
+      // Standalone Ask AI: instruction is in systemPrompt, avoid duplicating it as source data
+      inputForProvider = "";
+    }
+    else
+    {
+      inputForProvider = hasSourceText ? rawInput : prompt;
     }
 
-    String systemPrompt = buildSystemPrompt(category, optionId, globalTone, customPrompt, emojify);
+    String systemPrompt = buildSystemPrompt(category, optionId, globalTone, customPrompt, emojify, hasSourceText);
     AiProvider provider = AiProvider.Manager.getActiveProvider(context);
-    provider.generate(context, systemPrompt, input, new AiProvider.Callback()
+    provider.generate(context, systemPrompt, inputForProvider, new AiProvider.Callback()
     {
       @Override
       public void onSuccess(String resultText)

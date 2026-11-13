@@ -49,14 +49,22 @@ public class MediaProjectionService extends Service {
   private Handler main;
   private boolean finished;
   private boolean awaitingFrame;
+  private boolean foregroundStarted;
   private android.widget.Toast countdownToast;
   private final Runnable idleStop = () -> deliver(null, "Screen capture session ended.");
   private final Runnable captureTimeout = () -> deliver(null, "Screen capture timed out. Please try again.");
+  private final Runnable startAcceptFrame = this::acceptFrame;
+  private final Runnable countdownDone = () -> {
+    if (finished || sCallback == null) return;
+    if (countdownToast != null) countdownToast.cancel();
+    if (main != null) main.postDelayed(startAcceptFrame, 400);
+  };
 
   @Override public IBinder onBind(Intent intent) { return null; }
 
   @Override public int onStartCommand(Intent intent, int flags, int startId) {
     if (intent == null || !ACTION_CAPTURE.equals(intent.getAction())) {
+      ensureForegroundBeforeStop();
       deliver(null, "Screen capture cancelled.");
       return START_NOT_STICKY;
     }
@@ -67,25 +75,37 @@ public class MediaProjectionService extends Service {
     main = new Handler(Looper.getMainLooper());
     finished = false;
     try {
-      createNotificationChannel();
-      Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-          .setSmallIcon(R.drawable.ic_ai_screen_scan)
-          .setContentTitle(getString(R.string.ai_capture_session_title))
-          .setContentText(getString(R.string.ai_capture_session_message))
-          .addAction(R.drawable.ic_ai_close, getString(R.string.ai_capture_stop),
-              PendingIntent.getService(this, 0,
-                  new Intent(this, MediaProjectionService.class).setAction(ACTION_STOP),
-                  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
-          .setPriority(NotificationCompat.PRIORITY_LOW).setOngoing(true).build();
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-      else startForeground(NOTIFICATION_ID, notification);
+      startForegroundInternal();
       // Give the consent dialog and translucent activity time to leave the screen.
       main.postDelayed(() -> capture(intent), 450);
     } catch (RuntimeException error) {
       deliver(null, "Unable to start screen capture. Please try again.");
     }
     return START_NOT_STICKY;
+  }
+
+  private void startForegroundInternal() {
+    createNotificationChannel();
+    Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+        .setSmallIcon(R.drawable.ic_ai_screen_scan)
+        .setContentTitle(getString(R.string.ai_capture_session_title))
+        .setContentText(getString(R.string.ai_capture_session_message))
+        .addAction(R.drawable.ic_ai_close, getString(R.string.ai_capture_stop),
+            PendingIntent.getService(this, 0,
+                new Intent(this, MediaProjectionService.class).setAction(ACTION_STOP),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
+        .setPriority(NotificationCompat.PRIORITY_LOW).setOngoing(true).build();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+      startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+    else startForeground(NOTIFICATION_ID, notification);
+    foregroundStarted = true;
+  }
+
+  private void ensureForegroundBeforeStop() {
+    if (foregroundStarted || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+    try {
+      startForegroundInternal();
+    } catch (RuntimeException ignored) {}
   }
 
   private void capture(Intent intent) {
@@ -131,15 +151,16 @@ public class MediaProjectionService extends Service {
 
   private void prepareCapture() {
     awaitingFrame = false;
+    if (main == null) main = new Handler(Looper.getMainLooper());
     main.removeCallbacks(idleStop);
+    main.removeCallbacks(captureTimeout);
+    main.removeCallbacks(countdownDone);
+    main.removeCallbacks(startAcceptFrame);
+    if (countdownToast != null) countdownToast.cancel();
     countdownToast = android.widget.Toast.makeText(this, R.string.ai_capture_countdown,
         android.widget.Toast.LENGTH_LONG);
     countdownToast.show();
-    main.postDelayed(() -> {
-      if (finished || sCallback == null) return;
-      countdownToast.cancel();
-      main.postDelayed(this::acceptFrame, 400);
-    }, 3000);
+    main.postDelayed(countdownDone, 3000);
   }
 
   private void resizeCapture(int width, int height) {
@@ -236,7 +257,10 @@ public class MediaProjectionService extends Service {
     CaptureCallback callback = sCallback;
     sCallback = null;
     cleanup();
-    stopForeground(true);
+    if (foregroundStarted) {
+      try { stopForeground(true); } catch (RuntimeException ignored) {}
+      foregroundStarted = false;
+    }
     stopSelf();
     if (callback != null) new Handler(Looper.getMainLooper()).post(() -> {
       if (error == null && bytes != null && bytes.length > 0) callback.onCaptured(bytes);

@@ -6,7 +6,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.StateListDrawable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -45,6 +44,7 @@ public class FancyPaneView extends LinearLayout
 
   // Context & Text State
   private String _inputFieldText = "";
+  private String _rawInputFieldText = "";
   private String _clipboardText = "";
   private boolean _hasSelection = false;
   private String _currentWorkingText = "TypoDev";
@@ -349,6 +349,21 @@ public class FancyPaneView extends LinearLayout
 
   public void open(int targetHeight, int bottomSafety)
   {
+    if (_keyboard != null
+        && typodev.keyboard.suggestions.CandidatesView.isPasswordField(_keyboard.getCurrentInputEditorInfo()))
+    {
+      Toast.makeText(getContext(), "Fancy Fonts disabled in password fields", Toast.LENGTH_SHORT).show();
+      _keyboard.closeFancyPane();
+      return;
+    }
+    if (_keyboard != null && _keyboard.getKeyEventHandler() != null)
+    {
+      try
+      {
+        _keyboard.getKeyEventHandler().commitAvroComposing();
+      }
+      catch (Throwable ignored) {}
+    }
     _inputSessionId = _keyboard != null ? _keyboard.getInputSessionId() : -1;
     try
     {
@@ -370,6 +385,7 @@ public class FancyPaneView extends LinearLayout
 
       // 1. Extract text from InputConnection
       _inputFieldText = "";
+      _rawInputFieldText = "";
       _hasSelection = false;
       if (_keyboard != null)
       {
@@ -381,7 +397,8 @@ public class FancyPaneView extends LinearLayout
             CharSequence sel = ic.getSelectedText(0);
             if (sel != null && sel.length() > 0)
             {
-              _inputFieldText = sel.toString();
+              _rawInputFieldText = sel.toString();
+              _inputFieldText = _rawInputFieldText;
               _hasSelection = true;
             }
             else
@@ -389,7 +406,13 @@ public class FancyPaneView extends LinearLayout
               CharSequence before = ic.getTextBeforeCursor(200, 0);
               if (before != null && before.length() > 0)
               {
-                _inputFieldText = before.toString().trim();
+                String rawBefore = before.toString();
+                String trimmedBefore = rawBefore.trim();
+                if (!trimmedBefore.isEmpty())
+                {
+                  _rawInputFieldText = rawBefore;
+                  _inputFieldText = trimmedBefore;
+                }
               }
             }
           }
@@ -560,7 +583,7 @@ public class FancyPaneView extends LinearLayout
           @Override
           public void onClick(View v)
           {
-            applyTextToHostApp(kaomoji);
+            applyTextToHostApp(kaomoji, false);
           }
         });
 
@@ -606,7 +629,7 @@ public class FancyPaneView extends LinearLayout
 
     card.addView(leftCol, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
-    // Right Action: Insert & Copy Pill Button
+    // Right Action: Insert Pill Button
     Button btnInsert = new Button(context);
     btnInsert.setText("Insert ↵");
     btnInsert.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
@@ -626,7 +649,7 @@ public class FancyPaneView extends LinearLayout
       @Override
       public void onClick(View v)
       {
-        applyTextToHostApp(resultText);
+        applyTextToHostApp(resultText, true);
       }
     });
 
@@ -638,19 +661,67 @@ public class FancyPaneView extends LinearLayout
       @Override
       public void onClick(View v)
       {
-        applyTextToHostApp(resultText);
+        applyTextToHostApp(resultText, true);
       }
     });
 
     return card;
   }
 
-  private void applyTextToHostApp(String textToApply)
+  private void applyTextToHostApp(String textToApply, boolean replaceSource)
   {
     if (textToApply == null || textToApply.isEmpty()) return;
     Context context = getContext();
 
-    // 1. Copy to clipboard automatically for convenience
+    // Commit text directly into active input connection
+    if (_keyboard != null)
+    {
+      try
+      {
+        InputConnection ic = _keyboard.getCurrentInputConnection();
+        boolean canApply = ic != null && _inputSessionId == _keyboard.getInputSessionId()
+            && (!replaceSource || _usingClipboard || _rawInputFieldText.isEmpty()
+                || typodev.keyboard.ai.EditorTextGuard.matches(ic, _rawInputFieldText, _hasSelection));
+        if (canApply)
+        {
+          ic.beginBatchEdit();
+          try
+          {
+            ic.finishComposingText();
+            if (!replaceSource)
+            {
+              ic.commitText(textToApply, 1);
+            }
+            else if (_hasSelection)
+            {
+              ic.commitText(textToApply, 1);
+            }
+            else if (!_usingClipboard && _rawInputFieldText != null && !_rawInputFieldText.isEmpty())
+            {
+              ic.deleteSurroundingText(_rawInputFieldText.length(), 0);
+              ic.commitText(textToApply, 1);
+            }
+            else
+            {
+              ic.commitText(textToApply, 1);
+            }
+          }
+          finally
+          {
+            ic.endBatchEdit();
+          }
+          Toast.makeText(context, "✅ Inserted", Toast.LENGTH_SHORT).show();
+          _keyboard.closeFancyPane();
+          return;
+        }
+      }
+      catch (Throwable t)
+      {
+        Logs.print_exception(t);
+      }
+    }
+
+    // Fallback: copy to clipboard if target editor changed or disconnected
     try
     {
       ClipboardManager cm = (ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
@@ -660,39 +731,8 @@ public class FancyPaneView extends LinearLayout
       }
     }
     catch (Throwable ignored) {}
-
-    // 2. Commit text directly into active input connection
     if (_keyboard != null)
     {
-      try
-      {
-        InputConnection ic = _keyboard.getCurrentInputConnection();
-        if (ic != null && _inputSessionId == _keyboard.getInputSessionId()
-            && (_usingClipboard || _inputFieldText.isEmpty()
-                || typodev.keyboard.ai.EditorTextGuard.matches(ic, _inputFieldText, _hasSelection)))
-        {
-          if (_hasSelection)
-          {
-            ic.commitText(textToApply, 1);
-          }
-          else if (!_usingClipboard && _inputFieldText != null && !_inputFieldText.isEmpty())
-          {
-            ic.deleteSurroundingText(_inputFieldText.length(), 0);
-            ic.commitText(textToApply, 1);
-          }
-          else
-          {
-            ic.commitText(textToApply, 1);
-          }
-          Toast.makeText(context, "✅ Inserted & Copied", Toast.LENGTH_SHORT).show();
-          _keyboard.closeFancyPane();
-          return;
-        }
-      }
-      catch (Throwable t)
-      {
-        Logs.print_exception(t);
-      }
       _keyboard.closeFancyPane();
     }
     Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show();

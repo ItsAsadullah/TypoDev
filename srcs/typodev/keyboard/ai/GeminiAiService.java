@@ -37,9 +37,7 @@ public class GeminiAiService
     "gemini-1.5-pro"
   };
 
-  private static final Object GENERATION_LOCK = new Object();
-  private static boolean generationInFlight = false;
-  private static long quotaCooldownUntilMs = 0L;
+  private static volatile long quotaCooldownUntilMs = 0L;
 
   public enum Action
   {
@@ -105,13 +103,25 @@ public class GeminiAiService
     void onError(String errorMessage);
   }
 
-  private static final ExecutorService _executor = Executors.newSingleThreadExecutor();
+  private static final ExecutorService _executor = Executors.newCachedThreadPool();
   private static final Handler _mainHandler = new Handler(Looper.getMainLooper());
+
+  private static SharedPreferences getSafeDefaultPrefs(Context context)
+  {
+    try
+    {
+      return PreferenceManager.getDefaultSharedPreferences(context);
+    }
+    catch (Throwable ignored)
+    {
+      return typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context);
+    }
+  }
 
   public static String getGeminiApiKey(Context context)
   {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    String raw = OpenAiCompatibleProvider.cleanApiKey(prefs.getString(PREF_GEMINI_API_KEY, ""));
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    String raw = OpenAiCompatibleProvider.cleanApiKey(prefs != null ? prefs.getString(PREF_GEMINI_API_KEY, "") : "");
     if (raw.isEmpty())
     {
       try
@@ -143,16 +153,20 @@ public class GeminiAiService
   public static void setGeminiApiKeyOnly(Context context, String apiKey)
   {
     String cleaned = OpenAiCompatibleProvider.cleanApiKey(apiKey);
-    PreferenceManager.getDefaultSharedPreferences(context)
-        .edit()
-        .putString(PREF_GEMINI_API_KEY, cleaned)
-        .apply();
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    if (prefs != null)
+    {
+      prefs.edit().putString(PREF_GEMINI_API_KEY, cleaned).apply();
+    }
     try
     {
-      typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
-          .edit()
-          .putString(PREF_GEMINI_API_KEY, cleaned)
-          .apply();
+      if (typodev.keyboard.DirectBootAwarePreferences.isUserUnlocked(context))
+      {
+        typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
+            .edit()
+            .remove(PREF_GEMINI_API_KEY)
+            .apply();
+      }
     }
     catch (Throwable ignored) {}
   }
@@ -164,9 +178,8 @@ public class GeminiAiService
     {
       OpenAiCompatibleProvider.setApiKey(context, cleaned);
       AiProvider.Manager.setActiveProviderType(context, AiProvider.ProviderType.OPENAI_COMPATIBLE);
-      // Clear if a non-Gemini key was previously stored in PREF_GEMINI_API_KEY
-      SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-      String existingGem = OpenAiCompatibleProvider.cleanApiKey(prefs.getString(PREF_GEMINI_API_KEY, ""));
+      SharedPreferences prefs = getSafeDefaultPrefs(context);
+      String existingGem = OpenAiCompatibleProvider.cleanApiKey(prefs != null ? prefs.getString(PREF_GEMINI_API_KEY, "") : "");
       if (AiProvider.Manager.isOpenAiCompatibleKey(existingGem))
       {
         setGeminiApiKeyOnly(context, "");
@@ -178,9 +191,9 @@ public class GeminiAiService
 
   public static String getModel(Context context)
   {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    String model = prefs.getString(PREF_GEMINI_WORKING_MODEL, DEFAULT_MODEL);
-    if (model == null || model.trim().isEmpty() || model.contains("pro-vision") || model.contains("gemini-3."))
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    String model = prefs != null ? prefs.getString(PREF_GEMINI_WORKING_MODEL, DEFAULT_MODEL) : DEFAULT_MODEL;
+    if (model == null || model.trim().isEmpty() || model.contains("pro-vision"))
     {
       model = DEFAULT_MODEL;
     }
@@ -189,8 +202,11 @@ public class GeminiAiService
 
   public static void setModel(Context context, String model)
   {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    prefs.edit().putString(PREF_GEMINI_WORKING_MODEL, model.trim()).apply();
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    if (prefs != null && model != null)
+    {
+      prefs.edit().putString(PREF_GEMINI_WORKING_MODEL, model.trim()).apply();
+    }
   }
 
   public static boolean isEmojifyEnabled(Context context)
@@ -201,8 +217,11 @@ public class GeminiAiService
 
   public static void setEmojifyEnabled(Context context, boolean enabled)
   {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    prefs.edit().putBoolean(PREF_AI_EMOJIFY, enabled).apply();
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    if (prefs != null)
+    {
+      prefs.edit().putBoolean(PREF_AI_EMOJIFY, enabled).apply();
+    }
     typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
         .edit().putBoolean(PREF_AI_EMOJIFY, enabled).apply();
   }
@@ -210,17 +229,30 @@ public class GeminiAiService
   public static String stripEmojis(String text)
   {
     if (text == null) return "";
-    return text.replaceAll("[\\p{So}\\p{Cn}\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+", "")
-               .replaceAll("[\\u2600-\\u27BF\\uE000-\\uF8FF]", "")
-               .replaceAll("\\s{2,}", " ")
-               .trim();
+    String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
+    String stripped = normalized
+        .replaceAll("[\\p{So}\\p{Cn}\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+", "")
+        .replaceAll("[\\u2600-\\u27BF\\uE000-\\uF8FF\\uFE0E\\uFE0F\\u200D\\u20E3]", "");
+    String[] lines = stripped.split("\n", -1);
+    StringBuilder sb = new StringBuilder(stripped.length());
+    for (int i = 0; i < lines.length; i++)
+    {
+      if (i > 0) sb.append('\n');
+      String line = lines[i].replaceAll("[ \\t\\x0B\\f]{2,}", " ").replaceAll("[ \\t\\x0B\\f]+$", "");
+      if (!line.startsWith("  "))
+      {
+        line = line.replaceAll("^[ \\t\\x0B\\f]+", "");
+      }
+      sb.append(line);
+    }
+    return sb.toString().replaceAll("\\n{3,}", "\n\n").trim();
   }
 
   public static void processText(final Context context, final String text, final Action action, final AiCallback callback)
   {
     if (text == null || text.trim().isEmpty())
     {
-      callback.onError("No text to process");
+      if (callback != null) callback.onError("No text to process");
       return;
     }
     boolean emojify = isEmojifyEnabled(context);
@@ -240,13 +272,13 @@ public class GeminiAiService
       @Override
       public void onSuccess(String resultText)
       {
-        callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
+        if (callback != null) callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
       }
 
       @Override
       public void onError(String errorMessage)
       {
-        callback.onError(errorMessage);
+        if (callback != null) callback.onError(errorMessage);
       }
     });
   }
@@ -260,7 +292,7 @@ public class GeminiAiService
   {
     if (text == null || text.trim().isEmpty())
     {
-      callback.onError("No text to process");
+      if (callback != null) callback.onError("No text to process");
       return;
     }
     StringBuilder sb = new StringBuilder();
@@ -281,13 +313,13 @@ public class GeminiAiService
       @Override
       public void onSuccess(String resultText)
       {
-        callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
+        if (callback != null) callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
       }
 
       @Override
       public void onError(String errorMessage)
       {
-        callback.onError(errorMessage);
+        if (callback != null) callback.onError(errorMessage);
       }
     });
   }
@@ -300,7 +332,7 @@ public class GeminiAiService
   {
     if (text == null || text.trim().isEmpty())
     {
-      callback.onError("No text to process");
+      if (callback != null) callback.onError("No text to process");
       return;
     }
     StringBuilder sb = new StringBuilder();
@@ -320,13 +352,13 @@ public class GeminiAiService
       @Override
       public void onSuccess(String resultText)
       {
-        callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
+        if (callback != null) callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
       }
 
       @Override
       public void onError(String errorMessage)
       {
-        callback.onError(errorMessage);
+        if (callback != null) callback.onError(errorMessage);
       }
     });
   }
@@ -338,7 +370,7 @@ public class GeminiAiService
   {
     if (text == null || text.trim().isEmpty())
     {
-      callback.onError("No text to complete");
+      if (callback != null) callback.onError("No text to complete");
       return;
     }
     StringBuilder sb = new StringBuilder();
@@ -361,7 +393,7 @@ public class GeminiAiService
   {
     if (text == null || text.trim().isEmpty())
     {
-      callback.onError("No text to process");
+      if (callback != null) callback.onError("No text to process");
       return;
     }
     StringBuilder sb = new StringBuilder();
@@ -417,18 +449,18 @@ public class GeminiAiService
               ));
             }
           }
-          callback.onSuccess(new GrammarDiffResult(text, fixed, changeList));
+          if (callback != null) callback.onSuccess(new GrammarDiffResult(text, fixed, changeList));
         }
         catch (Exception e)
         {
-          callback.onSuccess(new GrammarDiffResult(text, emojify ? resultText : stripEmojis(resultText), new ArrayList<GrammarChange>()));
+          if (callback != null) callback.onSuccess(new GrammarDiffResult(text, emojify ? resultText : stripEmojis(resultText), new ArrayList<GrammarChange>()));
         }
       }
 
       @Override
       public void onError(String errorMessage)
       {
-        callback.onError(errorMessage);
+        if (callback != null) callback.onError(errorMessage);
       }
     });
   }
@@ -442,7 +474,7 @@ public class GeminiAiService
   {
     if (text == null || text.trim().isEmpty())
     {
-      callback.onError("No text to process");
+      if (callback != null) callback.onError("No text to process");
       return;
     }
     StringBuilder sb = new StringBuilder();
@@ -462,13 +494,13 @@ public class GeminiAiService
       @Override
       public void onSuccess(String resultText)
       {
-        callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
+        if (callback != null) callback.onSuccess(emojify ? resultText : stripEmojis(resultText));
       }
 
       @Override
       public void onError(String errorMessage)
       {
-        callback.onError(errorMessage);
+        if (callback != null) callback.onError(errorMessage);
       }
     });
   }
@@ -481,9 +513,11 @@ public class GeminiAiService
       @Override
       public void run()
       {
+        HttpURLConnection conn = null;
         try
         {
-          SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+          SharedPreferences prefs = getSafeDefaultPrefs(context);
+          if (prefs == null) return;
           long lastFetch = prefs.getLong(PREF_GEMINI_MODELS_LAST_FETCH, 0L);
           long now = System.currentTimeMillis();
           if (!forceRefresh && (now - lastFetch < 7L * 24 * 3600 * 1000) && prefs.contains(PREF_CACHED_GEMINI_MODELS))
@@ -492,19 +526,15 @@ public class GeminiAiService
           }
 
           String urlStr = "https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey.trim();
-          HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+          conn = (HttpURLConnection) new URL(urlStr).openConnection();
           conn.setRequestMethod("GET");
           conn.setConnectTimeout(8000);
           conn.setReadTimeout(12000);
 
           if (conn.getResponseCode() == 200)
           {
-            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) sb.append(line);
-
-            JSONObject json = new JSONObject(sb.toString());
+            String resp = readStreamSafely(conn.getInputStream());
+            JSONObject json = new JSONObject(resp);
             JSONArray modelsArr = json.optJSONArray("models");
             if (modelsArr != null)
             {
@@ -532,7 +562,6 @@ public class GeminiAiService
                 }
               }
 
-              // Prioritize Lite / 1.5 models for lowest latency and highest free-tier quota
               java.util.Collections.sort(flashModels, new java.util.Comparator<String>()
               {
                 @Override
@@ -567,6 +596,10 @@ public class GeminiAiService
           }
         }
         catch (Exception ignored) {}
+        finally
+        {
+          if (conn != null) conn.disconnect();
+        }
       }
     });
   }
@@ -581,6 +614,32 @@ public class GeminiAiService
       if (lower.contains(u)) return false;
     }
     return true;
+  }
+
+  public static String extractCandidateText(JSONObject candidate)
+  {
+    if (candidate == null) return null;
+    JSONObject content = candidate.optJSONObject("content");
+    if (content == null) return null;
+    JSONArray parts = content.optJSONArray("parts");
+    if (parts == null || parts.length() == 0) return null;
+
+    StringBuilder nonThought = new StringBuilder();
+    for (int i = 0; i < parts.length(); i++)
+    {
+      JSONObject part = parts.optJSONObject(i);
+      if (part == null || part.optBoolean("thought", false)) continue;
+      String text = part.optString("text", "");
+      if (!text.isEmpty())
+      {
+        nonThought.append(text);
+      }
+    }
+    String result = nonThought.toString().trim();
+    if (!result.isEmpty()) return result;
+
+    JSONObject first = parts.optJSONObject(0);
+    return first != null ? first.optString("text", "").trim() : null;
   }
 
   public static void processPrompt(final Context context, final String promptText, final AiCallback callback)
@@ -602,11 +661,26 @@ public class GeminiAiService
       final AiCallback callback)
   {
     processPromptWithImage(context, promptText, imageBytes, mimeType,
-        imageBytes != null ? 0.7f : 0.3f, 1024, callback);
+        imageBytes != null ? 0.7f : 0.3f, 2048, callback);
   }
 
   public static void extractImageText(Context context, byte[] image, AiCallback callback) {
     processPromptWithImage(context, ImageTextExtractor.PROMPT, image, "image/jpeg", 0f, 8192, callback);
+  }
+
+  private static String readStreamSafely(java.io.InputStream stream) throws java.io.IOException
+  {
+    if (stream == null) return "";
+    StringBuilder sb = new StringBuilder();
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8)))
+    {
+      String line;
+      while ((line = br.readLine()) != null)
+      {
+        sb.append(line).append('\n');
+      }
+    }
+    return sb.toString().trim();
   }
 
   private static void processPromptWithImage(
@@ -643,26 +717,17 @@ public class GeminiAiService
     final String apiKey = getGeminiApiKey(context);
     if (apiKey.isEmpty())
     {
-      callback.onError("AI API key is missing. Please configure your Gemini or Groq API key in settings.");
+      if (callback != null)
+        callback.onError("AI API key is missing. Please configure your Gemini or Groq API key in settings.");
       return;
-    }
-
-    synchronized (GENERATION_LOCK)
-    {
-      if (generationInFlight)
-      {
-        callback.onError("A request is already in progress. Please wait a moment.");
-        return;
-      }
-      generationInFlight = true;
     }
 
     final long remainingCooldown = quotaCooldownUntilMs - System.currentTimeMillis();
     if (remainingCooldown > 0)
     {
-      synchronized (GENERATION_LOCK) { generationInFlight = false; }
       long seconds = (remainingCooldown + 999L) / 1000L;
-      callback.onError("The usage limit has been reached. Try again in " + seconds + " seconds.");
+      if (callback != null)
+        callback.onError("The usage limit has been reached. Try again in " + seconds + " seconds.");
       return;
     }
 
@@ -671,242 +736,222 @@ public class GeminiAiService
       @Override
       public void run()
       {
-        try
+        SharedPreferences prefs = getSafeDefaultPrefs(context);
+        fetchAndCacheModels(context, apiKey, false);
+
+        String cachedModelsStr = prefs != null ? prefs.getString(PREF_CACHED_GEMINI_MODELS, "") : "";
+        List<String> modelsToTry = new ArrayList<>();
+
+        String selectedModel = getModel(context);
+        if (selectedModel != null && !selectedModel.isEmpty() && isSupportedTextFlashModel(selectedModel))
         {
-          SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-          fetchAndCacheModels(context, apiKey, false);
+          modelsToTry.add(selectedModel);
+        }
 
-          String cachedModelsStr = prefs.getString(PREF_CACHED_GEMINI_MODELS, "");
-          List<String> modelsToTry = new ArrayList<>();
-
-          // 1. User selected model if set
-          String selectedModel = getModel(context);
-          if (selectedModel != null && !selectedModel.isEmpty() && isSupportedTextFlashModel(selectedModel))
+        if (!cachedModelsStr.isEmpty())
+        {
+          String[] split = cachedModelsStr.split(",");
+          for (String s : split)
           {
-            modelsToTry.add(selectedModel);
-          }
-
-          // 2. Models discovered from Google API
-          if (!cachedModelsStr.isEmpty())
-          {
-            String[] split = cachedModelsStr.split(",");
-            for (String s : split)
+            String trimmed = s.trim();
+            if (!trimmed.isEmpty() && !modelsToTry.contains(trimmed))
             {
-              String trimmed = s.trim();
-              if (!trimmed.isEmpty() && !modelsToTry.contains(trimmed))
-              {
-                modelsToTry.add(trimmed);
-              }
+              modelsToTry.add(trimmed);
             }
           }
+        }
 
-          // 3. Fallback to tested official models (1.5-flash first for high quota!)
-          for (String m : CANDIDATE_MODELS)
+        for (String m : CANDIDATE_MODELS)
+        {
+          if (!modelsToTry.contains(m))
           {
-            if (!modelsToTry.contains(m))
-            {
-              modelsToTry.add(m);
-            }
+            modelsToTry.add(m);
           }
+        }
 
-          String lastError = "";
+        String lastError = "";
+        long pendingCooldownDelayMs = 0L;
+        boolean primaryModelInvalid = false;
 
-          for (int i = 0; i < modelsToTry.size(); i++)
+        for (int i = 0; i < modelsToTry.size(); i++)
+        {
+          String modelName = modelsToTry.get(i);
+          HttpURLConnection conn = null;
+          try
           {
-            String modelName = modelsToTry.get(i);
-            try
+            JSONObject partObj = new JSONObject();
+            partObj.put("text", promptText);
+
+            JSONArray partsArray = new JSONArray();
+            partsArray.put(partObj);
+
+            if (imageBytes != null && imageBytes.length > 0)
             {
-              JSONObject partObj = new JSONObject();
-              partObj.put("text", promptText);
+              String b64 = android.util.Base64.encodeToString(imageBytes, android.util.Base64.NO_WRAP);
+              JSONObject inlineData = new JSONObject();
+              inlineData.put("mimeType", (mimeType != null && !mimeType.isEmpty()) ? mimeType : "image/jpeg");
+              inlineData.put("data", b64);
 
-              JSONArray partsArray = new JSONArray();
-              partsArray.put(partObj);
+              JSONObject imgPart = new JSONObject();
+              imgPart.put("inlineData", inlineData);
+              partsArray.put(imgPart);
+            }
 
-              if (imageBytes != null && imageBytes.length > 0)
+            JSONObject contentObj = new JSONObject();
+            contentObj.put("parts", partsArray);
+
+            JSONArray contentsArray = new JSONArray();
+            contentsArray.put(contentObj);
+
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("contents", contentsArray);
+
+            JSONObject genConfig = new JSONObject();
+            genConfig.put("temperature", temperature);
+            genConfig.put("maxOutputTokens", maxOutputTokens);
+            requestBody.put("generationConfig", genConfig);
+
+            String urlStr = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey;
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; utf-8");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(20000);
+
+            byte[] input = requestBody.toString().getBytes(StandardCharsets.UTF_8);
+            try (OutputStream os = conn.getOutputStream())
+            {
+              os.write(input, 0, input.length);
+            }
+
+            int responseCode = conn.getResponseCode();
+
+            if (responseCode >= 200 && responseCode < 300)
+            {
+              quotaCooldownUntilMs = 0L;
+              if (prefs != null && (i == 0 || primaryModelInvalid))
               {
-                String b64 = android.util.Base64.encodeToString(imageBytes, android.util.Base64.NO_WRAP);
-                JSONObject inlineData = new JSONObject();
-                inlineData.put("mimeType", (mimeType != null && !mimeType.isEmpty()) ? mimeType : "image/jpeg");
-                inlineData.put("data", b64);
-
-                JSONObject imgPart = new JSONObject();
-                imgPart.put("inlineData", inlineData);
-                partsArray.put(imgPart);
-              }
-
-              JSONObject contentObj = new JSONObject();
-              contentObj.put("parts", partsArray);
-
-              JSONArray contentsArray = new JSONArray();
-              contentsArray.put(contentObj);
-
-              JSONObject requestBody = new JSONObject();
-              requestBody.put("contents", contentsArray);
-
-              // GenerationConfig to speed up response and save tokens (FrostKeys style)
-              JSONObject genConfig = new JSONObject();
-              genConfig.put("temperature", temperature);
-              genConfig.put("maxOutputTokens", maxOutputTokens);
-              requestBody.put("generationConfig", genConfig);
-
-              String urlStr = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey;
-              URL url = new URL(urlStr);
-              HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-              conn.setRequestMethod("POST");
-              conn.setRequestProperty("Content-Type", "application/json; utf-8");
-              conn.setRequestProperty("Accept", "application/json");
-              conn.setDoOutput(true);
-              conn.setConnectTimeout(10000);
-              conn.setReadTimeout(15000);
-
-              byte[] input = requestBody.toString().getBytes(StandardCharsets.UTF_8);
-              try (OutputStream os = conn.getOutputStream())
-              {
-                os.write(input, 0, input.length);
-              }
-
-              int responseCode = conn.getResponseCode();
-
-              if (responseCode >= 200 && responseCode < 300)
-              {
-                // Success! Save working model
                 prefs.edit().putString(PREF_GEMINI_WORKING_MODEL, modelName).apply();
+              }
 
-                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-                StringBuilder sb = new StringBuilder();
-                String responseLine;
-                while ((responseLine = br.readLine()) != null)
+              String respBody = readStreamSafely(conn.getInputStream());
+              JSONObject jsonResp = new JSONObject(respBody);
+              JSONArray candidates = jsonResp.optJSONArray("candidates");
+              if (candidates != null && candidates.length() > 0)
+              {
+                JSONObject candidate = candidates.getJSONObject(0);
+                if (maxOutputTokens > 2048 && "MAX_TOKENS".equals(candidate.optString("finishReason")))
                 {
-                  sb.append(responseLine.trim());
+                  _mainHandler.post(() -> { if (callback != null) callback.onError(context.getString(typodev.keyboard.R.string.math_incomplete)); });
+                  return;
                 }
-
-                JSONObject jsonResp = new JSONObject(sb.toString());
-                JSONArray candidates = jsonResp.optJSONArray("candidates");
-                if (candidates != null && candidates.length() > 0)
+                final String outputText = extractCandidateText(candidate);
+                if (outputText != null)
                 {
-                  JSONObject candidate = candidates.getJSONObject(0);
-                  if (maxOutputTokens > 1024 && "MAX_TOKENS".equals(candidate.optString("finishReason")))
+                  _mainHandler.post(new Runnable()
                   {
-                    _mainHandler.post(() -> callback.onError(context.getString(typodev.keyboard.R.string.math_incomplete)));
-                    return;
-                  }
-                  JSONObject content = candidate.optJSONObject("content");
-                  if (content != null)
-                  {
-                    JSONArray parts = content.optJSONArray("parts");
-                    if (parts != null && parts.length() > 0)
+                    @Override
+                    public void run()
                     {
-                      final String outputText = parts.getJSONObject(0).optString("text", "").trim();
-                      _mainHandler.post(new Runnable()
-                      {
-                        @Override
-                        public void run()
-                        {
-                          callback.onSuccess(outputText);
-                        }
-                      });
-                      return; // Done successfully!
+                      if (callback != null) callback.onSuccess(outputText);
                     }
-                  }
+                  });
+                  return;
                 }
-                throw new Exception("Unexpected response format from Gemini");
               }
-              else if (responseCode == 404)
+              throw new Exception("Unexpected response format from Gemini");
+            }
+            else if (responseCode == 404)
+            {
+              if (i == 0) primaryModelInvalid = true;
+              lastError = "Model " + modelName + " (404 Not Found)";
+              continue;
+            }
+            else if (responseCode == 429)
+            {
+              String errBody = readStreamSafely(conn.getErrorStream());
+              long retryDelay = parseRetryDelayMs(errBody);
+              pendingCooldownDelayMs = Math.max(pendingCooldownDelayMs, retryDelay);
+              lastError = "Rate limit (429)";
+              continue;
+            }
+            else
+            {
+              String errBody = readStreamSafely(conn.getErrorStream());
+
+              if (responseCode == 400 && (errBody.contains("not found") || errBody.contains("not supported")))
               {
-                lastError = "Model " + modelName + " (404 Not Found)";
+                if (i == 0) primaryModelInvalid = true;
+                lastError = "Model " + modelName + " not supported";
                 continue;
               }
-              else if (responseCode == 429)
-              {
-                // Parse retry delay or set fallback cooldown
-                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
-                StringBuilder sb = new StringBuilder();
-                String responseLine;
-                while ((responseLine = br.readLine()) != null) sb.append(responseLine.trim());
-                String errBody = sb.toString();
 
-                long retryDelay = parseRetryDelayMs(errBody);
-                quotaCooldownUntilMs = System.currentTimeMillis() + retryDelay;
-                lastError = "Rate limit (429)";
-                // Try next model if available (e.g. 1.5-flash or 2.0-flash-lite)
-                continue;
-              }
-              else
+              final String err = formatErrorMessage(responseCode, errBody);
+              _mainHandler.post(new Runnable()
               {
-                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
-                StringBuilder sb = new StringBuilder();
-                String responseLine;
-                while ((responseLine = br.readLine()) != null) sb.append(responseLine.trim());
-                String errBody = sb.toString();
-
-                if (responseCode == 400 && (errBody.contains("not found") || errBody.contains("not supported")))
+                @Override
+                public void run()
                 {
-                  lastError = "Model " + modelName + " not supported";
-                  continue;
+                  if (callback != null) callback.onError(err);
                 }
-
-                final String err = formatErrorMessage(responseCode, errBody);
-                _mainHandler.post(new Runnable()
-                {
-                  @Override
-                  public void run()
-                  {
-                    callback.onError(err);
-                  }
-                });
-                return;
-              }
+              });
+              return;
             }
-            catch (Exception e)
+          }
+          catch (Exception e)
+          {
+            lastError = e.getMessage();
+            if (e instanceof java.net.UnknownHostException
+                || (lastError != null && (lastError.contains("Unable to resolve host") || lastError.contains("No address associated"))))
             {
-              lastError = e.getMessage();
-              if (e instanceof java.net.UnknownHostException
-                  || (lastError != null && (lastError.contains("Unable to resolve host") || lastError.contains("No address associated"))))
-              {
-                lastError = "NO_INTERNET";
-                break;
-              }
+              lastError = "NO_INTERNET";
+              break;
             }
           }
-
-          final String finalErrMsg;
-          if ("NO_INTERNET".equals(lastError) || (lastError != null && (lastError.contains("Unable to resolve host") || lastError.contains("No address associated"))))
+          finally
           {
-            finalErrMsg = "No internet connection. Check your mobile data or Wi-Fi.";
+            if (conn != null) conn.disconnect();
           }
-          else if (lastError != null && (lastError.contains("timed out") || lastError.contains("SocketTimeoutException")))
-          {
-            finalErrMsg = "The request timed out. Please try again.";
-          }
-          else if (lastError != null && lastError.contains("429"))
-          {
-            finalErrMsg = "Too many requests. Wait 15–20 seconds and try again.";
-          }
-          else if (lastError != null && (lastError.contains("API key not valid") || lastError.contains("API_KEY_INVALID")))
-          {
-            finalErrMsg = "Your API key is invalid. Update it in settings.";
-          }
-          else
-          {
-            finalErrMsg = "Request failed: " + (lastError != null ? lastError : "Request failed") + ". Please check settings.";
-          }
-
-          _mainHandler.post(new Runnable()
-          {
-            @Override
-            public void run()
-            {
-              callback.onError(finalErrMsg);
-            }
-          });
         }
-        finally
+
+        if (pendingCooldownDelayMs > 0L && lastError != null && lastError.contains("429"))
         {
-          synchronized (GENERATION_LOCK)
-          {
-            generationInFlight = false;
-          }
+          quotaCooldownUntilMs = System.currentTimeMillis() + pendingCooldownDelayMs;
         }
+
+        final String finalErrMsg;
+        if ("NO_INTERNET".equals(lastError) || (lastError != null && (lastError.contains("Unable to resolve host") || lastError.contains("No address associated"))))
+        {
+          finalErrMsg = "No internet connection. Check your mobile data or Wi-Fi.";
+        }
+        else if (lastError != null && (lastError.contains("timed out") || lastError.contains("SocketTimeoutException")))
+        {
+          finalErrMsg = "The request timed out. Please try again.";
+        }
+        else if (lastError != null && lastError.contains("429"))
+        {
+          finalErrMsg = "Too many requests. Wait 15–20 seconds and try again.";
+        }
+        else if (lastError != null && (lastError.contains("API key not valid") || lastError.contains("API_KEY_INVALID")))
+        {
+          finalErrMsg = "Your API key is invalid. Update it in settings.";
+        }
+        else
+        {
+          finalErrMsg = "Request failed: " + (lastError != null ? lastError : "Request failed") + ". Please check settings.";
+        }
+
+        _mainHandler.post(new Runnable()
+        {
+          @Override
+          public void run()
+          {
+            if (callback != null) callback.onError(finalErrMsg);
+          }
+        });
       }
     });
   }
@@ -928,14 +973,14 @@ public class GeminiAiService
       }
       catch (Exception ignored) {}
     }
-    return 15000L; // default 15s cooldown
+    return 15000L;
   }
 
   private static String formatErrorMessage(int code, String raw)
   {
     if (code == 429)
     {
-      return "⚠️ Google AI রিকোয়েস্ট লিমিট (429) সাময়িকভাবে পূর্ণ হয়েছে। দয়া করে ১৫-২০ seconds.";
+      return "⚠️ Google AI রিকোয়েস্ট লিমিট (429) সাময়িকভাবে পূর্ণ হয়েছে। দয়া করে ১৫-২০ সেকেন্ড পর চেষ্টা করুন।";
     }
     try
     {
@@ -955,7 +1000,7 @@ public class GeminiAiService
       }
     }
     catch (Exception ignored) {}
-    if (raw.length() > 120)
+    if (raw != null && raw.length() > 120)
       return "API Error (" + code + "): Request failed (" + raw.substring(0, 120) + "...)";
     return "API Error (" + code + "): " + raw;
   }

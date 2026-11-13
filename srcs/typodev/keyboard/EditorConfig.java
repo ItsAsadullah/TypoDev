@@ -95,7 +95,7 @@ public final class EditorConfig
     /* setSelection fallback */
     should_move_cursor_force_fallback = _should_move_cursor_force_fallback(info);
     /* Autocapitalisation */
-    caps_mode = info.inputType & TextUtils.CAP_MODE_SENTENCES;
+    caps_mode = info.inputType & (TextUtils.CAP_MODE_CHARACTERS | TextUtils.CAP_MODE_WORDS | TextUtils.CAP_MODE_SENTENCES);
     caps_initially_enabled = (info.initialCapsMode != 0);
     caps_initially_updated = caps_should_update_state(info);
     /* CurrentlyTypedWord */
@@ -152,6 +152,8 @@ public final class EditorConfig
     int variation = info.inputType & InputType.TYPE_MASK_VARIATION;
     if (class_ != InputType.TYPE_CLASS_TEXT)
       return false;
+    if ((info.inputType & (TextUtils.CAP_MODE_CHARACTERS | TextUtils.CAP_MODE_WORDS)) != 0)
+      return true;
     switch (variation)
     {
       case InputType.TYPE_TEXT_VARIATION_LONG_MESSAGE:

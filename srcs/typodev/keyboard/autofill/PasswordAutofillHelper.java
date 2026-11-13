@@ -87,11 +87,38 @@ public final class PasswordAutofillHelper
   public static void generateAndInsertPassword(Keyboard2 keyboard, Context context)
   {
     if (keyboard == null) return;
+    if (keyboard.getKeyEventHandler() != null)
+    {
+      try { keyboard.getKeyEventHandler().commitAvroComposing(); }
+      catch (Throwable ignored) {}
+    }
     String pwd = generateStrongPassword(14);
     InputConnection ic = keyboard.getCurrentInputConnection();
     if (ic != null)
     {
+      ic.finishComposingText();
       ic.commitText(pwd, 1);
+    }
+
+    if (context != null)
+    {
+      try
+      {
+        android.content.ClipboardManager cm =
+            (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cm != null)
+        {
+          android.content.ClipData clip = android.content.ClipData.newPlainText("Generated Password", pwd);
+          if (Build.VERSION.SDK_INT >= 24 && clip.getDescription() != null)
+          {
+            android.os.PersistableBundle extras = new android.os.PersistableBundle();
+            extras.putBoolean("android.content.extra.IS_SENSITIVE", true);
+            clip.getDescription().setExtras(extras);
+          }
+          cm.setPrimaryClip(clip);
+        }
+      }
+      catch (Throwable ignored) {}
     }
 
     // Save to clipboard history so user never loses it
@@ -101,7 +128,10 @@ public final class PasswordAutofillHelper
       hs.add_clip(pwd);
     }
 
-    Toast.makeText(context, "Password generated & copied to clipboard", Toast.LENGTH_SHORT).show();
+    if (context != null)
+    {
+      Toast.makeText(context, "Password generated & copied to clipboard", Toast.LENGTH_SHORT).show();
+    }
   }
 
   /**
@@ -115,7 +145,7 @@ public final class PasswordAutofillHelper
       try
       {
         Intent intent = new Intent(Settings.ACTION_REQUEST_SET_AUTOFILL_SERVICE);
-        intent.setData(Uri.parse("package:android"));
+        intent.setData(Uri.parse("package:" + context.getPackageName()));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
         return;

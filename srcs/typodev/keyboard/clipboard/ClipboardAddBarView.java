@@ -125,7 +125,7 @@ public class ClipboardAddBarView extends LinearLayout
     _etInput.setBackground(createPillBackground(_colorKey, dp(16), adjustAlpha(_colorLabel, 0.2f)));
     _etInput.setPadding(dp(12), dp(4), dp(12), dp(4));
     _etInput.setSingleLine(true);
-    _etInput.setEllipsize(TextUtils.TruncateAt.END);
+    _etInput.setHorizontallyScrolling(true);
     _etInput.setFocusable(false);
     _etInput.setFocusableInTouchMode(false);
     LinearLayout.LayoutParams lpInput = new LinearLayout.LayoutParams(0, dp(34), 1.0f);
@@ -192,93 +192,13 @@ public class ClipboardAddBarView extends LinearLayout
 
   public InputConnection createInputConnection()
   {
-    return new BaseInputConnection(_etInput, true)
+    return new typodev.keyboard.InKeyboardEditTextConnection(_etInput, new Runnable()
     {
       @Override
-      public Editable getEditable()
+      public void run()
       {
-        return _etInput.getText();
+        if (_btnPin != null) _btnPin.performClick();
       }
-
-      @Override
-      public boolean commitText(CharSequence text, int newCursorPosition)
-      {
-        if (text == null) return true;
-        int start = _etInput.getSelectionStart();
-        int end = _etInput.getSelectionEnd();
-        if (start < 0) start = _etInput.length();
-        if (end < 0) end = _etInput.length();
-        if (start > end) { int t = start; start = end; end = t; }
-
-        _etInput.getText().replace(start, end, text);
-        int newCursor = start + text.length();
-        _etInput.setSelection(Math.min(newCursor, _etInput.length()));
-        return true;
-      }
-
-      @Override
-      public boolean deleteSurroundingText(int beforeLength, int afterLength)
-      {
-        int start = _etInput.getSelectionStart();
-        int end = _etInput.getSelectionEnd();
-        if (start < 0) start = _etInput.length();
-        if (end < 0) end = _etInput.length();
-        if (start > end) { int t = start; start = end; end = t; }
-
-        if (start != end)
-        {
-          _etInput.getText().delete(start, end);
-          return true;
-        }
-
-        int delStart = Math.max(0, start - beforeLength);
-        int delEnd = Math.min(_etInput.length(), end + afterLength);
-        if (delStart < delEnd)
-        {
-          _etInput.getText().delete(delStart, delEnd);
-          _etInput.setSelection(delStart);
-        }
-        return true;
-      }
-
-      @Override
-      public boolean sendKeyEvent(KeyEvent event)
-      {
-        if (event.getAction() == KeyEvent.ACTION_DOWN)
-        {
-          if (event.getKeyCode() == KeyEvent.KEYCODE_DEL)
-          {
-            return deleteSurroundingText(1, 0);
-          }
-          else if (event.getKeyCode() == KeyEvent.KEYCODE_ENTER)
-          {
-            if (_btnPin != null)
-            {
-              _btnPin.performClick();
-              return true;
-            }
-          }
-        }
-        return super.sendKeyEvent(event);
-      }
-
-      @Override
-      public CharSequence getTextBeforeCursor(int n, int flags)
-      {
-        int start = _etInput.getSelectionStart();
-        if (start <= 0) return "";
-        int from = Math.max(0, start - n);
-        return _etInput.getText().subSequence(from, start);
-      }
-
-      @Override
-      public CharSequence getTextAfterCursor(int n, int flags)
-      {
-        int end = _etInput.getSelectionEnd();
-        if (end < 0 || end >= _etInput.length()) return "";
-        int to = Math.min(_etInput.length(), end + n);
-        return _etInput.getText().subSequence(end, to);
-      }
-    };
+    });
   }
 }

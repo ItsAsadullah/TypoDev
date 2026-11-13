@@ -83,12 +83,38 @@ public final class AiAssistantHubView
     View mathSolver = view.findViewById(R.id.card_action_math_solver);
     if (mathSolver != null) {
       mathSolver.setOnClickListener(v -> {
+        if (typodev.keyboard.suggestions.CandidatesView.isPasswordField(keyboard2.getCurrentInputEditorInfo())) {
+          Toast.makeText(context, "Math Solver is disabled in password fields", Toast.LENGTH_SHORT).show();
+          return;
+        }
+        if (keyboard2.getKeyEventHandler() != null) {
+          keyboard2.getKeyEventHandler().commitAvroComposing();
+        }
         keyboard2.closeMagicTools();
         android.view.inputmethod.InputConnection ic = keyboard2.getCurrentInputConnection();
+        if (ic != null) ic.finishComposingText();
         CharSequence selected = (ic != null) ? ic.getSelectedText(0) : null;
-        CharSequence before = selected != null && selected.length() > 0 ? selected
-            : (ic != null) ? ic.getTextBeforeCursor(160, 0) : null;
-        String problem = (before != null) ? before.toString().trim() : "";
+        String problem = "";
+        if (selected != null && selected.length() > 0) {
+          problem = selected.toString().trim();
+        } else if (ic != null) {
+          CharSequence before = ic.getTextBeforeCursor(160, 0);
+          if (before != null) {
+            String beforeStr = before.toString();
+            String extracted = typodev.keyboard.AlgebraFormulaEngine.extractMathProblem(beforeStr);
+            if (extracted != null && !extracted.trim().isEmpty()) {
+              problem = extracted.trim();
+            } else {
+              String[] lines = beforeStr.split("\\r?\\n");
+              for (int i = lines.length - 1; i >= 0; i--) {
+                if (!lines[i].trim().isEmpty()) {
+                  problem = lines[i].trim();
+                  break;
+                }
+              }
+            }
+          }
+        }
         keyboard2.showMathSolver(problem);
       });
     }

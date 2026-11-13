@@ -7,58 +7,86 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * Singleton store for all user snippets.
  * Uses SharedPreferences with serialized Snippet objects — no SQLite required.
- *
- * Usage:
- *   SnippetStore store = SnippetStore.instance(context);
- *   store.save(snippet);
- *   List<Snippet> all = store.getAll();
- *   List<Snippet> matches = store.findByShortcutPrefix("em"); // → [email, ...]
  */
 public final class SnippetStore
 {
   private static final String PREFS_NAME = "typodev_snippets";
   private static final String KEY_IDS = "snippet_ids";
   private static final String KEY_SNIPPET_PREFIX = "s_";
+  private static final String KEY_SEEDED = "snippet_seeded_v1";
 
   private static SnippetStore _instance;
 
-  private final SharedPreferences _prefs;
+  private volatile Context _context;
+  private SharedPreferences _prefs;
+
+  private static boolean isDirectBootLocked(Context context)
+  {
+    if (context == null || android.os.Build.VERSION.SDK_INT < 24) return false;
+    try
+    {
+      android.os.UserManager um = (android.os.UserManager) context.getSystemService(Context.USER_SERVICE);
+      return um != null && !um.isUserUnlocked();
+    }
+    catch (Throwable ignored)
+    {
+      return false;
+    }
+  }
 
   private SnippetStore(Context context)
   {
-    _prefs = context.getApplicationContext()
-        .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+    _context = context != null ? context.getApplicationContext() : null;
+    ensurePrefs();
+  }
+
+  private synchronized SharedPreferences ensurePrefs()
+  {
+    if (_prefs != null) return _prefs;
+    if (_context == null || isDirectBootLocked(_context)) return null;
+    try
+    {
+      _prefs = _context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+    }
+    catch (RuntimeException ignored) {}
+    return _prefs;
   }
 
   public static synchronized SnippetStore instance(Context context)
   {
     if (_instance == null)
+    {
       _instance = new SnippetStore(context);
+    }
+    else if (context != null)
+    {
+      if (_instance._context == null)
+      {
+        _instance._context = context.getApplicationContext();
+      }
+      _instance.ensurePrefs();
+    }
     return _instance;
   }
-
-  // ---------------------------------------------------------------
-  // CRUD
-  // ---------------------------------------------------------------
 
   /** Persist (add or update) a snippet. */
   public synchronized void save(Snippet snippet)
   {
     if (snippet == null || snippet.shortcut.isEmpty()) return;
-    SharedPreferences.Editor ed = _prefs.edit();
+    SharedPreferences prefs = ensurePrefs();
+    if (prefs == null) return;
+    SharedPreferences.Editor ed = prefs.edit();
 
-    // Register this id in the id-set
-    Set<String> ids = new java.util.HashSet<>(_prefs.getStringSet(KEY_IDS, new java.util.HashSet<>()));
+    Set<String> ids = new java.util.HashSet<>(prefs.getStringSet(KEY_IDS, new java.util.HashSet<String>()));
     ids.add(String.valueOf(snippet.id));
     ed.putStringSet(KEY_IDS, ids);
-
-    // Store the snippet data
     ed.putString(KEY_SNIPPET_PREFIX + snippet.id, snippet.serialize());
     ed.apply();
   }
@@ -66,8 +94,10 @@ public final class SnippetStore
   /** Delete a snippet by id. */
   public synchronized void delete(long snippetId)
   {
-    SharedPreferences.Editor ed = _prefs.edit();
-    Set<String> ids = new java.util.HashSet<>(_prefs.getStringSet(KEY_IDS, new java.util.HashSet<>()));
+    SharedPreferences prefs = ensurePrefs();
+    if (prefs == null) return;
+    SharedPreferences.Editor ed = prefs.edit();
+    Set<String> ids = new java.util.HashSet<>(prefs.getStringSet(KEY_IDS, new java.util.HashSet<String>()));
     ids.remove(String.valueOf(snippetId));
     ed.putStringSet(KEY_IDS, ids);
     ed.remove(KEY_SNIPPET_PREFIX + snippetId);
@@ -77,7 +107,9 @@ public final class SnippetStore
   /** Retrieve a snippet by ID. Returns null if not found. */
   public synchronized Snippet getById(long id)
   {
-    String raw = _prefs.getString(KEY_SNIPPET_PREFIX + id, null);
+    SharedPreferences prefs = ensurePrefs();
+    if (prefs == null) return null;
+    String raw = prefs.getString(KEY_SNIPPET_PREFIX + id, null);
     return raw != null ? Snippet.deserialize(raw) : null;
   }
 
@@ -97,11 +129,13 @@ public final class SnippetStore
   /** Return ALL snippets sorted by shortcut alphabetically. */
   public synchronized List<Snippet> getAll()
   {
-    Set<String> ids = _prefs.getStringSet(KEY_IDS, Collections.<String>emptySet());
+    SharedPreferences prefs = ensurePrefs();
+    if (prefs == null) return Collections.emptyList();
+    Set<String> ids = prefs.getStringSet(KEY_IDS, Collections.<String>emptySet());
     List<Snippet> result = new ArrayList<>(ids.size());
     for (String idStr : ids)
     {
-      String raw = _prefs.getString(KEY_SNIPPET_PREFIX + idStr, null);
+      String raw = prefs.getString(KEY_SNIPPET_PREFIX + idStr, null);
       Snippet s = Snippet.deserialize(raw);
       if (s != null) result.add(s);
     }
@@ -118,17 +152,18 @@ public final class SnippetStore
 
   /**
    * Find snippets whose shortcut EXACTLY matches the typed word.
-   * Returns the snippet expansion as the top suggestion.
    */
   public synchronized List<Snippet> findByExactShortcut(String word)
   {
     if (word == null || word.isEmpty()) return Collections.emptyList();
-    String lower = word.trim().toLowerCase();
+    SharedPreferences prefs = ensurePrefs();
+    if (prefs == null) return Collections.emptyList();
+    String lower = word.trim().toLowerCase(Locale.ROOT);
     List<Snippet> result = new ArrayList<>();
-    Set<String> ids = _prefs.getStringSet(KEY_IDS, Collections.<String>emptySet());
+    Set<String> ids = prefs.getStringSet(KEY_IDS, Collections.<String>emptySet());
     for (String idStr : ids)
     {
-      String raw = _prefs.getString(KEY_SNIPPET_PREFIX + idStr, null);
+      String raw = prefs.getString(KEY_SNIPPET_PREFIX + idStr, null);
       Snippet s = Snippet.deserialize(raw);
       if (s != null && s.shortcut.equalsIgnoreCase(lower))
         result.add(s);
@@ -138,19 +173,20 @@ public final class SnippetStore
 
   /**
    * Find snippets whose shortcut STARTS WITH the typed prefix.
-   * Used for progressive hint as the user types.
    * Returns exact matches first, then prefix matches.
    */
   public synchronized List<Snippet> findByShortcutPrefix(String prefix)
   {
     if (prefix == null || prefix.isEmpty()) return Collections.emptyList();
-    String lower = prefix.trim().toLowerCase();
+    SharedPreferences prefs = ensurePrefs();
+    if (prefs == null) return Collections.emptyList();
+    String lower = prefix.trim().toLowerCase(Locale.ROOT);
     List<Snippet> exact = new ArrayList<>();
     List<Snippet> prefixMatches = new ArrayList<>();
-    Set<String> ids = _prefs.getStringSet(KEY_IDS, Collections.<String>emptySet());
+    Set<String> ids = prefs.getStringSet(KEY_IDS, Collections.<String>emptySet());
     for (String idStr : ids)
     {
-      String raw = _prefs.getString(KEY_SNIPPET_PREFIX + idStr, null);
+      String raw = prefs.getString(KEY_SNIPPET_PREFIX + idStr, null);
       Snippet s = Snippet.deserialize(raw);
       if (s == null) continue;
       if (s.shortcut.equalsIgnoreCase(lower))
@@ -184,22 +220,19 @@ public final class SnippetStore
   /** Total number of saved snippets. */
   public synchronized int count()
   {
-    return _prefs.getStringSet(KEY_IDS, Collections.<String>emptySet()).size();
+    SharedPreferences prefs = ensurePrefs();
+    if (prefs == null) return 0;
+    return prefs.getStringSet(KEY_IDS, Collections.<String>emptySet()).size();
   }
-
-  // ---------------------------------------------------------------
-  // Pre-seed with demo snippets (called once on first launch)
-  // ---------------------------------------------------------------
-
-  private static final String KEY_SEEDED = "snippet_seeded_v1";
 
   /**
    * Seeds a few example snippets on first run so users understand the feature
    * immediately without needing to add anything.
    */
-  public void seedDefaults()
+  public synchronized void seedDefaults()
   {
-    if (_prefs.getBoolean(KEY_SEEDED, false)) return;
+    SharedPreferences prefs = ensurePrefs();
+    if (prefs == null || prefs.getBoolean(KEY_SEEDED, false)) return;
     save(Snippet.create("greet",
         "Assalamu Alaikum. I hope you are doing well. How can I help you today?",
         "Greeting Message", SnippetCategory.CHAT));
@@ -209,6 +242,6 @@ public final class SnippetStore
     save(Snippet.create("office",
         "Our office is open from 9:00 AM to 6:00 PM, Saturday to Thursday.",
         "Office Hours", SnippetCategory.BUSINESS));
-    _prefs.edit().putBoolean(KEY_SEEDED, true).apply();
+    prefs.edit().putBoolean(KEY_SEEDED, true).apply();
   }
 }

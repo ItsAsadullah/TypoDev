@@ -22,6 +22,26 @@ public final class VoiceLanguageResolver {
     if (layoutScript.equals("arabic") || layoutScript.equals("arab")
         || layoutName.contains("arabic") || layoutName.contains("العربية"))
       return "ar-SA";
+    if (layoutScript.contains("devanagari") || layoutScript.contains("deva")
+        || layoutName.contains("hindi") || layoutName.contains("हिन्दी") || layoutName.contains("हिंदी"))
+      return "hi-IN";
+    if (layoutName.contains("ukrain") || layoutName.contains("україн"))
+      return "uk-UA";
+    if (layoutName.contains("russian") || layoutName.contains("русский")
+        || layoutScript.equals("cyrillic") || layoutScript.equals("cyrl"))
+      return "ru-RU";
+    if (layoutName.contains("spanish") || layoutName.contains("español"))
+      return "es-ES";
+    if (layoutName.contains("french") || layoutName.contains("français") || layoutName.contains("azerty"))
+      return "fr-FR";
+    if (layoutName.contains("german") || layoutName.contains("deutsch") || layoutName.contains("qwertz"))
+      return "de-DE";
+    if (layoutName.contains("turkish") || layoutName.contains("türkçe"))
+      return "tr-TR";
+    if (layoutName.contains("indonesian") || layoutName.contains("bahasa indonesia"))
+      return "id-ID";
+    if (layoutName.contains("portuguese") || layoutName.contains("português"))
+      return "pt-BR";
     return "en-US";
   }
 }

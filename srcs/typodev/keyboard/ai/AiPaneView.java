@@ -58,6 +58,7 @@ public class AiPaneView extends LinearLayout
   private boolean _hasSelection = false;
   private String _currentWorkingText = "";
   private boolean _usingClipboard = false;
+  private boolean _clipboardAutoSelected = false;
   private boolean _isContextExpanded = false;
 
   // AI execution state
@@ -298,9 +299,11 @@ public class AiPaneView extends LinearLayout
       @Override
       public void onClick(View v)
       {
-        _activeCategory = AiActionEngine.Category.ASK_AI;
-        _llCustomPrompt.setVisibility(VISIBLE);
-        openKeyboardForPrompt();
+        onCategorySelected(AiActionEngine.Category.ASK_AI);
+        if (!_currentCustomPrompt.isEmpty())
+        {
+          openKeyboardForPrompt();
+        }
       }
     });
     LinearLayout.LayoutParams lpAskBtn = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
@@ -545,6 +548,7 @@ public class AiPaneView extends LinearLayout
       public void onClick(View v)
       {
         _usingClipboard = !_usingClipboard;
+        _clipboardAutoSelected = false;
         _currentWorkingText = _usingClipboard ? _clipboardText : _inputFieldText;
         updateContextDisplay();
         if (_activeCategory == null) buildQuickOrSubOptionStrip();
@@ -814,13 +818,17 @@ public class AiPaneView extends LinearLayout
 
       _inputFieldText = "";
       _hasSelection = false;
-      if (_keyboard != null)
+      boolean isPasswordField = (_keyboard != null)
+          && typodev.keyboard.suggestions.CandidatesView.isPasswordField(_keyboard.getCurrentInputEditorInfo());
+      if (_keyboard != null && !isPasswordField)
       {
         try
         {
-          InputConnection ic = _keyboard.getCurrentInputConnection();
+          InputConnection ic = _keyboard.getTargetAppInputConnection();
+          if (ic == null) ic = _keyboard.getCurrentInputConnection();
           if (ic != null)
           {
+            ic.finishComposingText();
             CharSequence sel = ic.getSelectedText(0);
             if (sel != null && sel.length() > 0)
             {
@@ -870,11 +878,13 @@ public class AiPaneView extends LinearLayout
       {
         _currentWorkingText = _clipboardText;
         _usingClipboard = true;
+        _clipboardAutoSelected = true;
       }
       else
       {
         _currentWorkingText = _inputFieldText;
         _usingClipboard = false;
+        _clipboardAutoSelected = false;
       }
 
       updateContextDisplay();
@@ -1254,8 +1264,11 @@ public class AiPaneView extends LinearLayout
     updatePromptDisplay();
     if (!_currentCustomPrompt.isEmpty())
     {
-      _activeCategory = AiActionEngine.Category.ASK_AI;
-      _activeOptionId = "custom";
+      if (_activeCategory == null || _activeCategory == AiActionEngine.Category.ASK_AI)
+      {
+        _activeCategory = AiActionEngine.Category.ASK_AI;
+        _activeOptionId = "custom";
+      }
       triggerExecution();
     }
   }
@@ -1277,8 +1290,6 @@ public class AiPaneView extends LinearLayout
 
   private void triggerExecution()
   {
-    if (_isGenerating) return;
-
     String custom = _currentCustomPrompt;
     boolean hasWorkingText = (_currentWorkingText != null && !_currentWorkingText.trim().isEmpty());
     boolean hasCustomPrompt = !custom.isEmpty();
@@ -1307,7 +1318,25 @@ public class AiPaneView extends LinearLayout
     if (_tvLoadingStatus != null) _tvLoadingStatus.setText("Generating...");
     if (_tvResultPreview != null) _tvResultPreview.setText("");
 
-    String textToProcess = hasWorkingText ? _currentWorkingText : custom;
+    String textToProcess;
+    String customInstruction;
+    if (_activeCategory == AiActionEngine.Category.ASK_AI)
+    {
+      // Do not feed stale auto-selected clipboard text into standalone Ask AI prompts
+      boolean useSourceForAsk = hasWorkingText && !(_usingClipboard && _clipboardAutoSelected);
+      textToProcess = useSourceForAsk ? _currentWorkingText : "";
+      customInstruction = custom;
+    }
+    else if (hasWorkingText)
+    {
+      textToProcess = _currentWorkingText;
+      customInstruction = custom;
+    }
+    else
+    {
+      textToProcess = custom;
+      customInstruction = "";
+    }
     boolean emojify = GeminiAiService.isEmojifyEnabled(getContext());
 
     AiActionEngine.executeAction(
@@ -1316,7 +1345,7 @@ public class AiPaneView extends LinearLayout
         _activeCategory,
         _activeOptionId,
         _activeTone,
-        custom,
+        customInstruction,
         emojify,
         new AiProvider.Callback()
         {
@@ -1374,6 +1403,22 @@ public class AiPaneView extends LinearLayout
     }
   }
 
+  private void copyStringSilently(String text)
+  {
+    try
+    {
+      ClipboardManager cm = (ClipboardManager)getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+      if (cm != null)
+      {
+        cm.setPrimaryClip(ClipData.newPlainText("AI Generated", text));
+      }
+      typodev.keyboard.ClipboardHistoryService.setRecentCopiedClip(text);
+      typodev.keyboard.ClipboardHistoryService hs = typodev.keyboard.ClipboardHistoryService.get_service(getContext());
+      if (hs != null) hs.add_clip(text);
+    }
+    catch (Throwable ignored) {}
+  }
+
   private void applyResultToField(final boolean replaceOriginal)
   {
     final String output = (_lastGeneratedResult != null && !_lastGeneratedResult.trim().isEmpty())
@@ -1385,24 +1430,17 @@ public class AiPaneView extends LinearLayout
       return;
     }
 
-    try
+    if (_keyboard == null || _inputSessionId != _keyboard.getInputSessionId())
     {
-      ClipboardManager cm = (ClipboardManager)getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-      if (cm != null)
-      {
-        cm.setPrimaryClip(ClipData.newPlainText("AI Generated", output));
-      }
-      typodev.keyboard.ClipboardHistoryService.setRecentCopiedClip(output);
-      typodev.keyboard.ClipboardHistoryService hs = typodev.keyboard.ClipboardHistoryService.get_service(getContext());
-      if (hs != null) hs.add_clip(output);
+      copyStringSilently(output);
+      Toast.makeText(getContext(), "Copied to clipboard", Toast.LENGTH_SHORT).show();
+      return;
     }
-    catch (Throwable ignored) {}
-
-    if (_keyboard == null || _inputSessionId != _keyboard.getInputSessionId()) return;
 
     if (replaceOriginal && !_usingClipboard && !_inputFieldText.isEmpty()
         && !EditorTextGuard.matches(_keyboard.getTargetAppInputConnection(), _inputFieldText, _hasSelection))
     {
+      copyStringSilently(output);
       Toast.makeText(getContext(), "Input changed. The generated text was copied.", Toast.LENGTH_SHORT).show();
       return;
     }
@@ -1421,27 +1459,34 @@ public class AiPaneView extends LinearLayout
       try
       {
         ic.beginBatchEdit();
-        if (replaceOriginal)
+        try
         {
-          if (_hasSelection)
+          ic.finishComposingText();
+          if (replaceOriginal)
           {
-            applied = ic.commitText(output, 1);
-          }
-          else if (!_usingClipboard && _inputFieldText != null && !_inputFieldText.isEmpty())
-          {
-            ic.deleteSurroundingText(_inputFieldText.length(), 0);
-            applied = ic.commitText(output, 1);
+            if (_hasSelection)
+            {
+              applied = ic.commitText(output, 1);
+            }
+            else if (!_usingClipboard && _inputFieldText != null && !_inputFieldText.isEmpty())
+            {
+              ic.deleteSurroundingText(_inputFieldText.length(), 0);
+              applied = ic.commitText(output, 1);
+            }
+            else
+            {
+              applied = ic.commitText(output, 1);
+            }
           }
           else
           {
             applied = ic.commitText(output, 1);
           }
         }
-        else
+        finally
         {
-          applied = ic.commitText(output, 1);
+          ic.endBatchEdit();
         }
-        ic.endBatchEdit();
       }
       catch (Throwable t)
       {
@@ -1451,6 +1496,7 @@ public class AiPaneView extends LinearLayout
 
     if (!applied)
     {
+      copyStringSilently(output);
       typodev.keyboard.ClipboardHistoryService.paste(output);
     }
 

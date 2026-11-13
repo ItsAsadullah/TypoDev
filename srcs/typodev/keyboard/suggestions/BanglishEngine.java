@@ -35,6 +35,24 @@ public class BanglishEngine {
         return sInstance;
     }
 
+    public void clearCache() {
+        synchronized (mResultCache) {
+            mResultCache.clear();
+        }
+    }
+
+    private static List<Candidate> copyCandidates(List<Candidate> src) {
+        List<Candidate> copy = new ArrayList<>(src.size());
+        for (Candidate c : src) {
+            Candidate dup = new Candidate(c.word, c.source, c.frequency, c.editDistance, c.prefixMatchRatio, c.contextScore);
+            dup.recencyScore = c.recencyScore;
+            dup.rejectionPenalty = c.rejectionPenalty;
+            dup.compositeScore = c.compositeScore;
+            copy.add(dup);
+        }
+        return copy;
+    }
+
     public static boolean isLatinOnly(String word) {
         if (word == null || word.isEmpty()) return false;
         for (int i = 0; i < word.length(); i++) {
@@ -164,10 +182,12 @@ public class BanglishEngine {
 
         String lower = latinWord.toLowerCase(Locale.ROOT);
 
-        // Cache hit: return previously computed results immediately
-        List<Candidate> cached = mResultCache.get(latinWord);
-        if (cached != null) {
-            return cached;
+        // Cache hit: return defensive copy so caller score mutations never corrupt cached entries
+        synchronized (mResultCache) {
+            List<Candidate> cached = mResultCache.get(latinWord);
+            if (cached != null) {
+                return copyCandidates(cached);
+            }
         }
 
         List<Candidate> results = new ArrayList<>();
@@ -231,7 +251,9 @@ public class BanglishEngine {
             if (lower.equals("v")) addCandidateIfNotPresent(results, "ভ", Candidate.Source.AUTOCORRECT, 255);
             if (lower.equals("w")) addCandidateIfNotPresent(results, "ও", Candidate.Source.AUTOCORRECT, 255);
             // Single-letter results are always correct, cache them too
-            mResultCache.put(latinWord, results);
+            synchronized (mResultCache) {
+                mResultCache.put(latinWord, copyCandidates(results));
+            }
             return results;
         }
 
@@ -376,8 +398,12 @@ public class BanglishEngine {
             }
         }
 
-        // Store in cache before returning
-        mResultCache.put(latinWord, results);
+        // Store in cache only once lexicon is loaded so early boot calls never cache incomplete results
+        if (lex.isLoaded()) {
+            synchronized (mResultCache) {
+                mResultCache.put(latinWord, copyCandidates(results));
+            }
+        }
         return results;
     }
 

@@ -71,6 +71,9 @@ public final class KeyEventHandler
       conf.editor_config.should_move_cursor_force_fallback;
     _space_bar_auto_complete = conf.space_bar_auto_complete;
     _last_action = null;
+    last_replaced_word = null;
+    last_replacement_word = null;
+    last_replacement_word_len = 0;
   }
 
   public void finished()
@@ -94,6 +97,7 @@ public final class KeyEventHandler
     _suggestions.finished();
     _last_action = null;
     last_replaced_word = null;
+    last_replacement_word = null;
     last_replacement_word_len = 0;
   }
 
@@ -199,11 +203,23 @@ public final class KeyEventHandler
         _pendingAvroComposingEcho = false;
         if (!isOwnComposingEcho)
         {
+          InputConnection conn = _recv.getCurrentInputConnection();
+          if (conn != null)
+          {
+            try { conn.finishComposingText(); } catch (Throwable ignored) {}
+          }
           _avroComposingLatin.setLength(0);
           _avroCurrentBangla = "";
           _expectedAvroCursorDelta = 0;
         }
       }
+    }
+    if (newSelStart != newSelEnd || (oldSelStart >= 0 && Math.abs(newSelStart - oldSelStart) > last_replacement_word_len + 1))
+    {
+      _last_action = LastAction.OTHER;
+      last_replaced_word = null;
+      last_replacement_word = null;
+      last_replacement_word_len = 0;
     }
     _autocap.selection_updated(oldSelStart, newSelStart);
     if (!isAvroComposingActive())
@@ -333,9 +349,11 @@ public final class KeyEventHandler
       _pendingAvroComposingEcho = false;
       _expectedAvroCursorDelta = 0;
       _typedword.reset_after_composing(text.trim());
-      last_replaced_word = null;
-      last_replacement_word_len = 0;
+      last_replaced_word = !composedLatin.isEmpty() ? composedLatin : null;
+      last_replacement_word = text.trim();
+      last_replacement_word_len = (text + " ").length();
       _next_last_action = LastAction.SUGGESTION_ENTERED;
+      _last_action = LastAction.SUGGESTION_ENTERED;
 
       String clean = text.trim();
       if (canLearnFromEditor() && _suggestions != null && _suggestions.getContext() != null)
@@ -412,12 +430,18 @@ public final class KeyEventHandler
 
     if (isCalc && calcMatched != null)
     {
-      int calcRemoveBefore = Math.max(0, calcMatched.length() + cur_rel);
-      replace_surrounding_text(calcRemoveBefore, -cur_rel, effectiveText);
+      int calcRemoveBefore = Math.max(0, calcMatched.length());
+      replace_surrounding_text(calcRemoveBefore, 0, effectiveText);
       last_replaced_word = (calcRemoveBefore > 0) ? calcMatched : "";
+      last_replacement_word = effectiveText;
       last_replacement_word_len = effectiveText.length();
       _next_last_action = LastAction.SUGGESTION_ENTERED;
       _last_action = LastAction.SUGGESTION_ENTERED;
+      if (_suggestions != null)
+      {
+        _suggestions.clear();
+        _recv.set_suggestions(_suggestions);
+      }
       return;
     }
 
@@ -443,12 +467,18 @@ public final class KeyEventHandler
 
     if (isAlg && algMatched != null)
     {
-      int algRemoveBefore = Math.max(0, algMatched.length() + cur_rel);
-      replace_surrounding_text(algRemoveBefore, -cur_rel, effectiveText);
+      int algRemoveBefore = Math.max(0, algMatched.length());
+      replace_surrounding_text(algRemoveBefore, 0, effectiveText);
       last_replaced_word = (algRemoveBefore > 0) ? algMatched : "";
+      last_replacement_word = effectiveText;
       last_replacement_word_len = effectiveText.length();
       _next_last_action = LastAction.SUGGESTION_ENTERED;
       _last_action = LastAction.SUGGESTION_ENTERED;
+      if (_suggestions != null)
+      {
+        _suggestions.clear();
+        _recv.set_suggestions(_suggestions);
+      }
       return;
     }
 
@@ -516,8 +546,10 @@ public final class KeyEventHandler
 
     replace_surrounding_text(removeBefore, -cur_rel, textToInsert);
     last_replaced_word = (removeBefore > 0) ? old : "";
+    last_replacement_word = effectiveText.trim();
     last_replacement_word_len = textToInsert.length();
     _next_last_action = LastAction.SUGGESTION_ENTERED;
+    _last_action = LastAction.SUGGESTION_ENTERED;
 
     String clean = effectiveText.trim();
     if (canLearnFromEditor() && _suggestions != null && _suggestions.getContext() != null)
@@ -535,9 +567,19 @@ public final class KeyEventHandler
     }
 
     String contextString = (textBefore != null) ? textBefore.toString() : "";
-    // If the asynchronous IPC hasn't reflected the committed suggestion text yet, synthesize it
+    // If the asynchronous IPC hasn't reflected the committed suggestion text yet, strip unreplaced prefix first
     if (!contextString.endsWith(textToInsert) && !contextString.endsWith(clean + " ") && !contextString.endsWith(clean))
     {
+      if (removeBefore > 0 && contextString.length() >= removeBefore)
+      {
+        String expectedPrefix = (cur_rel < 0 && old.length() + cur_rel >= 0)
+            ? old.substring(0, old.length() + cur_rel)
+            : old;
+        if (!expectedPrefix.isEmpty() && contextString.endsWith(expectedPrefix))
+        {
+          contextString = contextString.substring(0, contextString.length() - expectedPrefix.length());
+        }
+      }
       if (!contextString.isEmpty() && !contextString.endsWith(" "))
       {
         contextString += " ";
@@ -566,7 +608,13 @@ public final class KeyEventHandler
   @Override
   public void paste_from_clipboard_pane(String content)
   {
-    send_text(content);
+    if (content == null || content.isEmpty()) return;
+    commitAvroComposing();
+    InputConnection conn = _recv.getCurrentInputConnection();
+    if (conn == null) return;
+    _autocap.typed(content);
+    conn.commitText(content, 1);
+    _typedword.typed(content);
   }
 
   @Override
@@ -676,16 +724,85 @@ public final class KeyEventHandler
     }
   }
 
+  private static String avroLatinForBengaliSubkey(String s)
+  {
+    if (s == null || s.isEmpty()) return null;
+    switch (s)
+    {
+      case "অ": return "o";
+      case "আ": return "a";
+      case "ই": return "i";
+      case "ঈ": return "I";
+      case "উ": return "u";
+      case "ঊ": return "U";
+      case "এ": return "e";
+      case "ঐ": return "OI";
+      case "ও": return "O";
+      case "ঔ": return "OU";
+      case "ক": return "k";
+      case "খ": return "kh";
+      case "গ": return "g";
+      case "ঘ": return "gh";
+      case "চ": return "c";
+      case "ছ": return "ch";
+      case "জ": return "j";
+      case "ঝ": return "jh";
+      case "ঞ": return "NG";
+      case "ট": return "T";
+      case "ঠ": return "Th";
+      case "ড": return "D";
+      case "ঢ": return "Dh";
+      case "ণ": return "N";
+      case "ত": return "t";
+      case "থ": return "th";
+      case "দ": return "d";
+      case "ধ": return "dh";
+      case "ন": return "n";
+      case "প": return "p";
+      case "ফ": return "ph";
+      case "ব": return "b";
+      case "ভ": return "bh";
+      case "ম": return "m";
+      case "য": return "z";
+      case "র": return "r";
+      case "ল": return "l";
+      case "শ": return "sh";
+      case "ষ": return "Sh";
+      case "স": return "s";
+      case "হ": return "h";
+      case "ড়": return "R";
+      case "ঢ়": return "Rh";
+      case "য়": return "y";
+      case "ং": return "ng";
+      case "ক্ষ": return "kSh";
+      case "জ্ঞ": return "gg";
+      default: return null;
+    }
+  }
+
   void send_text(String text)
   {
     InputConnection conn = _recv.getCurrentInputConnection();
-    if (conn == null)
+    if (conn == null || text == null)
       return;
 
-    if (isAvroActive() && typodev.keyboard.suggestions.BanglishEngine.isLatinOnly(text))
+    String avroInput = null;
+    if (isAvroActive())
+    {
+      if (typodev.keyboard.suggestions.BanglishEngine.isLatinOnly(text))
+      {
+        avroInput = text;
+      }
+      else
+      {
+        avroInput = avroLatinForBengaliSubkey(text);
+      }
+    }
+
+    if (avroInput != null)
     {
       int prevLen = (_avroCurrentBangla != null) ? _avroCurrentBangla.length() : 0;
-      _avroComposingLatin.append(text);
+      _avroComposingLatin.append(avroInput);
       String latinWord = _avroComposingLatin.toString();
       if (_suggestions != null)
       {
@@ -704,6 +821,7 @@ public final class KeyEventHandler
       _expectedAvroCursorDelta = _avroCurrentBangla.length() - prevLen;
       _pendingAvroComposingEcho = true;
       _lastAvroComposingUpdateMs = System.currentTimeMillis();
+      _autocap.typed(avroInput);
       conn.setComposingText(_avroCurrentBangla, 1);
       return;
     }
@@ -711,6 +829,23 @@ public final class KeyEventHandler
     if (isAvroComposingActive())
     {
       commitAvroComposing();
+    }
+
+    // Normalize split Bengali vowel signs (e.g. Jatiyo / e-Bijoy ে + া -> ো, ে + ৗ -> ৌ)
+    if (("\u09BE".equals(text) || "\u09D7".equals(text)) && !_typedword.is_selection_not_empty())
+    {
+      try
+      {
+        CharSequence before = conn.getTextBeforeCursor(1, 0);
+        if (before != null && before.length() == 1 && before.charAt(0) == '\u09C7')
+        {
+          String combined = "\u09BE".equals(text) ? "\u09CB" : "\u09CC";
+          _autocap.typed(combined);
+          replace_surrounding_text(1, 0, combined);
+          return;
+        }
+      }
+      catch (Throwable ignored) {}
     }
 
     _autocap.typed(text);
@@ -831,14 +966,26 @@ public final class KeyEventHandler
 
   void handle_stateful(KeyValue.Stateful st)
   {
+    if (_suggestions == null) return;
+    String cand = null;
     switch (st)
     {
       case Complete_first:
-      case Complete_second:
-      case Complete_third:
-      case Complete_emoji:
-        suggestion_entered(st.toString());
+        if (_suggestions.count > 0) cand = _suggestions.suggestions[0];
         break;
+      case Complete_second:
+        if (_suggestions.count > 1) cand = _suggestions.suggestions[1];
+        break;
+      case Complete_third:
+        if (_suggestions.count > 2) cand = _suggestions.suggestions[2];
+        break;
+      case Complete_emoji:
+        cand = _suggestions.emoji_suggestion;
+        break;
+    }
+    if (cand != null && !cand.isEmpty())
+    {
+      suggestion_entered(cand);
     }
   }
 
@@ -1040,6 +1187,8 @@ public final class KeyEventHandler
       enter a suggestion (with the space bar or the candidates view) or [null]
       otherwise. */
   String last_replaced_word = null;
+  /** The candidate word that replaced [last_replaced_word]. */
+  String last_replacement_word = null;
   /** Length of the text before the cursor that should be replaced by
       backspace. */
   int last_replacement_word_len = 0;
@@ -1052,9 +1201,10 @@ public final class KeyEventHandler
     if (isAvroComposingActive())
     {
       InputConnection conn = _recv.getCurrentInputConnection();
+      String composedLatin = _avroComposingLatin.toString();
       String wordToCommit = (_avroCurrentBangla != null && !_avroCurrentBangla.isEmpty())
           ? _avroCurrentBangla
-          : _avroComposingLatin.toString();
+          : composedLatin;
       if (conn != null)
       {
         conn.commitText(wordToCommit + " ", 1);
@@ -1064,9 +1214,22 @@ public final class KeyEventHandler
       _avroCurrentBangla = "";
       _pendingAvroComposingEcho = false;
       _expectedAvroCursorDelta = 0;
+      _autocap.typed(" ");
       _typedword.reset_after_composing(wordToCommit.trim());
-      last_replaced_word = null;
-      last_replacement_word_len = 0;
+      if (!composedLatin.isEmpty() && !composedLatin.equals(wordToCommit))
+      {
+        last_replaced_word = composedLatin;
+        last_replacement_word = wordToCommit.trim();
+        last_replacement_word_len = (wordToCommit + " ").length();
+        _next_last_action = LastAction.SUGGESTION_ENTERED;
+        _last_action = LastAction.SUGGESTION_ENTERED;
+      }
+      else
+      {
+        last_replaced_word = null;
+        last_replacement_word = null;
+        last_replacement_word_len = 0;
+      }
 
       if (canLearnFromEditor() && _suggestions != null && _suggestions.getContext() != null)
       {
@@ -1188,10 +1351,12 @@ public final class KeyEventHandler
     if (_last_action == LastAction.SUGGESTION_ENTERED
         && last_replaced_word != null)
     {
-      if (canLearnFromEditor() && _suggestions != null && _suggestions.count > 0 && _suggestions.getContext() != null)
+      if (canLearnFromEditor() && _suggestions != null && _suggestions.getContext() != null)
       {
-        String candidateThatReplaced = _suggestions.suggestions[0];
-        if (candidateThatReplaced != null)
+        String candidateThatReplaced = (last_replacement_word != null && !last_replacement_word.isEmpty())
+            ? last_replacement_word
+            : (_suggestions.count > 0 ? _suggestions.suggestions[0] : null);
+        if (candidateThatReplaced != null && !candidateThatReplaced.isEmpty())
         {
           typodev.keyboard.suggestions.UserVocabularyStore.instance(_suggestions.getContext())
               .recordRejection(candidateThatReplaced, last_replaced_word);
@@ -1199,6 +1364,9 @@ public final class KeyEventHandler
       }
       replace_surrounding_text(last_replacement_word_len, 0, last_replaced_word);
       last_replaced_word = null;
+      last_replacement_word = null;
+      last_replacement_word_len = 0;
+      _last_action = LastAction.OTHER;
     }
     else
     {

@@ -166,7 +166,14 @@ public class AiScreenCaptureActivity extends Activity
     }
     else
     {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+      if (Build.VERSION.SDK_INT >= 34)
+      {
+        requestPermissions(new String[]{
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+        }, REQUEST_STORAGE_PERMISSION);
+      }
+      else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
       {
         requestPermissions(new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_STORAGE_PERMISSION);
       }
@@ -185,7 +192,12 @@ public class AiScreenCaptureActivity extends Activity
   {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
     {
-      return checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED;
+      if (checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED)
+        return true;
+      if (Build.VERSION.SDK_INT >= 34
+          && checkSelfPermission(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED)
+        return true;
+      return false;
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
     {
@@ -219,7 +231,7 @@ public class AiScreenCaptureActivity extends Activity
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == REQUEST_STORAGE_PERMISSION)
     {
-      if (grantResults != null && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+      if (hasStoragePermission())
       {
         processLatestScreenshot();
       }

@@ -1,8 +1,9 @@
 package typodev.keyboard;
 
 import android.os.Handler;
-import android.view.inputmethod.InputConnection;
+import android.text.TextUtils;
 import android.view.KeyEvent;
+import android.view.inputmethod.InputConnection;
 
 public final class Autocapitalisation
 {
@@ -202,9 +203,17 @@ public final class Autocapitalisation
 
   boolean is_trigger_character(char c)
   {
+    if ((_caps_mode & TextUtils.CAP_MODE_CHARACTERS) != 0)
+      return true;
     switch (c)
     {
       case ' ':
+      case '\n':
+      case '"':
+      case '\'':
+      case '(':
+      case '[':
+      case '{':
         return true;
       default:
         return false;

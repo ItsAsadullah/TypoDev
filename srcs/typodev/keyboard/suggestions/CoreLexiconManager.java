@@ -38,12 +38,17 @@ public class CoreLexiconManager
     {
       _instance = new CoreLexiconManager(context != null ? context.getApplicationContext() : null);
     }
+    else if (!_instance._loadedFromResources && context != null)
+    {
+      _instance.reloadWithContext(context.getApplicationContext());
+    }
     return _instance;
   }
 
   private final List<WordEntry> _englishWords = new ArrayList<>();
   private final List<WordEntry> _bengaliWords = new ArrayList<>();
   private volatile boolean _isLoaded = false;
+  private volatile boolean _loadedFromResources = false;
 
   public CoreLexiconManager(Context context)
   {
@@ -55,6 +60,32 @@ public class CoreLexiconManager
     {
       loadEmbeddedFallback();
     }
+  }
+
+  private synchronized void reloadWithContext(Context context)
+  {
+    if (_loadedFromResources || context == null) return;
+    List<WordEntry> enTmp = new ArrayList<>();
+    List<WordEntry> bnTmp = new ArrayList<>();
+    try
+    {
+      InputStream enIs = context.getResources().openRawResource(R.raw.core_lexicon_en);
+      loadStream(enIs, enTmp);
+      InputStream bnIs = context.getResources().openRawResource(R.raw.core_lexicon_bn);
+      loadStream(bnIs, bnTmp);
+      if (!enTmp.isEmpty() || !bnTmp.isEmpty())
+      {
+        sortLexicon(enTmp);
+        sortLexicon(bnTmp);
+        _englishWords.clear();
+        _englishWords.addAll(enTmp);
+        _bengaliWords.clear();
+        _bengaliWords.addAll(bnTmp);
+        _loadedFromResources = true;
+        _isLoaded = true;
+      }
+    }
+    catch (Exception ignored) {}
   }
 
   public boolean isLoaded()
@@ -76,6 +107,7 @@ public class CoreLexiconManager
 
       sortLexicon(_englishWords);
       sortLexicon(_bengaliWords);
+      _loadedFromResources = true;
       _isLoaded = true;
     }
     catch (Exception e)
@@ -245,25 +277,27 @@ public class CoreLexiconManager
     }
 
     String clean = word.trim().toLowerCase(Locale.ROOT);
+    int cleanLen = clean.length();
     boolean isBengali = BanglishEngine.isBengaliScript(clean);
     List<WordEntry> list = isBengali ? _bengaliWords : _englishWords;
 
     List<Candidate> typos = new ArrayList<>();
-    for (WordEntry entry : list)
+    for (int idx = 0, size = list.size(); idx < size; idx++)
     {
-      String dictWord = entry.word.toLowerCase(Locale.ROOT);
-      // Fast length filter: Levenshtein distance 1 requires length difference <= 1
-      if (Math.abs(dictWord.length() - clean.length()) > 1)
+      WordEntry entry = list.get(idx);
+      String dictWord = entry.word;
+      int dictLen = dictWord.length();
+      // Fast length filter before any character comparisons (zero allocations)
+      if (Math.abs(dictLen - cleanLen) > 1)
       {
         continue;
       }
 
-      int dist = computeLevenshteinDistance1(clean, dictWord);
+      int dist = computeLevenshteinDistance1CaseInsensitive(clean, dictWord);
       if (dist == 1)
       {
-        float ratio = (float) Math.min(clean.length(), dictWord.length()) / (float) Math.max(clean.length(), dictWord.length());
-        typos.add(new Candidate(entry.word, Candidate.Source.TYPO_CORRECTION, entry.frequency, 1, ratio));
-        if (typos.size() >= maxResults * 2) break;
+        float ratio = (float) Math.min(cleanLen, dictLen) / (float) Math.max(cleanLen, dictLen);
+        typos.add(new Candidate(dictWord, Candidate.Source.TYPO_CORRECTION, entry.frequency, 1, ratio));
       }
     }
 
@@ -312,11 +346,19 @@ public class CoreLexiconManager
    */
   public static int computeLevenshteinDistance1(String s1, String s2)
   {
-    int len1 = s1.length();
+    return computeLevenshteinDistance1CaseInsensitive(
+        s1.toLowerCase(Locale.ROOT), s2);
+  }
+
+  /**
+   * Allocation-free case-insensitive Damerau-Levenshtein distance-1 check (s1 assumed lowercase).
+   */
+  private static int computeLevenshteinDistance1CaseInsensitive(String s1Lower, String s2)
+  {
+    int len1 = s1Lower.length();
     int len2 = s2.length();
     if (Math.abs(len1 - len2) > 1) return 2;
 
-    // Equal lengths: substitution or adjacent transposition
     if (len1 == len2)
     {
       int mismatch1 = -1;
@@ -324,7 +366,7 @@ public class CoreLexiconManager
       int mismatches = 0;
       for (int k = 0; k < len1; k++)
       {
-        if (s1.charAt(k) != s2.charAt(k))
+        if (s1Lower.charAt(k) != Character.toLowerCase(s2.charAt(k)))
         {
           mismatches++;
           if (mismatch1 == -1) mismatch1 = k;
@@ -333,11 +375,11 @@ public class CoreLexiconManager
         }
       }
       if (mismatches == 0) return 0;
-      if (mismatches == 1) return 1; // Single substitution
+      if (mismatches == 1) return 1;
       if (mismatches == 2 && mismatch2 == mismatch1 + 1)
       {
-        // Adjacent transposition: "thsi" -> "this", "teh" -> "the"
-        if (s1.charAt(mismatch1) == s2.charAt(mismatch2) && s1.charAt(mismatch2) == s2.charAt(mismatch1))
+        if (s1Lower.charAt(mismatch1) == Character.toLowerCase(s2.charAt(mismatch2))
+            && s1Lower.charAt(mismatch2) == Character.toLowerCase(s2.charAt(mismatch1)))
         {
           return 1;
         }
@@ -345,26 +387,18 @@ public class CoreLexiconManager
       return 2;
     }
 
-    // Single insertion or deletion
     int i = 0;
     int j = 0;
     int diff = 0;
 
     while (i < len1 && j < len2)
     {
-      if (s1.charAt(i) != s2.charAt(j))
+      if (s1Lower.charAt(i) != Character.toLowerCase(s2.charAt(j)))
       {
         diff++;
         if (diff > 1) return 2;
-
-        if (len1 > len2)
-        {
-          i++; // Deletion
-        }
-        else
-        {
-          j++; // Insertion
-        }
+        if (len1 > len2) i++;
+        else j++;
       }
       else
       {

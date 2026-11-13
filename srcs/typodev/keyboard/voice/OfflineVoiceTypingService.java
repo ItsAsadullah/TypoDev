@@ -31,6 +31,8 @@ public class OfflineVoiceTypingService
   private static boolean _isListening = false;
   private static String _lastPartialText = "";
   private static String _lastStablePartialText = "";
+  private static String _lastRawPartialText = "";
+  private static String _lastRawStablePartialText = "";
   private static final StringBuilder _sessionCommittedText = new StringBuilder();
   private static Keyboard2 _activeKeyboard = null;
   private static Context _appContext = null;
@@ -201,6 +203,8 @@ public class OfflineVoiceTypingService
     _activeInputSession = keyboard.getInputSessionId();
     _lastPartialText = "";
     _lastStablePartialText = "";
+    _lastRawPartialText = "";
+    _lastRawStablePartialText = "";
     _sessionCommittedText.setLength(0);
     _emptyTimeoutCount = 0;
     _isListening = true;
@@ -435,6 +439,7 @@ public class OfflineVoiceTypingService
           String stable = extractStableTextFromBundle(partialResults);
           if (stable != null && !stable.trim().isEmpty())
           {
+            _lastRawStablePartialText = stable.trim();
             _lastStablePartialText = VoicePunctuationHelper.applyVoiceCommands(_appContext, stable, langCode);
           }
           String text = extractTextFromBundle(partialResults, true);
@@ -442,6 +447,7 @@ public class OfflineVoiceTypingService
           {
             _emptyTimeoutCount = 0;
             resetInactivityTimer();
+            _lastRawPartialText = text.trim();
             String processed = VoicePunctuationHelper.applyVoiceCommands(_appContext, text, langCode);
             _lastPartialText = processed;
             // Real-time live update into the editor field as composing text
@@ -466,9 +472,11 @@ public class OfflineVoiceTypingService
         String recognizedText = extractTextFromBundle(results, false);
         if (recognizedText == null || recognizedText.trim().isEmpty())
         {
-          recognizedText = !_lastStablePartialText.trim().isEmpty()
-              ? _lastStablePartialText
-              : _lastPartialText;
+          recognizedText = !_lastRawStablePartialText.trim().isEmpty()
+              ? _lastRawStablePartialText
+              : (!_lastRawPartialText.trim().isEmpty()
+                  ? _lastRawPartialText
+                  : (!_lastStablePartialText.trim().isEmpty() ? _lastStablePartialText : _lastPartialText));
         }
 
         if (recognizedText != null && !recognizedText.trim().isEmpty())
@@ -496,6 +504,8 @@ public class OfflineVoiceTypingService
           _sessionCommittedText.append(processed);
           _lastPartialText = "";
           _lastStablePartialText = "";
+          _lastRawPartialText = "";
+          _lastRawStablePartialText = "";
         }
 
         // Fast ultra-low-latency restart so following speech is never dropped
@@ -512,9 +522,11 @@ public class OfflineVoiceTypingService
           case SpeechRecognizer.ERROR_NO_MATCH:
           case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
             // Natural pause in speech: commit any existing partial text and resume listening fast
-            String fallbackText = !_lastStablePartialText.trim().isEmpty()
-                ? _lastStablePartialText
-                : _lastPartialText;
+            String fallbackText = !_lastRawStablePartialText.trim().isEmpty()
+                ? _lastRawStablePartialText
+                : (!_lastRawPartialText.trim().isEmpty()
+                    ? _lastRawPartialText
+                    : (!_lastStablePartialText.trim().isEmpty() ? _lastStablePartialText : _lastPartialText));
             if (!fallbackText.trim().isEmpty() && _activeKeyboard != null)
             {
               _emptyTimeoutCount = 0;
@@ -537,6 +549,8 @@ public class OfflineVoiceTypingService
               _sessionCommittedText.append(processed);
               _lastPartialText = "";
               _lastStablePartialText = "";
+              _lastRawPartialText = "";
+              _lastRawStablePartialText = "";
               fastRestartListening();
             }
             else
@@ -695,8 +709,21 @@ public class OfflineVoiceTypingService
       return;
     }
     VoicePermissionActivity.cancelPendingRequest();
+    if (_isListening && _activeInputConnection != null
+        && (!_lastPartialText.isEmpty() || !_lastStablePartialText.isEmpty()
+            || !_lastRawPartialText.isEmpty() || !_lastRawStablePartialText.isEmpty()))
+    {
+      try
+      {
+        _activeInputConnection.setComposingText("", 1);
+        _activeInputConnection.finishComposingText();
+      }
+      catch (Throwable ignored) {}
+    }
     _lastPartialText = "";
     _lastStablePartialText = "";
+    _lastRawPartialText = "";
+    _lastRawStablePartialText = "";
     _sessionCommittedText.setLength(0);
     stopListening();
   }
@@ -738,10 +765,14 @@ public class OfflineVoiceTypingService
     Keyboard2 kb = _activeKeyboard;
     Context ctx = _appContext;
 
-    // Commit any uncommitted partial segment
-    String pendingPartial = !_lastStablePartialText.trim().isEmpty()
-        ? _lastStablePartialText
-        : _lastPartialText;
+    // Commit any uncommitted partial segment using raw text so voice commands aren't double-applied
+    String pendingPartial = !_lastRawStablePartialText.trim().isEmpty()
+        ? _lastRawStablePartialText
+        : (!_lastRawPartialText.trim().isEmpty()
+            ? _lastRawPartialText
+            : (!_lastStablePartialText.trim().isEmpty()
+                ? _lastStablePartialText
+                : _lastPartialText));
     if (currentInput && !pendingPartial.trim().isEmpty() && kb != null)
     {
       String langCode = kb.getCurrentLanguageCode();
@@ -758,13 +789,22 @@ public class OfflineVoiceTypingService
       _sessionCommittedText.append(processed);
       _lastPartialText = "";
       _lastStablePartialText = "";
+      _lastRawPartialText = "";
+      _lastRawStablePartialText = "";
     }
 
     destroyRecognizer();
 
     if (kb != null)
     {
-      kb.finishVoiceTyping();
+      if (currentInput)
+      {
+        kb.finishVoiceTyping();
+      }
+      else if (kb.getCandidatesView() != null)
+      {
+        kb.getCandidatesView().onVoiceListeningStopped();
+      }
     }
 
     final String sessionText = _sessionCommittedText.toString().trim();
@@ -788,6 +828,8 @@ public class OfflineVoiceTypingService
     _appContext = null;
     _lastPartialText = "";
     _lastStablePartialText = "";
+    _lastRawPartialText = "";
+    _lastRawStablePartialText = "";
   }
 
   private static void destroyRecognizer()

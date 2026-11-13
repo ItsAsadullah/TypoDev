@@ -43,7 +43,8 @@ public class BanglishUserDictionary
   }
 
   private static volatile BanglishUserDictionary sInstance;
-  private final Context _context;
+  private volatile Context _context;
+  private volatile boolean _loaded = false;
   private final ConcurrentHashMap<String, List<Entry>> _mappings = new ConcurrentHashMap<>(256);
   private final ExecutorService _ioExecutor = Executors.newSingleThreadExecutor();
 
@@ -58,6 +59,20 @@ public class BanglishUserDictionary
           sInstance = new BanglishUserDictionary(context != null ? context.getApplicationContext() : null);
         }
       }
+    }
+    if (context != null && sInstance._context == null)
+    {
+      synchronized (BanglishUserDictionary.class)
+      {
+        if (sInstance._context == null)
+        {
+          sInstance._context = context.getApplicationContext();
+        }
+      }
+    }
+    if (sInstance._context != null && !sInstance._loaded)
+    {
+      sInstance.loadFromDisk();
     }
     return sInstance;
   }
@@ -138,6 +153,7 @@ public class BanglishUserDictionary
       }
     }
 
+    BanglishEngine.instance().clearCache();
     scheduleSave();
   }
 
@@ -210,6 +226,7 @@ public class BanglishUserDictionary
         }
       }
     }
+    BanglishEngine.instance().clearCache();
     scheduleSave();
   }
 
@@ -226,10 +243,35 @@ public class BanglishUserDictionary
     });
   }
 
+  private static boolean isDirectBootLocked(Context ctx)
+  {
+    if (ctx == null || android.os.Build.VERSION.SDK_INT < 24) return false;
+    try
+    {
+      android.os.UserManager um = (android.os.UserManager) ctx.getSystemService(Context.USER_SERVICE);
+      return um != null && !um.isUserUnlocked();
+    }
+    catch (Throwable ignored)
+    {
+      return false;
+    }
+  }
+
   private synchronized void saveToDisk()
   {
-    if (_context == null) return;
-    File file = new File(_context.getFilesDir(), STORE_FILE);
+    if (_context == null || isDirectBootLocked(_context)) return;
+    if (!_loaded) loadFromDisk();
+    File filesDir;
+    try
+    {
+      filesDir = _context.getFilesDir();
+    }
+    catch (Throwable t)
+    {
+      return;
+    }
+    if (filesDir == null) return;
+    File file = new File(filesDir, STORE_FILE);
     try (FileOutputStream fos = new FileOutputStream(file);
          OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8))
     {
@@ -251,8 +293,19 @@ public class BanglishUserDictionary
 
   private synchronized void loadFromDisk()
   {
-    if (_context == null) return;
-    File file = new File(_context.getFilesDir(), STORE_FILE);
+    if (_context == null || _loaded || isDirectBootLocked(_context)) return;
+    File filesDir;
+    try
+    {
+      filesDir = _context.getFilesDir();
+    }
+    catch (Throwable t)
+    {
+      return;
+    }
+    if (filesDir == null) return;
+    _loaded = true;
+    File file = new File(filesDir, STORE_FILE);
     if (!file.exists()) return;
 
     boolean purgedCorrupted = false;

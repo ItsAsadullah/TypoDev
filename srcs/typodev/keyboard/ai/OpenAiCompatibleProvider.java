@@ -56,8 +56,20 @@ public class OpenAiCompatibleProvider implements AiProvider
   private static volatile List<String> _cachedModelsList = new ArrayList<>();
 
   private static OpenAiCompatibleProvider _instance;
-  private static final ExecutorService _executor = Executors.newSingleThreadExecutor();
+  private static final ExecutorService _executor = Executors.newCachedThreadPool();
   private static volatile Handler _mainHandler;
+
+  private static SharedPreferences getSafeDefaultPrefs(Context context)
+  {
+    try
+    {
+      return PreferenceManager.getDefaultSharedPreferences(context);
+    }
+    catch (Throwable ignored)
+    {
+      return typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context);
+    }
+  }
 
   private static void runOnMainThread(Runnable r)
   {
@@ -114,8 +126,8 @@ public class OpenAiCompatibleProvider implements AiProvider
 
   public static String getRawSavedApiKey(Context context)
   {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    String raw = cleanApiKey(prefs.getString(PREF_OPENAI_API_KEY, ""));
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    String raw = cleanApiKey(prefs != null ? prefs.getString(PREF_OPENAI_API_KEY, "") : "");
     if (raw.isEmpty())
     {
       try
@@ -136,8 +148,8 @@ public class OpenAiCompatibleProvider implements AiProvider
       return raw;
     }
     // Check if user pasted a Groq (gsk_), xAI Grok (xai-), or OpenAI (sk-) key in the Gemini field
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    String geminiRaw = cleanApiKey(prefs.getString(GeminiAiService.PREF_GEMINI_API_KEY, ""));
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    String geminiRaw = cleanApiKey(prefs != null ? prefs.getString(GeminiAiService.PREF_GEMINI_API_KEY, "") : "");
     if (Manager.isOpenAiCompatibleKey(geminiRaw))
     {
       return geminiRaw;
@@ -155,16 +167,20 @@ public class OpenAiCompatibleProvider implements AiProvider
       return;
     }
 
-    PreferenceManager.getDefaultSharedPreferences(context)
-        .edit()
-        .putString(PREF_OPENAI_API_KEY, clean)
-        .apply();
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    if (prefs != null)
+    {
+      prefs.edit().putString(PREF_OPENAI_API_KEY, clean).apply();
+    }
     try
     {
-      typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
-          .edit()
-          .putString(PREF_OPENAI_API_KEY, clean)
-          .apply();
+      if (typodev.keyboard.DirectBootAwarePreferences.isUserUnlocked(context))
+      {
+        typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
+            .edit()
+            .remove(PREF_OPENAI_API_KEY)
+            .apply();
+      }
     }
     catch (Throwable ignored) {}
 
@@ -207,8 +223,8 @@ public class OpenAiCompatibleProvider implements AiProvider
 
   private static String getRawBaseUrl(Context context)
   {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    String url = prefs.getString(PREF_OPENAI_BASE_URL, "").trim();
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    String url = prefs != null ? prefs.getString(PREF_OPENAI_BASE_URL, "").trim() : "";
     if (url.isEmpty())
     {
       try
@@ -276,10 +292,11 @@ public class OpenAiCompatibleProvider implements AiProvider
   public static void setBaseUrl(Context context, String url)
   {
     String clean = normalizeBaseUrl(url, getRawSavedApiKey(context));
-    PreferenceManager.getDefaultSharedPreferences(context)
-        .edit()
-        .putString(PREF_OPENAI_BASE_URL, clean)
-        .apply();
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    if (prefs != null)
+    {
+      prefs.edit().putString(PREF_OPENAI_BASE_URL, clean).apply();
+    }
     try
     {
       typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
@@ -292,8 +309,8 @@ public class OpenAiCompatibleProvider implements AiProvider
 
   private static String getRawModel(Context context)
   {
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-    String model = prefs.getString(PREF_OPENAI_MODEL, "").trim();
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    String model = prefs != null ? prefs.getString(PREF_OPENAI_MODEL, "").trim() : "";
     if (model.isEmpty())
     {
       try
@@ -368,10 +385,11 @@ public class OpenAiCompatibleProvider implements AiProvider
   public static void setModel(Context context, String model)
   {
     String clean = (model != null && !model.trim().isEmpty()) ? model.trim() : DEFAULT_OPENAI_MODEL;
-    PreferenceManager.getDefaultSharedPreferences(context)
-        .edit()
-        .putString(PREF_OPENAI_MODEL, clean)
-        .apply();
+    SharedPreferences prefs = getSafeDefaultPrefs(context);
+    if (prefs != null)
+    {
+      prefs.edit().putString(PREF_OPENAI_MODEL, clean).apply();
+    }
     try
     {
       typodev.keyboard.DirectBootAwarePreferences.get_shared_preferences(context)
@@ -385,8 +403,91 @@ public class OpenAiCompatibleProvider implements AiProvider
   public static String stripReasoningThinkTags(String text)
   {
     if (text == null) return "";
-    String cleaned = text.replaceAll("(?s)<think>.*?</think>", "").trim();
+    String cleaned = text.replaceAll("(?is)<think>.*?</think>", "");
+    int unclosed = cleaned.toLowerCase(Locale.ROOT).indexOf("<think>");
+    if (unclosed >= 0)
+    {
+      cleaned = cleaned.substring(0, unclosed);
+    }
+    cleaned = cleaned.trim();
     return cleaned.isEmpty() ? text.trim() : cleaned;
+  }
+
+  public static boolean isVisionCapableModel(String model)
+  {
+    if (model == null || model.trim().isEmpty()) return false;
+    String lower = model.trim().toLowerCase(Locale.ROOT);
+    return lower.contains("vision")
+        || lower.contains("llama-4-scout")
+        || lower.contains("llama-4-maverick")
+        || lower.contains("pixtral")
+        || lower.contains("llava")
+        || lower.contains("gpt-4o")
+        || lower.contains("gpt-4.1")
+        || lower.contains("claude-3")
+        || lower.contains("claude-sonnet")
+        || lower.contains("gemini")
+        || lower.contains("-vl");
+  }
+
+  public static JSONArray buildMessagesJson(
+      String systemPrompt,
+      String userText,
+      byte[] imageBytes,
+      String mimeType) throws org.json.JSONException
+  {
+    boolean hasImage = imageBytes != null && imageBytes.length > 0;
+    boolean hasSys = systemPrompt != null && !systemPrompt.trim().isEmpty();
+    boolean hasUser = userText != null && !userText.trim().isEmpty();
+
+    JSONArray messages = new JSONArray();
+    if (!hasImage && !hasUser && hasSys)
+    {
+      JSONObject userMsg = new JSONObject();
+      userMsg.put("role", "user");
+      userMsg.put("content", systemPrompt.trim());
+      messages.put(userMsg);
+      return messages;
+    }
+
+    if (hasSys)
+    {
+      JSONObject sysMsg = new JSONObject();
+      sysMsg.put("role", "system");
+      sysMsg.put("content", systemPrompt.trim());
+      messages.put(sysMsg);
+    }
+
+    JSONObject userMsg = new JSONObject();
+    userMsg.put("role", "user");
+
+    if (hasImage)
+    {
+      String b64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP);
+      String mime = (mimeType != null && !mimeType.isEmpty()) ? mimeType : "image/jpeg";
+      JSONArray contentArr = new JSONArray();
+
+      JSONObject textPart = new JSONObject();
+      textPart.put("type", "text");
+      textPart.put("text", userText != null ? userText : "");
+      contentArr.put(textPart);
+
+      JSONObject imgUrlObj = new JSONObject();
+      imgUrlObj.put("url", "data:" + mime + ";base64," + b64);
+      JSONObject imgPart = new JSONObject();
+      imgPart.put("type", "image_url");
+      imgPart.put("image_url", imgUrlObj);
+      contentArr.put(imgPart);
+
+      userMsg.put("content", contentArr);
+    }
+    else
+    {
+      userMsg.put("content", userText != null ? userText : "");
+    }
+
+    messages.put(userMsg);
+    return messages;
   }
 
   public interface ModelsCallback
@@ -581,17 +682,32 @@ public class OpenAiCompatibleProvider implements AiProvider
 
         if (hasImage)
         {
-          if (isGroq && (liveModels.isEmpty() || liveModels.contains(GROQ_VISION_MODEL)))
+          if (isVisionCapableModel(configuredModel))
+          {
+            modelsToTry.add(configuredModel);
+          }
+          if (isGroq && !modelsToTry.contains(GROQ_VISION_MODEL))
           {
             modelsToTry.add(GROQ_VISION_MODEL);
           }
-          else if (isXai)
+          else if (isXai && !modelsToTry.contains(XAI_VISION_MODEL))
           {
             modelsToTry.add(XAI_VISION_MODEL);
           }
+          for (String live : liveModels)
+          {
+            if (isVisionCapableModel(live) && !modelsToTry.contains(live))
+            {
+              modelsToTry.add(live);
+              if (modelsToTry.size() >= 6) break;
+            }
+          }
+          if (modelsToTry.isEmpty())
+          {
+            modelsToTry.add(!configuredModel.isEmpty() ? configuredModel : DEFAULT_OPENAI_MODEL);
+          }
         }
-
-        if (!liveModels.isEmpty())
+        else if (!liveModels.isEmpty())
         {
           if (liveModels.contains(configuredModel) && !modelsToTry.contains(configuredModel))
           {
@@ -630,6 +746,7 @@ public class OpenAiCompatibleProvider implements AiProvider
 
         String primaryErr = null;
         String lastErr = "Request failed";
+        boolean primaryModelDecommissioned = false;
 
         for (int i = 0; i < modelsToTry.size(); i++)
         {
@@ -658,44 +775,7 @@ public class OpenAiCompatibleProvider implements AiProvider
               root.put("max_tokens", safeMaxTokens);
             }
 
-            JSONArray messages = new JSONArray();
-            if (systemPrompt != null && !systemPrompt.trim().isEmpty())
-            {
-              JSONObject sysMsg = new JSONObject();
-              sysMsg.put("role", "system");
-              sysMsg.put("content", systemPrompt.trim());
-              messages.put(sysMsg);
-            }
-
-            JSONObject userMsg = new JSONObject();
-            userMsg.put("role", "user");
-
-            if (hasImage)
-            {
-              String b64 = Base64.encodeToString(imageBytes, Base64.NO_WRAP);
-              String mime = (mimeType != null && !mimeType.isEmpty()) ? mimeType : "image/jpeg";
-              JSONArray contentArr = new JSONArray();
-
-              JSONObject textPart = new JSONObject();
-              textPart.put("type", "text");
-              textPart.put("text", userText != null ? userText : "");
-              contentArr.put(textPart);
-
-              JSONObject imgUrlObj = new JSONObject();
-              imgUrlObj.put("url", "data:" + mime + ";base64," + b64);
-              JSONObject imgPart = new JSONObject();
-              imgPart.put("type", "image_url");
-              imgPart.put("image_url", imgUrlObj);
-              contentArr.put(imgPart);
-
-              userMsg.put("content", contentArr);
-            }
-            else
-            {
-              userMsg.put("content", userText != null ? userText : "");
-            }
-
-            messages.put(userMsg);
+            JSONArray messages = buildMessagesJson(systemPrompt, userText, imageBytes, mimeType);
             root.put("messages", messages);
 
             byte[] payload = root.toString().getBytes(StandardCharsets.UTF_8);
@@ -734,8 +814,8 @@ public class OpenAiCompatibleProvider implements AiProvider
                 JSONObject message = first.optJSONObject("message");
                 if (message != null)
                 {
-                  // Persist verified working model if different
-                  if (!model.equals(configuredModel) && !hasImage)
+                  // Only persist fallback model if the configured primary model was permanently invalid/decommissioned
+                  if (primaryModelDecommissioned && !model.equals(configuredModel) && !hasImage)
                   {
                     setModel(context, model);
                   }
@@ -771,13 +851,16 @@ public class OpenAiCompatibleProvider implements AiProvider
               lastErr = errMsg;
 
               String lowerErr = errMsg.toLowerCase(Locale.ROOT);
-              boolean isModelOrRateErr = statusCode == 404
-                  || statusCode == 429
-                  || statusCode == 503
+              boolean isInvalidModel = statusCode == 404
                   || (statusCode == 400 && (lowerErr.contains("model")
                       || lowerErr.contains("decommissioned")
                       || lowerErr.contains("not exist")
                       || lowerErr.contains("not supported")));
+              if (i == 0 && isInvalidModel)
+              {
+                primaryModelDecommissioned = true;
+              }
+              boolean isModelOrRateErr = isInvalidModel || statusCode == 429 || statusCode == 503;
 
               if (isModelOrRateErr && i < modelsToTry.size() - 1)
               {

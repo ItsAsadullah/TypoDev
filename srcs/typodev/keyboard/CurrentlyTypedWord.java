@@ -334,6 +334,8 @@ public final class CurrentlyTypedWord
     return Character.isLetterOrDigit(c)
         || type == Character.NON_SPACING_MARK
         || type == Character.COMBINING_SPACING_MARK
+        || c == '\u200C'
+        || c == '\u200D'
         || (c == '\'');
   }
 

@@ -31,11 +31,20 @@ public class GeminiAiProvider implements AiProvider
   public void generate(Context context, String systemPrompt, String userText, final Callback callback)
   {
     StringBuilder fullPrompt = new StringBuilder();
-    if (systemPrompt != null && !systemPrompt.trim().isEmpty())
+    boolean hasSys = systemPrompt != null && !systemPrompt.trim().isEmpty();
+    boolean hasUser = userText != null && !userText.trim().isEmpty();
+    if (hasSys)
     {
-      fullPrompt.append(systemPrompt.trim()).append("\n\n");
+      fullPrompt.append(systemPrompt.trim());
+      if (hasUser)
+      {
+        fullPrompt.append("\n\n");
+      }
     }
-    fullPrompt.append("Input:\n\"\"\"").append(userText != null ? userText : "").append("\"\"\"");
+    if (hasUser || !hasSys)
+    {
+      fullPrompt.append("Input:\n\"\"\"").append(userText != null ? userText : "").append("\"\"\"");
+    }
 
     GeminiAiService.processPrompt(context, fullPrompt.toString(), new GeminiAiService.AiCallback()
     {

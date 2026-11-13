@@ -68,9 +68,24 @@ public class AutocorrectDecision
       {
         return top.rejectionPenalty <= 0.2f;
       }
+      if (isProperNounOrProtected)
+      {
+        return false;
+      }
       String lower = cleanTyped.toLowerCase(java.util.Locale.ROOT);
-      // Words that are common legitimate standalone English words should NOT be forced to contractions on space
-      if (lower.equals("ill") || lower.equals("well") || lower.equals("wed") || lower.equals("were") || lower.equals("cant"))
+      String lowerTop = top.word.toLowerCase(java.util.Locale.ROOT);
+      // Never force pure prefix completions on spacebar even if boosted for ranking
+      if (lowerTop.startsWith(lower) && lowerTop.length() > lower.length())
+      {
+        return false;
+      }
+      // Words that are legitimate standalone English words or informal abbreviations should be tap-to-select, not forced on space
+      if (lower.equals("ill") || lower.equals("well") || lower.equals("wed") || lower.equals("were") || lower.equals("cant")
+          || lower.equals("id") || lower.equals("shell") || lower.equals("hell") || lower.equals("shed") || lower.equals("lets")
+          || lower.equals("u") || lower.equals("r") || lower.equals("ur") || lower.equals("ty")
+          || lower.equals("pls") || lower.equals("plz") || lower.equals("btw") || lower.equals("idk")
+          || lower.equals("imo") || lower.equals("tbh") || lower.equals("fyi") || lower.equals("brb")
+          || lower.equals("omg") || lower.equals("asap"))
       {
         return false;
       }

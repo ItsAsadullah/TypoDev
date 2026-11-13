@@ -62,7 +62,7 @@ public final class MathSolverResponse {
   }
 
   private static final Pattern SIMPLE_SQUARE = Pattern.compile(
-      "^\\s*\\(([a-zA-Z\\p{IsBengali}])\\s*([+\\-−])\\s*([a-zA-Z\\p{IsBengali}])\\)\\s*(?:\\^?[2২]|²)\\s*=?\\s*$");
+      "^\\s*\\(([a-zA-Z\\u0980-\\u09FF])\\s*([+\\-−])\\s*([a-zA-Z\\u0980-\\u09FF])\\)\\s*(?:\\^?[2২]|²)\\s*=?\\s*$");
 
   /** A verified distributive proof for the common identity, available without AI. */
   public static MathSolverResponse offline(String problem, Mode mode) {

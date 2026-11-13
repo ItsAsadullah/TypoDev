@@ -2,12 +2,11 @@ package typodev.keyboard.dict;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -15,13 +14,12 @@ import java.util.TreeMap;
 import juloo.cdict.Cdict;
 import typodev.keyboard.Config;
 import typodev.keyboard.DirectBootAwarePreferences;
-import typodev.keyboard.Logs;
 import typodev.keyboard.Utils;
 
 /** Manage and load installed dictionaries. */
 public final class Dictionaries
 {
-  public static Dictionaries instance(Context ctx)
+  public static synchronized Dictionaries instance(Context ctx)
   {
     if (_instance == null)
     {
@@ -60,7 +58,7 @@ public final class Dictionaries
 
   /** Load an installed dictionary. Return [null] if the requested dictionary
       is not installed or the dictionary couldn't be loaded. */
-  public Cdict[] load(String dict_name)
+  public synchronized Cdict[] load(String dict_name)
   {
     if (_loaded_dictionaries.containsKey(dict_name))
       return _loaded_dictionaries.get(dict_name);
@@ -70,7 +68,10 @@ public final class Dictionaries
     return dict;
   }
 
-  public Set<String> get_installed() { return _installed_dictionaries; }
+  public synchronized Set<String> get_installed()
+  {
+    return Collections.unmodifiableSet(new HashSet<String>(_installed_dictionaries));
+  }
 
   /** The selected dictionary for the current layout. */
   public String get_selected(Config config)
@@ -86,12 +87,13 @@ public final class Dictionaries
       .apply();
   }
 
-  public void install(String dict_name, byte[] data) throws IOException
+  public synchronized void install(String dict_name, byte[] data) throws IOException
   {
-    FileOutputStream outp = _context.openFileOutput(dict_file_name(dict_name),
-        Context.MODE_PRIVATE);
-    outp.write(data);
-    outp.close();
+    try (FileOutputStream outp = _context.openFileOutput(dict_file_name(dict_name),
+        Context.MODE_PRIVATE))
+    {
+      outp.write(data);
+    }
     set_installed(dict_name);
   }
 
@@ -104,16 +106,17 @@ public final class Dictionaries
 
   /** Declare a dictionary as installed. A dictionary file must exist at the
       path returned by [get_install_location(dict_name)]. */
-  public void set_installed(String dict_name)
+  public synchronized void set_installed(String dict_name)
   {
     _installed_dictionaries.add(dict_name);
     _loaded_dictionaries.remove(dict_name);
     save();
   }
 
-  public void uninstall(String dict_name)
+  public synchronized void uninstall(String dict_name)
   {
-    _context.deleteFile(dict_file_name(dict_name));
+    try { _context.deleteFile(dict_file_name(dict_name)); }
+    catch (RuntimeException ignored) {}
     _installed_dictionaries.remove(dict_name);
     _loaded_dictionaries.remove(dict_name);
     save();
@@ -133,7 +136,7 @@ public final class Dictionaries
   Dictionaries(Context ctx, SharedPreferences prefs)
   {
     _context = ctx;
-    _installed_dictionaries = new HashSet();
+    _installed_dictionaries = new HashSet<String>();
     _shared_prefs = prefs;
     _loaded_dictionaries = new TreeMap<String, Cdict[]>();
     Set<String> installed = prefs.getStringSet(PREF_INSTALLED_DICTS, null);
@@ -145,21 +148,20 @@ public final class Dictionaries
   {
     if (!_installed_dictionaries.contains(dict_name))
       return null;
-    try
+    try (FileInputStream inp = _context.openFileInput(dict_file_name(dict_name)))
     {
-      FileInputStream inp = _context.openFileInput(dict_file_name(dict_name));
       byte[] data = Utils.read_all_bytes(inp);
-      inp.close();
       return Cdict.of_bytes(data);
     }
     catch (IOException e) { return null; }
+    catch (RuntimeException e) { return null; }
     catch (Cdict.ConstructionError e) { return null; }
   }
 
   void save()
   {
     _shared_prefs.edit()
-      .putStringSet(PREF_INSTALLED_DICTS, _installed_dictionaries)
+      .putStringSet(PREF_INSTALLED_DICTS, new HashSet<String>(_installed_dictionaries))
       .commit();
   }
 
@@ -170,7 +172,7 @@ public final class Dictionaries
 
   static String dict_selection_pref_name(Config config)
   {
-    String lang_tag = (config.device_locales.default_ != null) ?
+    String lang_tag = (config.device_locales != null && config.device_locales.default_ != null) ?
       config.device_locales.default_.lang_tag : "";
     return "selection:" + lang_tag + "-" + config.get_current_layout();
   }

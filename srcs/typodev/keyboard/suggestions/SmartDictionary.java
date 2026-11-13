@@ -1464,7 +1464,7 @@ public class SmartDictionary {
         DICT.put("vabteso", "ভাবতেছো");
         DICT.put("vai", "ভাই");
         DICT.put("valo", "ভালো");
-        DICT.put("valoVabe", "ভালোভাবে");
+        DICT.put("valovabe", "ভালোভাবে");
         DICT.put("valobasa", "ভালোবাসা");
         DICT.put("vitor", "ভিতর");
         DICT.put("voy", "ভয়");

@@ -104,8 +104,8 @@ public final class FancyTextEngine
   {
     // 1. Negative Squared / Boxed Black (Requested by user: 🅳 🆂 🅵 🆂 🅳)
     registerFont("neg_squared", "Negative Squared 🆂🆀🆄🅰🆁🅴",
-        "🅰🅱🅲🅳🅴🅵🅶🅷🅸🅹🅺🅻🼯🅽🅾🅿🆀🆁🆂🆃🆄🆅🆆🆇🆈🆉",
-        "🅰🅱🅲🅳🅴🅵🅶🅷🅸🅹🅺🅻🼯🅽🅾🅿🆀🆁🆂🆃🆄🆅🆆🆇🆈🆉",
+        "🅰🅱🅲🅳🅴🅵🅶🅷🅸🅹🅺🅻🅼🅽🅾🅿🆀🆁🆂🆃🆄🆅🆆🆇🆈🆉",
+        "🅰🅱🅲🅳🅴🅵🅶🅷🅸🅹🅺🅻🅼🅽🅾🅿🆀🆁🆂🆃🆄🆅🆆🆇🆈🆉",
         "⓪①②③④⑤⑥⑦⑧⑨");
 
     // 2. Squared White / Boxed
@@ -159,7 +159,7 @@ public final class FancyTextEngine
     // 10. Bold Italic Sans
     registerFont("bold_italic_sans", "Bold Italic Sans 𝘽𝙤𝙡𝙙 𝙄𝙩𝙖𝙡𝙞𝙘",
         "𝘼𝘽𝘾𝘿𝙀𝙁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕",
-        "𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯",
+        "𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠⃜𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯".replace("\u20dc", ""),
         "0123456789");
 
     // 11. Script / Cursive (Elegant)
@@ -207,7 +207,7 @@ public final class FancyTextEngine
     // 18. Fullwidth / Japanese Aesthetics
     registerFont("fullwidth", "Fullwidth Ｆｕｌｌ",
         "ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ",
-        "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ",
+        "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓ𝘁𝘂𝘃𝘄𝘅𝘆𝘇".replace("𝘁𝘂𝘃𝘄𝘅𝘆𝘇", "ｔｕｖｗｘｙｚ"),
         "０１２３４５６７８９");
 
     // 19. Subscript (Requested by user: dₛfₛd)
@@ -218,13 +218,13 @@ public final class FancyTextEngine
 
     // 20. Superscript
     registerFont("superscript", "Superscript ᵗᵉˣᵗ",
-        "ᴬᴮᶜᴰᴱᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾᴼᴿˢᵀᵁⱽᵂˣʸᶻ",
+        "ᴬᴮᶜᴰᴱᶠᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾᵠᴿˢᵀᵁⱽᵂˣʸᶻ",
         "ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖᵠʳˢᵗᵘᵛʷˣʸᶻ",
         "⁰¹²³⁴⁵⁶⁷⁸⁹");
 
     // Dynamic transform fonts (Strikethrough, Underline, Slash, Upside-Down)
     FONT_STYLES.add(new StyleItem("strikethrough", "Strikethrough t̶e̶x̶t̶", "fonts", "T̶y̶p̶o̶D̶e̶v̶"));
-    FONT_STYLES.add(new StyleItem("underline", "Underline t̲e̲x̲t̲", "fonts", "T̲y̲p̶o̲D̲e̲v̲"));
+    FONT_STYLES.add(new StyleItem("underline", "Underline t̲e̲x̲t̲", "fonts", "T̲y̲p̲o̲D̲e̲v̲"));
     FONT_STYLES.add(new StyleItem("double_underline", "Double Underline t̳e̳x̳t̳", "fonts", "T̳y̳p̳o̳D̳e̳v̳"));
     FONT_STYLES.add(new StyleItem("slashed", "Slash Through t̷e̷x̷t̷", "fonts", "T̷y̷p̷o̷D̷e̷v̷"));
     FONT_STYLES.add(new StyleItem("upside_down", "Upside Down ʇxǝʇ", "fonts", "ʌǝCodʎ⊥"));
@@ -232,7 +232,6 @@ public final class FancyTextEngine
 
   private static void initTextArtStyles()
   {
-    // Exact requested styles from user screenshot:
     // 1. 【D】【a】【d】
     TEXT_ART_STYLES.add(new StyleItem("bracket_thick", "Thick Bracket 【T】【e】【x】【t】", "text_art", "【T】【y】【p】【o】【D】【e】【v】"));
 
@@ -476,19 +475,18 @@ public final class FancyTextEngine
     for (int i = 0; i < text.length(); )
     {
       int cp = text.codePointAt(i);
-      char c = (char)cp;
       int idx = -1;
-      if (c >= 'A' && c <= 'Z')
+      if (cp >= 'A' && cp <= 'Z')
       {
-        idx = c - 'A';
+        idx = cp - 'A';
       }
-      else if (c >= 'a' && c <= 'z')
+      else if (cp >= 'a' && cp <= 'z')
       {
-        idx = 26 + (c - 'a');
+        idx = 26 + (cp - 'a');
       }
-      else if (c >= '0' && c <= '9')
+      else if (cp >= '0' && cp <= '9')
       {
-        idx = 52 + (c - '0');
+        idx = 52 + (cp - '0');
       }
 
       if (idx >= 0 && idx < map.length && map[idx] != null && !map[idx].isEmpty())
@@ -569,11 +567,20 @@ public final class FancyTextEngine
   private static String toUpsideDown(String text)
   {
     StringBuilder sb = new StringBuilder();
-    for (int i = text.length() - 1; i >= 0; i--)
+    for (int i = text.length(); i > 0; )
     {
-      char c = text.charAt(i);
-      Character f = UPSIDE_DOWN_MAP.get(c);
-      sb.append(f != null ? f : c);
+      int cp = text.codePointBefore(i);
+      if (Character.isBmpCodePoint(cp))
+      {
+        char c = (char)cp;
+        Character f = UPSIDE_DOWN_MAP.get(c);
+        sb.append(f != null ? f.charValue() : c);
+      }
+      else
+      {
+        sb.append(Character.toChars(cp));
+      }
+      i -= Character.charCount(cp);
     }
     return sb.toString();
   }

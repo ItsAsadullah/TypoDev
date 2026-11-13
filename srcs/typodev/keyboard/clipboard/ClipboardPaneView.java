@@ -1126,7 +1126,38 @@ public class ClipboardPaneView extends LinearLayout
   {
     if (item == null) return false;
 
-    // 1. Search Query
+    // 1. Category Filter
+    if (_currentFilter != null && _currentFilter != FilterTab.ALL)
+    {
+      switch (_currentFilter)
+      {
+        case PINNED:
+          if (!item.isPinned) return false;
+          break;
+        case RECENT:
+          if (item.isPinned) return false;
+          break;
+        case IMAGES:
+          if (!item.isImage) return false;
+          break;
+        case SHORTCUTS:
+          if (item.isImage || _pinnedStore.getShortcut(item.content).isEmpty()) return false;
+          break;
+        case OTP:
+          if (!item.hasOtp()) return false;
+          break;
+        case LINKS:
+          if (!item.hasUrl()) return false;
+          break;
+        case CONTACTS:
+          if (!item.hasPhone() && !item.hasEmail()) return false;
+          break;
+        default:
+          break;
+      }
+    }
+
+    // 2. Search Query
     if (_searchQuery != null && !_searchQuery.isEmpty())
     {
       if ((item.content == null || !item.content.toLowerCase(Locale.ROOT).contains(_searchQuery.toLowerCase(Locale.ROOT)))
@@ -1254,7 +1285,7 @@ public class ClipboardPaneView extends LinearLayout
           {
             if (_keyboard != null)
             {
-              _keyboard.pasteImageContent(Uri.parse(item.imageUri), "image/*");
+              _keyboard.pasteImageContent(Uri.parse(item.imageUri), _imageStore.mimeType(item.historyKey()));
             }
             if (_isMultiPasteMode)
             {
@@ -1382,11 +1413,20 @@ public class ClipboardPaneView extends LinearLayout
     _gestures.removeCallbacks(_commitDeletes); _gestures.postDelayed(_commitDeletes, ClipboardPendingDeletion.UNDO_MS);
   }
   private void commitDeletes() {
-    for (String key : _pendingDeletes.takeExpired(android.os.SystemClock.uptimeMillis())) {
+    long now = android.os.SystemClock.uptimeMillis();
+    for (String key : _pendingDeletes.takeExpired(now)) {
       _imageStore.delete(key); _pinnedStore.unpinClip(key);
       if (_historyService != null) _historyService.remove_history_entry(key);
+      _undoHeights.remove(key);
     }
-    _pendingDeletes.undo(); _undoHeights.clear(); _undoBar.setVisibility(GONE); refreshCards();
+    if (_pendingDeletes.size() > 0) {
+      _gestures.removeCallbacks(_commitDeletes);
+      _gestures.postDelayed(_commitDeletes, Math.max(1L, _pendingDeletes.remainingDelay(now)));
+    } else {
+      _undoHeights.clear();
+      _undoBar.setVisibility(GONE);
+    }
+    refreshCards();
   }
 
   private void installCardGesture(View card, ClipboardItem item, float density) {
@@ -1608,7 +1648,7 @@ public class ClipboardPaneView extends LinearLayout
             if (opt.startsWith("Paste directly"))
             {
               if (item.isImage && item.imageUri != null && _keyboard != null)
-                _keyboard.pasteImageContent(Uri.parse(item.imageUri), "image/*");
+                _keyboard.pasteImageContent(Uri.parse(item.imageUri), _imageStore.mimeType(item.historyKey()));
               else if (!item.isImage)
                 ClipboardHistoryService.paste(item.content);
               if (_keyboard != null) _keyboard.handle_event_key(KeyValue.Event.SWITCH_BACK_CLIPBOARD);
@@ -1672,10 +1712,16 @@ public class ClipboardPaneView extends LinearLayout
             }
             else if (opt.contains("Pin") || opt.contains("pin"))
             {
-              if (item.isImage) _imageStore.pin(item.historyKey(), !item.isPinned);
+              if (item.isImage)
+              {
+                if (!item.isPinned) { _pendingDeletes.undo(item.historyKey()); _undoHeights.remove(item.historyKey()); }
+                _imageStore.pin(item.historyKey(), !item.isPinned);
+              }
               else if (item.isPinned) _pinnedStore.unpinClip(item.content);
               else
               {
+                _pendingDeletes.undo(item.historyKey());
+                _undoHeights.remove(item.historyKey());
                 _pinnedStore.pinClip(item.content);
                 if (_historyService != null) _historyService.remove_history_entry(item.historyKey());
               }
@@ -2333,6 +2379,8 @@ public class ClipboardPaneView extends LinearLayout
     int pinnedCount = 0;
     for (String s : _selectedClips)
     {
+      _pendingDeletes.undo(s);
+      _undoHeights.remove(s);
       if (imageKeys.contains(s)) { _imageStore.pin(s, true); pinnedCount++; continue; }
       _pinnedStore.pinClip(s);
       pinnedCount++;

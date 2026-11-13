@@ -68,7 +68,17 @@ public class TranslationService
   {
     if (text == null || text.trim().isEmpty())
     {
-      callback.onError("No text to translate");
+      if (callback != null)
+      {
+        postToMainThread(new Runnable()
+        {
+          @Override
+          public void run()
+          {
+            callback.onError("No text to translate");
+          }
+        });
+      }
       return;
     }
 
@@ -77,6 +87,8 @@ public class TranslationService
       @Override
       public void run()
       {
+        HttpURLConnection conn = null;
+        BufferedReader br = null;
         try
         {
           String encoded = URLEncoder.encode(text, StandardCharsets.UTF_8.name());
@@ -85,7 +97,7 @@ public class TranslationService
 
           String urlString = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" + sl + "&tl=" + tl + "&dt=t&q=" + encoded;
           URL url = new URL(urlString);
-          HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+          conn = (HttpURLConnection) url.openConnection();
           conn.setRequestMethod("GET");
           conn.setRequestProperty("User-Agent", "Mozilla/5.0");
           conn.setConnectTimeout(10000);
@@ -94,7 +106,7 @@ public class TranslationService
           int responseCode = conn.getResponseCode();
           if (responseCode == 200)
           {
-            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+            br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = br.readLine()) != null)
@@ -108,7 +120,10 @@ public class TranslationService
             for (int i = 0; i < sentences.length(); i++)
             {
               JSONArray sentence = sentences.getJSONArray(i);
-              resultBuilder.append(sentence.getString(0));
+              if (!sentence.isNull(0))
+              {
+                resultBuilder.append(sentence.getString(0));
+              }
             }
 
             final String translated = resultBuilder.toString().trim();
@@ -117,7 +132,7 @@ public class TranslationService
               @Override
               public void run()
               {
-                callback.onSuccess(translated);
+                if (callback != null) callback.onSuccess(translated);
               }
             });
           }
@@ -129,7 +144,7 @@ public class TranslationService
               @Override
               public void run()
               {
-                callback.onError(err);
+                if (callback != null) callback.onError(err);
               }
             });
           }
@@ -141,9 +156,20 @@ public class TranslationService
             @Override
             public void run()
             {
-              callback.onError("Translation error: " + e.getMessage());
+              if (callback != null) callback.onError("Translation error: " + e.getMessage());
             }
           });
+        }
+        finally
+        {
+          if (br != null)
+          {
+            try { br.close(); } catch (Throwable ignored) {}
+          }
+          if (conn != null)
+          {
+            try { conn.disconnect(); } catch (Throwable ignored) {}
+          }
         }
       }
     });

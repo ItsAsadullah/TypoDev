@@ -101,7 +101,7 @@ public class AiPromptBarView extends LinearLayout
     _etPrompt.setBackground(createPillBackground(Color.parseColor("#2C2C2C"), dp(8), Color.parseColor("#444444")));
     _etPrompt.setPadding(dp(10), dp(6), dp(10), dp(6));
     _etPrompt.setSingleLine(true);
-    _etPrompt.setEllipsize(TextUtils.TruncateAt.END);
+    _etPrompt.setHorizontallyScrolling(true);
     _etPrompt.setFocusable(false);
     _etPrompt.setFocusableInTouchMode(false);
     LinearLayout.LayoutParams lpEt = new LinearLayout.LayoutParams(0, dp(36), 1.0f);
@@ -195,111 +195,14 @@ public class AiPromptBarView extends LinearLayout
    */
   public InputConnection createInputConnection()
   {
-    return new BaseInputConnection(_etPrompt, true)
+    return new typodev.keyboard.InKeyboardEditTextConnection(_etPrompt, new Runnable()
     {
       @Override
-      public Editable getEditable()
+      public void run()
       {
-        return _etPrompt.getText();
+        if (_listener != null) _listener.onConfirm(getPromptText());
       }
-
-      @Override
-      public boolean commitText(CharSequence text, int newCursorPosition)
-      {
-        if (text == null) return true;
-        int start = _etPrompt.getSelectionStart();
-        int end = _etPrompt.getSelectionEnd();
-        if (start < 0) start = _etPrompt.length();
-        if (end < 0) end = _etPrompt.length();
-        if (start > end) { int t = start; start = end; end = t; }
-
-        _etPrompt.getText().replace(start, end, text);
-        int newCursor = start + text.length();
-        _etPrompt.setSelection(Math.min(newCursor, _etPrompt.length()));
-        return true;
-      }
-
-      @Override
-      public boolean deleteSurroundingText(int beforeLength, int afterLength)
-      {
-        int start = _etPrompt.getSelectionStart();
-        int end = _etPrompt.getSelectionEnd();
-        if (start < 0) start = _etPrompt.length();
-        if (end < 0) end = _etPrompt.length();
-        if (start > end) { int t = start; start = end; end = t; }
-
-        if (start != end)
-        {
-          _etPrompt.getText().delete(start, end);
-          return true;
-        }
-
-        int delStart = Math.max(0, start - beforeLength);
-        int delEnd = Math.min(_etPrompt.length(), end + afterLength);
-        if (delStart < delEnd)
-        {
-          _etPrompt.getText().delete(delStart, delEnd);
-          _etPrompt.setSelection(delStart);
-        }
-        return true;
-      }
-
-      @Override
-      public boolean sendKeyEvent(KeyEvent event)
-      {
-        if (event.getAction() == KeyEvent.ACTION_DOWN)
-        {
-          if (event.getKeyCode() == KeyEvent.KEYCODE_DEL)
-          {
-            return deleteSurroundingText(1, 0);
-          }
-          else if (event.getKeyCode() == KeyEvent.KEYCODE_ENTER)
-          {
-            if (_listener != null) _listener.onConfirm(getPromptText());
-            return true;
-          }
-        }
-        return super.sendKeyEvent(event);
-      }
-
-      @Override
-      public CharSequence getTextBeforeCursor(int n, int flags)
-      {
-        int start = _etPrompt.getSelectionStart();
-        if (start <= 0) return "";
-        int from = Math.max(0, start - n);
-        return _etPrompt.getText().subSequence(from, start);
-      }
-
-      @Override
-      public CharSequence getTextAfterCursor(int n, int flags)
-      {
-        int end = _etPrompt.getSelectionEnd();
-        if (end < 0 || end >= _etPrompt.length()) return "";
-        int to = Math.min(_etPrompt.length(), end + n);
-        return _etPrompt.getText().subSequence(end, to);
-      }
-
-      @Override
-      public CharSequence getSelectedText(int flags)
-      {
-        int start = _etPrompt.getSelectionStart();
-        int end = _etPrompt.getSelectionEnd();
-        if (start < 0 || end < 0 || start == end) return "";
-        if (start > end) { int t = start; start = end; end = t; }
-        return _etPrompt.getText().subSequence(start, end);
-      }
-
-      @Override
-      public boolean setSelection(int start, int end)
-      {
-        int len = _etPrompt.length();
-        int s = Math.max(0, Math.min(start, len));
-        int e = Math.max(0, Math.min(end, len));
-        _etPrompt.setSelection(s, e);
-        return true;
-      }
-    };
+    });
   }
 
   private GradientDrawable createPillBackground(int bgColor, int cornerRadius, int strokeColor)

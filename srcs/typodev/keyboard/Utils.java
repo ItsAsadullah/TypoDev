@@ -33,8 +33,18 @@ public final class Utils
   public static void show_dialog_on_ime(AlertDialog dialog,
       InputMethodService ims)
   {
-    show_dialog_on_ime(dialog,
-        ims.getWindow().getWindow().getDecorView().getWindowToken());
+    IBinder token = null;
+    try
+    {
+      if (ims != null && ims.getWindow() != null
+          && ims.getWindow().getWindow() != null
+          && ims.getWindow().getWindow().getDecorView() != null)
+      {
+        token = ims.getWindow().getWindow().getDecorView().getWindowToken();
+      }
+    }
+    catch (Throwable ignored) {}
+    show_dialog_on_ime(dialog, token);
   }
 
   public static void show_dialog_on_ime(AlertDialog dialog, IBinder token)

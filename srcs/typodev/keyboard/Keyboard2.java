@@ -156,6 +156,7 @@ public class Keyboard2 extends InputMethodService
     _keyboard_container_view.addView(_magic_tools_pane,
         new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
     if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
     if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
   }
 
@@ -163,7 +164,8 @@ public class Keyboard2 extends InputMethodService
   {
     if (_magic_tools_pane == null) return;
     removeMagicTools();
-    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(_numeric_pad == null ? View.VISIBLE : View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.VISIBLE);
     if (_keyboard_layout_view != null) _keyboard_layout_view.setVisibility(View.VISIBLE);
     refresh_candidates_view();
   }
@@ -180,6 +182,7 @@ public class Keyboard2 extends InputMethodService
       typodev.keyboard.ai.AiWritingResultsView.Task task)
   {
     if (_keyboard_container_view == null) return;
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     int height = getTargetPaneHeight();
     closeWritingResults();
     resetTransientPanes();
@@ -188,6 +191,7 @@ public class Keyboard2 extends InputMethodService
     _keyboard_container_view.addView(_writing_results,
         new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
     if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
     if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
     _writing_results.start(text, image, tone, task);
   }
@@ -201,7 +205,8 @@ public class Keyboard2 extends InputMethodService
     ViewParent parent = _writing_results.getParent();
     if (parent instanceof ViewGroup) ((ViewGroup)parent).removeView(_writing_results);
     _writing_results = null;
-    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(_numeric_pad == null ? View.VISIBLE : View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.VISIBLE);
     if (_keyboard_layout_view != null) _keyboard_layout_view.setVisibility(View.VISIBLE);
     refresh_candidates_view();
   }
@@ -251,6 +256,7 @@ public class Keyboard2 extends InputMethodService
     _keyboard_container_view.addView(_writing_results,
         new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
     if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
     if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
     _writing_results.restore(_lastWritingDraft);
   }
@@ -259,7 +265,14 @@ public class Keyboard2 extends InputMethodService
   {
     InputConnection connection = getCurrentInputConnection();
     if (connection == null) return;
+    if ((_config != null && _config.editor_config != null && _config.editor_config.is_password)
+        || CandidatesView.isPasswordField(getCurrentInputEditorInfo()))
+    {
+      android.widget.Toast.makeText(this, "AI tools are disabled in password fields.", android.widget.Toast.LENGTH_SHORT).show();
+      return;
+    }
     if (!typodev.keyboard.ai.AiProvider.Manager.hasConfiguredApiKey(this)) { showAiPane(); return; }
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     connection.finishComposingText();
     CharSequence selected = connection.getSelectedText(0);
     CharSequence content = selected != null && selected.length() > 0
@@ -393,7 +406,8 @@ public class Keyboard2 extends InputMethodService
   {
     closeMathSolver();
     removeMagicTools();
-    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(_numeric_pad == null ? View.VISIBLE : View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.VISIBLE);
     if (_candidates_view != null && _candidates_view.isVoiceTypingActive()
         && !typodev.keyboard.voice.OfflineVoiceTypingService.isListening())
     {
@@ -860,6 +874,7 @@ public class Keyboard2 extends InputMethodService
   public void showTranslateBar()
   {
     if (_translate_bar_view == null) return;
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isTranslateMode = true;
     InputConnection targetIc = super.getCurrentInputConnection();
     _translateInputConnection = _translate_bar_view.createInputConnection(targetIc);
@@ -870,12 +885,13 @@ public class Keyboard2 extends InputMethodService
       _candidates_view.setVisibility(View.VISIBLE);
       _candidates_view.updateTranslateButtonState();
     }
-    if (_keyeventhandler != null)
+    if (_keyeventhandler != null && _config != null)
       _keyeventhandler.started(_config);
   }
 
   public void hideTranslateBar()
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isTranslateMode = false;
     _translateInputConnection = null;
     if (_translate_bar_view != null)
@@ -888,7 +904,7 @@ public class Keyboard2 extends InputMethodService
       _candidates_view.setVisibility(View.VISIBLE);
       _candidates_view.updateTranslateButtonState();
     }
-    if (_keyeventhandler != null)
+    if (_keyeventhandler != null && _config != null)
       _keyeventhandler.started(_config);
   }
 
@@ -972,16 +988,39 @@ public class Keyboard2 extends InputMethodService
     return _isAiPromptInputMode;
   }
 
+  private void restoreKeyboardOrNumericPad()
+  {
+    if (_numeric_pad != null)
+    {
+      if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.GONE);
+      _numeric_pad.setVisibility(View.VISIBLE);
+    }
+    else
+    {
+      if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
+      if (_keyboard_layout_view != null)
+      {
+        _keyboard_layout_view.setVisibility(View.VISIBLE);
+        _keyboard_layout_view.setKeyboard(current_layout());
+      }
+    }
+  }
+
   public void showAiPromptTypingMode(String initialText)
   {
     if (_ai_prompt_bar == null || _keyboard_layout_view == null) return;
 
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isAiPromptInputMode = true;
 
     if (_ai_pane_view != null)
       _ai_pane_view.setVisibility(View.GONE);
     if (_candidates_view != null)
       _candidates_view.setVisibility(View.GONE);
+    if (_numeric_pad != null)
+      _numeric_pad.setVisibility(View.GONE);
+    if (_keyboard_wrapper != null)
+      _keyboard_wrapper.setVisibility(View.VISIBLE);
 
     int colorKeyboard = (_ai_pane_view != null) ? _ai_pane_view.getColorKeyboard() : 0;
     int colorKey = (_ai_pane_view != null) ? _ai_pane_view.getColorKey() : 0;
@@ -995,10 +1034,13 @@ public class Keyboard2 extends InputMethodService
     _ai_prompt_bar.setVisibility(View.VISIBLE);
     _keyboard_layout_view.setVisibility(View.VISIBLE);
     _keyboard_layout_view.setKeyboard(current_layout());
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public void exitAiPromptTypingMode(String promptText, boolean applyAndGenerate)
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isAiPromptInputMode = false;
     _aiPromptInputConnection = null;
 
@@ -1006,6 +1048,8 @@ public class Keyboard2 extends InputMethodService
       _ai_prompt_bar.setVisibility(View.GONE);
     if (_keyboard_layout_view != null)
       _keyboard_layout_view.setVisibility(View.GONE);
+    if (_numeric_pad != null)
+      _numeric_pad.setVisibility(View.GONE);
 
     if (_ai_pane_view != null)
     {
@@ -1015,6 +1059,8 @@ public class Keyboard2 extends InputMethodService
         _ai_pane_view.onPromptTypedFromKeyboard(promptText);
       }
     }
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public int getTargetPaneHeight()
@@ -1079,6 +1125,7 @@ public class Keyboard2 extends InputMethodService
     try
     {
       if (_ai_pane_view == null) return;
+      if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
 
       int h = getTargetPaneHeight();
       int bottomSafety = getBottomSafety();
@@ -1089,6 +1136,8 @@ public class Keyboard2 extends InputMethodService
         _candidates_view.setVisibility(View.GONE);
       if (_keyboard_layout_view != null)
         _keyboard_layout_view.setVisibility(View.GONE);
+      if (_numeric_pad != null)
+        _numeric_pad.setVisibility(View.GONE);
       if (_tools_grid_pane != null)
         _tools_grid_pane.setVisibility(View.GONE);
 
@@ -1097,8 +1146,7 @@ public class Keyboard2 extends InputMethodService
     catch (Throwable t)
     {
       Logs.print_exception(t);
-      if (_keyboard_layout_view != null)
-        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      restoreKeyboardOrNumericPad();
       refresh_candidates_view();
     }
   }
@@ -1114,8 +1162,7 @@ public class Keyboard2 extends InputMethodService
       }
       if (_ai_pane_view != null)
         _ai_pane_view.setVisibility(View.GONE);
-      if (_keyboard_layout_view != null)
-        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      restoreKeyboardOrNumericPad();
       refresh_candidates_view();
     }
     catch (Throwable t)
@@ -1211,6 +1258,7 @@ public class Keyboard2 extends InputMethodService
         bottomSafety = (int)_config.margin_bottom;
 
       // Hide AI pane if open
+      if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
       if (_ai_pane_view != null) _ai_pane_view.setVisibility(View.GONE);
       if (_tools_grid_pane != null) _tools_grid_pane.setVisibility(View.GONE);
 
@@ -1221,6 +1269,8 @@ public class Keyboard2 extends InputMethodService
         _candidates_view.setVisibility(View.GONE);
       if (_keyboard_layout_view != null)
         _keyboard_layout_view.setVisibility(View.GONE);
+      if (_numeric_pad != null)
+        _numeric_pad.setVisibility(View.GONE);
 
       _fancy_pane_view.setVisibility(View.VISIBLE);
     }
@@ -1228,8 +1278,7 @@ public class Keyboard2 extends InputMethodService
     {
       Logs.print_exception(t);
       // Fall back to showing the keyboard
-      if (_keyboard_layout_view != null)
-        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      restoreKeyboardOrNumericPad();
       refresh_candidates_view();
     }
   }
@@ -1240,8 +1289,7 @@ public class Keyboard2 extends InputMethodService
     {
       if (_fancy_pane_view != null)
         _fancy_pane_view.setVisibility(View.GONE);
-      if (_keyboard_layout_view != null)
-        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      restoreKeyboardOrNumericPad();
       refresh_candidates_view();
     }
     catch (Throwable t)
@@ -1278,6 +1326,7 @@ public class Keyboard2 extends InputMethodService
         h = getTargetPaneHeight();
       int bottomSafety = getBottomSafety();
 
+      if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
       if (_ai_pane_view != null) _ai_pane_view.setVisibility(View.GONE);
       if (_fancy_pane_view != null) _fancy_pane_view.setVisibility(View.GONE);
       if (_clipboard_pane_view != null) _clipboard_pane_view.setVisibility(View.GONE);
@@ -1290,6 +1339,8 @@ public class Keyboard2 extends InputMethodService
 
       if (_keyboard_layout_view != null)
         _keyboard_layout_view.setVisibility(View.GONE);
+      if (_numeric_pad != null)
+        _numeric_pad.setVisibility(View.GONE);
 
       _tools_grid_pane.setVisibility(View.VISIBLE);
 
@@ -1302,8 +1353,7 @@ public class Keyboard2 extends InputMethodService
     catch (Throwable t)
     {
       Logs.print_exception(t);
-      if (_keyboard_layout_view != null)
-        _keyboard_layout_view.setVisibility(View.VISIBLE);
+      restoreKeyboardOrNumericPad();
       refresh_candidates_view();
     }
   }
@@ -1315,11 +1365,7 @@ public class Keyboard2 extends InputMethodService
       if (_tools_grid_pane != null)
         _tools_grid_pane.setVisibility(View.GONE);
 
-      if (_keyboard_layout_view != null)
-      {
-        _keyboard_layout_view.setVisibility(View.VISIBLE);
-        _keyboard_layout_view.setKeyboard(current_layout());
-      }
+      restoreKeyboardOrNumericPad();
       if (_candidates_view != null)
       {
         _candidates_view.setVisibility(View.VISIBLE);
@@ -1523,6 +1569,7 @@ public class Keyboard2 extends InputMethodService
 
   public void showEmojiPane()
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     if (_isEmojiSearchMode)
     {
       _isEmojiSearchMode = false;
@@ -1541,6 +1588,8 @@ public class Keyboard2 extends InputMethodService
     {
       grid.setEmojiGroup(EmojiGridView.GROUP_LAST_USE);
     }
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public void showEmojiPaneFromToolbar()
@@ -1567,11 +1616,14 @@ public class Keyboard2 extends InputMethodService
 
   public void showEmojiSearchMode(String query)
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isEmojiPaneOpen = false;
     _isEmojiSearchMode = true;
     if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
     if (_ai_pane_view != null) _ai_pane_view.setVisibility(View.GONE);
     if (_ai_prompt_bar != null) _ai_prompt_bar.setVisibility(View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
 
     if (_emoji_search_bar != null)
     {
@@ -1590,10 +1642,13 @@ public class Keyboard2 extends InputMethodService
       _keyboard_layout_view.setKeyboard(current_layout());
     }
     setInputView(_keyboard_container_view);
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public void exitEmojiSearchMode()
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isEmojiSearchMode = false;
     _emojiSearchInputConnection = null;
     if (_emoji_search_bar != null)
@@ -1606,6 +1661,7 @@ public class Keyboard2 extends InputMethodService
   public void showClipboardPane()
   {
     if (_clipboard_pane_view == null) return;
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     int h = getTargetPaneHeight();
     int bottomSafety = getBottomSafety();
     _clipboard_pane_view.setKeyboard(this);
@@ -1615,6 +1671,7 @@ public class Keyboard2 extends InputMethodService
 
     if (_candidates_view != null) _candidates_view.setVisibility(View.GONE);
     if (_keyboard_layout_view != null) _keyboard_layout_view.setVisibility(View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
     if (_ai_pane_view != null) _ai_pane_view.setVisibility(View.GONE);
     if (_fancy_pane_view != null) _fancy_pane_view.setVisibility(View.GONE);
     if (_tools_grid_pane != null) _tools_grid_pane.setVisibility(View.GONE);
@@ -1633,6 +1690,8 @@ public class Keyboard2 extends InputMethodService
 
   public void closeClipboardPane()
   {
+    if ((_isClipboardSearchMode || _isAddClipMode) && _keyeventhandler != null)
+      _keyeventhandler.commitAvroComposing();
     _isClipboardPaneOpen = false;
     _isClipboardSearchMode = false;
     _clipboardSearchInputConnection = null;
@@ -1643,16 +1702,15 @@ public class Keyboard2 extends InputMethodService
     if (_clipboard_search_bar != null) _clipboard_search_bar.setVisibility(View.GONE);
     if (_clipboard_add_bar != null) _clipboard_add_bar.setVisibility(View.GONE);
 
-    if (_keyboard_layout_view != null)
-    {
-      _keyboard_layout_view.setVisibility(View.VISIBLE);
-      _keyboard_layout_view.setKeyboard(current_layout());
-    }
+    restoreKeyboardOrNumericPad();
     refresh_candidates_view();
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public void showAddClipMode()
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isAddClipMode = true;
     _isClipboardPaneOpen = false;
 
@@ -1662,6 +1720,8 @@ public class Keyboard2 extends InputMethodService
     if (_clipboard_pane_view != null) _clipboard_pane_view.setVisibility(View.GONE);
     if (_emoji_search_bar != null) _emoji_search_bar.setVisibility(View.GONE);
     if (_clipboard_search_bar != null) _clipboard_search_bar.setVisibility(View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
 
     if (_clipboard_add_bar != null)
     {
@@ -1675,10 +1735,13 @@ public class Keyboard2 extends InputMethodService
       _keyboard_layout_view.setVisibility(View.VISIBLE);
       _keyboard_layout_view.setKeyboard(current_layout());
     }
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public void exitAddClipMode(boolean reopenClipboard)
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isAddClipMode = false;
     _addClipInputConnection = null;
     if (_clipboard_add_bar != null)
@@ -1691,17 +1754,16 @@ public class Keyboard2 extends InputMethodService
     }
     else
     {
-      if (_keyboard_layout_view != null)
-      {
-        _keyboard_layout_view.setVisibility(View.VISIBLE);
-        _keyboard_layout_view.setKeyboard(current_layout());
-      }
+      restoreKeyboardOrNumericPad();
       refresh_candidates_view();
     }
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public void showClipboardSearchMode(String query)
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isClipboardSearchMode = true;
     _isClipboardPaneOpen = false;
     _isAddClipMode = false;
@@ -1714,6 +1776,8 @@ public class Keyboard2 extends InputMethodService
     if (_ai_prompt_bar != null) _ai_prompt_bar.setVisibility(View.GONE);
     if (_emoji_search_bar != null) _emoji_search_bar.setVisibility(View.GONE);
     if (_clipboard_add_bar != null) _clipboard_add_bar.setVisibility(View.GONE);
+    if (_numeric_pad != null) _numeric_pad.setVisibility(View.GONE);
+    if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
 
     if (_clipboard_search_bar != null)
     {
@@ -1728,22 +1792,23 @@ public class Keyboard2 extends InputMethodService
       _keyboard_layout_view.setVisibility(View.VISIBLE);
       _keyboard_layout_view.setKeyboard(current_layout());
     }
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public void exitClipboardSearchMode()
   {
+    if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
     _isClipboardSearchMode = false;
     _clipboardSearchInputConnection = null;
     if (_clipboard_search_bar != null)
     {
       _clipboard_search_bar.setVisibility(View.GONE);
     }
-    if (_keyboard_layout_view != null)
-    {
-      _keyboard_layout_view.setVisibility(View.VISIBLE);
-      _keyboard_layout_view.setKeyboard(current_layout());
-    }
+    restoreKeyboardOrNumericPad();
     refresh_candidates_view();
+    if (_keyeventhandler != null && _config != null)
+      _keyeventhandler.started(_config);
   }
 
   public void onClipSelectedFromSearch(String clipText)
@@ -1758,9 +1823,10 @@ public class Keyboard2 extends InputMethodService
   public void onEmojiSelectedFromSearch(Emoji emoji)
   {
     if (emoji == null) return;
-    InputConnection ic = getCurrentInputConnection();
+    InputConnection ic = getTargetAppInputConnection();
     if (ic != null)
     {
+      ic.finishComposingText();
       ic.commitText(emoji.kv().getString(), 1);
     }
     recordEmojiUsed(emoji);
@@ -2143,7 +2209,7 @@ public class Keyboard2 extends InputMethodService
         _numeric_pad = null;
         if (_keyboard_wrapper != null) _keyboard_wrapper.setVisibility(View.VISIBLE);
       }
-      if (_config.editor_config.numeric_layout) {
+      if (_config.editor_config.numeric_layout && _config.selected_number_layout != NumberLayout.NORMAL) {
         _numeric_pad = new NumericPadView(this, info);
         _keyboard_container_view.addView(_numeric_pad,
             new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -2323,10 +2389,12 @@ public class Keyboard2 extends InputMethodService
   @Override
   public void onCurrentInputMethodSubtypeChanged(InputMethodSubtype subtype)
   {
+    if (_config == null) return;
     refreshSubtypeImm();
     refresh_current_dictionary();
     refresh_candidates_view();
-    _keyboard_layout_view.setKeyboard(current_layout());
+    if (_keyboard_layout_view != null)
+      _keyboard_layout_view.setKeyboard(current_layout());
   }
 
   @Override
@@ -2336,11 +2404,12 @@ public class Keyboard2 extends InputMethodService
     if (_candidates_view != null && oldSelStart >= 0 && oldSelEnd >= 0
         && (oldSelStart != newSelStart || oldSelEnd != newSelEnd))
       _candidates_view.dismissClipboardPreview();
-    if (!_isTranslateMode && !typodev.keyboard.voice.OfflineVoiceTypingService.isListening())
+    if (!_isTranslateMode && !typodev.keyboard.voice.OfflineVoiceTypingService.isListening()
+        && _keyeventhandler != null)
     {
       _keyeventhandler.selection_updated(oldSelStart, newSelStart, newSelEnd, candidatesStart, candidatesEnd);
     }
-    if ((oldSelStart == oldSelEnd) != (newSelStart == newSelEnd))
+    if ((oldSelStart == oldSelEnd) != (newSelStart == newSelEnd) && _keyboard_layout_view != null)
       _keyboard_layout_view.set_selection_state(newSelStart != newSelEnd);
     if (_candidates_view != null)
       _candidates_view.onTextOrSelectionChanged();
@@ -2408,13 +2477,11 @@ public class Keyboard2 extends InputMethodService
       if (_isEmojiPaneOpen)
       {
         _isEmojiPaneOpen = false;
-        if (_keyboard_layout_view != null)
-        {
-          _keyboard_layout_view.setVisibility(View.VISIBLE);
-          _keyboard_layout_view.setKeyboard(current_layout());
-        }
+        restoreKeyboardOrNumericPad();
         setInputView(_keyboard_container_view);
         refresh_candidates_view();
+        if (_keyeventhandler != null && _config != null)
+          _keyeventhandler.started(_config);
         return true;
       }
       if (isAiPaneVisible())
@@ -2551,11 +2618,14 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case SWITCH_TEXT:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           _currentSpecialLayout = null;
-          _keyboard_layout_view.setKeyboard(current_layout());
+          if (_keyboard_layout_view != null)
+            _keyboard_layout_view.setKeyboard(current_layout());
           break;
 
         case SWITCH_NUMERIC:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           setSpecialLayout(loadNumericLayout());
           break;
 
@@ -2571,17 +2641,16 @@ public class Keyboard2 extends InputMethodService
           _isEmojiPaneOpen = false;
           if (_isEmojiSearchMode)
           {
+            if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
             _isEmojiSearchMode = false;
             _emojiSearchInputConnection = null;
             if (_emoji_search_bar != null) _emoji_search_bar.setVisibility(View.GONE);
           }
-          if (_keyboard_layout_view != null)
-          {
-            _keyboard_layout_view.setVisibility(View.VISIBLE);
-            _keyboard_layout_view.setKeyboard(current_layout());
-          }
+          restoreKeyboardOrNumericPad();
           setInputView(_keyboard_container_view);
           refresh_candidates_view();
+          if (_keyeventhandler != null && _config != null)
+            _keyeventhandler.started(_config);
           break;
 
         case SWITCH_BACK_CLIPBOARD:
@@ -2589,10 +2658,12 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case CHANGE_METHOD_PICKER:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           get_imm().showInputMethodPicker();
           break;
 
         case CHANGE_METHOD_PREV:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           if (VERSION.SDK_INT < 28)
             get_imm().switchToLastInputMethod(getConnectionToken());
           else
@@ -2600,6 +2671,7 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case CHANGE_METHOD_NEXT:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           if (VERSION.SDK_INT < 28)
             get_imm().switchToNextInputMethod(getConnectionToken(), false);
           else
@@ -2607,6 +2679,7 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case ACTION:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           if (Keyboard2.this.runSlashCommand()) break;
           InputConnection conn = getCurrentInputConnection();
           if (conn != null)
@@ -2614,14 +2687,17 @@ public class Keyboard2 extends InputMethodService
           break;
 
         case SWITCH_FORWARD:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           incrTextLayout(1);
           break;
 
         case SWITCH_BACKWARD:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           incrTextLayout(-1);
           break;
 
         case SWITCH_GREEKMATH:
+          if (_keyeventhandler != null) _keyeventhandler.commitAvroComposing();
           setSpecialLayout(loadNumpad(R.xml.greekmath));
           break;
 

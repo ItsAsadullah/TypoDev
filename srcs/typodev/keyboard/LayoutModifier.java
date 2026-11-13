@@ -227,7 +227,9 @@ public final class LayoutModifier
 
   private static boolean isBengaliScriptCharacter(char c)
   {
-    return (c >= '\u0981' && c <= '\u0983')
+    return c == '\u200C'
+        || c == '\u200D'
+        || (c >= '\u0981' && c <= '\u0983')
         || (c >= '\u0985' && c <= '\u09B9')
         || c == '\u09BC'
         || (c >= '\u09BE' && c <= '\u09CE')

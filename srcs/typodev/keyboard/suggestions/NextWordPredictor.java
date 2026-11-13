@@ -29,15 +29,22 @@ public class NextWordPredictor
     {
       _instance = new NextWordPredictor(context != null ? context.getApplicationContext() : null);
     }
-    else if (_instance._context == null && context != null)
+    else if (context != null)
     {
-      _instance._context = context.getApplicationContext();
-      _instance.loadLearnedBigrams();
+      if (_instance._context == null)
+      {
+        _instance._context = context.getApplicationContext();
+      }
+      if (!_instance._loadedLearnedBigrams)
+      {
+        _instance.loadLearnedBigrams();
+      }
     }
     return _instance;
   }
 
   private Context _context;
+  private boolean _loadedLearnedBigrams = false;
   private final Map<String, List<String>> _builtInBigrams = new HashMap<>();
   private final Map<String, List<String>> _learnedBigrams = new HashMap<>();
 
@@ -532,9 +539,23 @@ public class NextWordPredictor
     }
   }
 
-  private void loadLearnedBigrams()
+  private static boolean isDirectBootLocked(Context context)
   {
-    if (_context == null) return;
+    if (context == null || android.os.Build.VERSION.SDK_INT < 24) return false;
+    try
+    {
+      android.os.UserManager um = (android.os.UserManager) context.getSystemService(Context.USER_SERVICE);
+      return um != null && !um.isUserUnlocked();
+    }
+    catch (Throwable ignored)
+    {
+      return false;
+    }
+  }
+
+  private synchronized void loadLearnedBigrams()
+  {
+    if (_context == null || _loadedLearnedBigrams || isDirectBootLocked(_context)) return;
     try
     {
       SharedPreferences prefs = _context.getSharedPreferences(PREF_LEARNED_BIGRAMS, Context.MODE_PRIVATE);
@@ -566,11 +587,26 @@ public class NextWordPredictor
             }
             if (!list.isEmpty())
             {
-              _learnedBigrams.put(key, list);
+              List<String> existing = _learnedBigrams.get(key);
+              if (existing == null || existing.isEmpty())
+              {
+                _learnedBigrams.put(key, list);
+              }
+              else
+              {
+                for (String item : list)
+                {
+                  if (!existing.contains(item) && existing.size() < MAX_LEARNED_PER_WORD)
+                  {
+                    existing.add(item);
+                  }
+                }
+              }
             }
           }
         }
       }
+      _loadedLearnedBigrams = true;
       if (purgedCorrupted)
       {
         SharedPreferences.Editor edit = prefs.edit();
@@ -783,14 +819,15 @@ public class NextWordPredictor
     }
   }
 
-  public List<String> predict(String prevWord, int maxResults)
+  public synchronized List<String> predict(String prevWord, int maxResults)
   {
     return predict(null, prevWord, maxResults);
   }
 
-  public List<String> predict(String context, String prevWord, int maxResults)
+  public synchronized List<String> predict(String context, String prevWord, int maxResults)
   {
     if (maxResults <= 0) return Collections.emptyList();
+    if (!_loadedLearnedBigrams) loadLearnedBigrams();
     LinkedHashSet<String> result = new LinkedHashSet<>();
 
     if (context != null && !context.isEmpty())
@@ -810,12 +847,13 @@ public class NextWordPredictor
    * Completely analyzes the sentence typed before the cursor and generates
    * multi-tier next-word & phrase completions.
    */
-  public List<String> predictFromSentence(String textBeforeCursor, int maxResults)
+  public synchronized List<String> predictFromSentence(String textBeforeCursor, int maxResults)
   {
     if (maxResults <= 0)
     {
       return Collections.emptyList();
     }
+    if (!_loadedLearnedBigrams) loadLearnedBigrams();
 
     if (textBeforeCursor == null || textBeforeCursor.isEmpty())
     {
@@ -1053,14 +1091,11 @@ public class NextWordPredictor
 
   public List<String> getSentenceStarters(boolean isBengali, int maxResults)
   {
-    if (isBengali)
-    {
-      return Arrays.asList("আমি", "তুমি", "আপনি", "কেমন", "কি", "আজকে", "ধন্যবাদ", "হ্যালো", "ইনশাআল্লাহ", "আলহামদুলিল্লাহ", "শুভ", "সবাই");
-    }
-    else
-    {
-      return Arrays.asList("I", "How", "What", "Please", "Thanks", "Hello", "Hi", "Can", "Good", "The", "We", "Yes");
-    }
+    if (maxResults <= 0) return Collections.emptyList();
+    List<String> list = isBengali
+        ? Arrays.asList("আমি", "তুমি", "আপনি", "কেমন", "কি", "আজকে", "ধন্যবাদ", "হ্যালো", "ইনশাআল্লাহ", "আলহামদুলিল্লাহ", "শুভ", "সবাই")
+        : Arrays.asList("I", "How", "What", "Please", "Thanks", "Hello", "Hi", "Can", "Good", "The", "We", "Yes");
+    return list.size() > maxResults ? new ArrayList<>(list.subList(0, maxResults)) : list;
   }
 
   private String cleanWord(String word)

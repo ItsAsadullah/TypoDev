@@ -110,9 +110,21 @@ public final class MathSolverPaneView extends LinearLayout {
 
   public void start(String initialProblem) {
     problem = initialProblem == null ? "" : initialProblem.trim();
+    if (keyboard.getKeyEventHandler() != null) {
+      keyboard.getKeyEventHandler().commitAvroComposing();
+    }
     connection = keyboard.getCurrentInputConnection();
     session = keyboard.getInputSessionId();
     active = true;
+    request++;
+    loading = false;
+    backendInFlight = false;
+    result = null;
+    results.clear();
+    mode = MathSolverResponse.Mode.NOTEBOOK;
+    before = "";
+    after = "";
+    selection = "";
     if (connection != null) {
       connection.finishComposingText();
       before = text(connection.getTextBeforeCursor(4096, 0));
@@ -260,8 +272,14 @@ public final class MathSolverPaneView extends LinearLayout {
     boolean committed = false;
     editor.beginBatchEdit();
     try {
-      if (selection.isEmpty() && before.endsWith(problem)) {
-        if (!editor.deleteSurroundingText(problem.length(), 0)) return;
+      if (selection.isEmpty() && !problem.isEmpty()) {
+        String trimmedBefore = before.replaceAll("[ \\t]+$", "");
+        if (before.endsWith(problem)) {
+          if (!editor.deleteSurroundingText(problem.length(), 0)) return;
+        } else if (trimmedBefore.endsWith(problem)) {
+          int deleteLen = problem.length() + (before.length() - trimmedBefore.length());
+          if (!editor.deleteSurroundingText(deleteLen, 0)) return;
+        }
       }
       committed = editor.commitText(value, 1);
     } finally { editor.endBatchEdit(); }
@@ -269,7 +287,8 @@ public final class MathSolverPaneView extends LinearLayout {
   }
 
   public void cancel() {
-    active = false; request++; loading = false; connection = null; result = null; results.clear();
+    active = false; request++; loading = false; backendInFlight = false;
+    connection = null; result = null; results.clear();
     main.removeCallbacksAndMessages(null);
   }
 

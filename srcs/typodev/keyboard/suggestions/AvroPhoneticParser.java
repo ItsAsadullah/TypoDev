@@ -32,7 +32,6 @@ public class AvroPhoneticParser {
 
     private static boolean isBanglaConsonant(char cp) {
         return (cp >= 0x0995 && cp <= 0x09B9) ||
-               cp == 0x09CE || // ৎ
                cp == 0x09DC || // ড়
                cp == 0x09DD || // ঢ়
                cp == 0x09DF;   // য়

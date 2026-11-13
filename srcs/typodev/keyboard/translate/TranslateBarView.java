@@ -34,6 +34,8 @@ public class TranslateBarView extends LinearLayout
 
   private Keyboard2 _keyboard2 = null;
   private final StringBuilder _inputBuffer = new StringBuilder();
+  private String _composingText = "";
+  private boolean _hasActiveTargetComposing = false;
   private final Handler _handler = new Handler(Looper.getMainLooper());
   private Runnable _debounceTranslateRunnable = null;
   private String _lastCommittedTranslatedText = "";
@@ -130,6 +132,13 @@ public class TranslateBarView extends LinearLayout
         public void onClick(View v)
         {
           TranslationEngine.swapLanguages();
+          if (_lastCommittedTranslatedText != null && !_lastCommittedTranslatedText.trim().isEmpty())
+          {
+            _inputBuffer.setLength(0);
+            _inputBuffer.append(_lastCommittedTranslatedText);
+            _composingText = "";
+            updateInputDisplay();
+          }
           updateLanguageButtons();
           triggerTranslationImmediate();
         }
@@ -198,11 +207,13 @@ public class TranslateBarView extends LinearLayout
   {
     _isOpen = false;
     invalidateTranslation();
-    if (_keyboard2 != null)
+    _composingText = "";
+    if (_hasActiveTargetComposing && _keyboard2 != null)
     {
       InputConnection ic = _keyboard2.getTargetAppInputConnection();
       if (ic != null) ic.finishComposingText();
     }
+    _hasActiveTargetComposing = false;
   }
 
   @Override
@@ -285,7 +296,7 @@ public class TranslateBarView extends LinearLayout
     }
     else
     {
-      dialog.show();
+      try { dialog.show(); } catch (Throwable ignored) {}
     }
   }
 
@@ -316,7 +327,7 @@ public class TranslateBarView extends LinearLayout
     }
     else
     {
-      dialog.show();
+      try { dialog.show(); } catch (Throwable ignored) {}
     }
   }
 
@@ -343,22 +354,24 @@ public class TranslateBarView extends LinearLayout
       public void onDownloadCompleted()
       {
         _isDownloadingModel = false;
-        if (_progressBar != null) _progressBar.setVisibility(View.GONE);
-        if (_btnOfflineStatus != null)
+        if (_progressBar != null && !_isTranslating) _progressBar.setVisibility(View.GONE);
+        refreshOfflineStatus();
+        if (_isOpen || isAttachedToWindow())
         {
-          _btnOfflineStatus.setText("✓ Offline");
-          _btnOfflineStatus.setTextColor(0xFF34A853);
+          Toast.makeText(getContext(), "অফলাইন মডেল সফলভাবে ডাউনলোড হয়েছে!", Toast.LENGTH_SHORT).show();
         }
-        Toast.makeText(getContext(), "অফলাইন মডেল সফলভাবে ডাউনলোড হয়েছে!", Toast.LENGTH_SHORT).show();
       }
 
       @Override
       public void onDownloadFailed(String error)
       {
         _isDownloadingModel = false;
-        if (_progressBar != null) _progressBar.setVisibility(View.GONE);
+        if (_progressBar != null && !_isTranslating) _progressBar.setVisibility(View.GONE);
         refreshOfflineStatus();
-        Toast.makeText(getContext(), "ডাউনলোড ব্যর্থ হয়েছে: " + error, Toast.LENGTH_LONG).show();
+        if (_isOpen || isAttachedToWindow())
+        {
+          Toast.makeText(getContext(), "ডাউনলোড ব্যর্থ হয়েছে: " + error, Toast.LENGTH_LONG).show();
+        }
       }
     });
   }
@@ -380,13 +393,23 @@ public class TranslateBarView extends LinearLayout
           public void onClick(DialogInterface dialog, int which)
           {
             TranslationEngine.Language chosen = langs[which];
+            String prevSrc = TranslationEngine.getSourceLanguage();
+            String prevTgt = TranslationEngine.getTargetLanguage();
             if (isSource)
             {
               TranslationEngine.setSourceLanguage(chosen.code);
+              if (chosen.code.equalsIgnoreCase(prevTgt))
+              {
+                TranslationEngine.setTargetLanguage(prevSrc);
+              }
             }
             else
             {
               TranslationEngine.setTargetLanguage(chosen.code);
+              if (chosen.code.equalsIgnoreCase(prevSrc))
+              {
+                TranslationEngine.setSourceLanguage(prevTgt);
+              }
             }
             updateLanguageButtons();
             triggerTranslationImmediate();
@@ -401,7 +424,45 @@ public class TranslateBarView extends LinearLayout
     }
     else
     {
-      dialog.show();
+      try { dialog.show(); } catch (Throwable ignored) {}
+    }
+  }
+
+  private String getFullInputText()
+  {
+    if (_composingText == null || _composingText.isEmpty())
+    {
+      return _inputBuffer.toString();
+    }
+    return _inputBuffer.toString() + _composingText;
+  }
+
+  private void onBufferMutated()
+  {
+    String full = getFullInputText();
+    updateInputDisplay();
+    if (full.isEmpty())
+    {
+      clearBuffer();
+    }
+    else if (full.trim().isEmpty())
+    {
+      invalidateTranslation();
+      _lastCommittedTranslatedText = "";
+      if (_hasActiveTargetComposing && _keyboard2 != null)
+      {
+        InputConnection ic = _keyboard2.getTargetAppInputConnection();
+        if (ic != null)
+        {
+          ic.setComposingText("", 1);
+          ic.finishComposingText();
+        }
+        _hasActiveTargetComposing = false;
+      }
+    }
+    else
+    {
+      scheduleTranslationDebounced();
     }
   }
 
@@ -409,9 +470,10 @@ public class TranslateBarView extends LinearLayout
   {
     invalidateTranslation();
     _inputBuffer.setLength(0);
+    _composingText = "";
     _lastCommittedTranslatedText = "";
     updateInputDisplay();
-    if (_keyboard2 != null)
+    if (_hasActiveTargetComposing && _keyboard2 != null)
     {
       InputConnection ic = _keyboard2.getTargetAppInputConnection();
       if (ic != null)
@@ -420,6 +482,7 @@ public class TranslateBarView extends LinearLayout
         ic.finishComposingText();
       }
     }
+    _hasActiveTargetComposing = false;
   }
 
   public InputConnection createInputConnection(final InputConnection targetAppIc)
@@ -431,7 +494,12 @@ public class TranslateBarView extends LinearLayout
       {
         if (text != null)
         {
-          onKeyEntered(text.toString());
+          _composingText = "";
+          if (text.length() > 0)
+          {
+            _inputBuffer.append(text);
+          }
+          onBufferMutated();
           return true;
         }
         return false;
@@ -442,7 +510,8 @@ public class TranslateBarView extends LinearLayout
       {
         if (text != null)
         {
-          onKeyEntered(text.toString());
+          _composingText = text.toString();
+          onBufferMutated();
           return true;
         }
         return false;
@@ -451,32 +520,72 @@ public class TranslateBarView extends LinearLayout
       @Override
       public boolean finishComposingText()
       {
+        if (_composingText != null && !_composingText.isEmpty())
+        {
+          _inputBuffer.append(_composingText);
+          _composingText = "";
+          updateInputDisplay();
+        }
         return true;
       }
 
       @Override
       public boolean deleteSurroundingText(int beforeLength, int afterLength)
       {
+        if (_composingText != null && !_composingText.isEmpty() && _inputBuffer.length() == 0 && beforeLength > 0)
+        {
+          int cLen = _composingText.length();
+          int cStart = Math.max(0, cLen - beforeLength);
+          if (cStart > 0 && cStart < cLen
+              && Character.isLowSurrogate(_composingText.charAt(cStart))
+              && Character.isHighSurrogate(_composingText.charAt(cStart - 1)))
+          {
+            cStart--;
+          }
+          _composingText = _composingText.substring(0, cStart);
+          onBufferMutated();
+          return true;
+        }
+
         int len = _inputBuffer.length();
-        int start = Math.max(0, len - beforeLength);
+        int start = Math.max(0, len - Math.max(0, beforeLength));
+        if (start > 0 && start < len
+            && Character.isLowSurrogate(_inputBuffer.charAt(start))
+            && Character.isHighSurrogate(_inputBuffer.charAt(start - 1)))
+        {
+          start--;
+        }
         if (start < len)
         {
           _inputBuffer.delete(start, len);
-          updateInputDisplay();
-          if (_inputBuffer.length() == 0)
-          {
-            clearBuffer();
-          }
-          else
-          {
-            scheduleTranslationDebounced();
-          }
+          onBufferMutated();
         }
-        else if (len == 0 && targetAppIc != null)
+        else if (len == 0 && (_composingText == null || _composingText.isEmpty()) && targetAppIc != null)
         {
           targetAppIc.deleteSurroundingText(beforeLength, afterLength);
         }
         return true;
+      }
+
+      @Override
+      public boolean performEditorAction(int actionCode)
+      {
+        if (!isBufferEmpty())
+        {
+          if (_composingText != null && !_composingText.isEmpty())
+          {
+            _inputBuffer.append(_composingText);
+            _composingText = "";
+          }
+          if (_hasActiveTargetComposing && targetAppIc != null)
+          {
+            targetAppIc.finishComposingText();
+            _hasActiveTargetComposing = false;
+          }
+          clearBuffer();
+          return true;
+        }
+        return targetAppIc != null && targetAppIc.performEditorAction(actionCode);
       }
 
       @Override
@@ -493,7 +602,11 @@ public class TranslateBarView extends LinearLayout
           {
             if (targetAppIc != null)
             {
-              targetAppIc.finishComposingText();
+              if (_hasActiveTargetComposing)
+              {
+                targetAppIc.finishComposingText();
+                _hasActiveTargetComposing = false;
+              }
               targetAppIc.sendKeyEvent(event);
             }
             clearBuffer();
@@ -506,10 +619,11 @@ public class TranslateBarView extends LinearLayout
       @Override
       public CharSequence getTextBeforeCursor(int n, int flags)
       {
-        int len = _inputBuffer.length();
-        if (len <= 0) return "";
+        String full = getFullInputText();
+        int len = full.length();
+        if (len <= 0 || n <= 0) return "";
         int from = Math.max(0, len - n);
-        return _inputBuffer.subSequence(from, len);
+        return full.subSequence(from, len);
       }
 
       @Override
@@ -523,9 +637,10 @@ public class TranslateBarView extends LinearLayout
       {
         if (Build.VERSION.SDK_INT >= 31)
         {
-          int len = _inputBuffer.length();
-          int start = Math.max(0, len - beforeLength);
-          CharSequence text = _inputBuffer.subSequence(start, len);
+          String full = getFullInputText();
+          int len = full.length();
+          int start = Math.max(0, len - Math.max(0, beforeLength));
+          CharSequence text = full.subSequence(start, len);
           return new SurroundingText(text, text.length(), text.length(), 0);
         }
         return null;
@@ -542,26 +657,25 @@ public class TranslateBarView extends LinearLayout
   public void onKeyEntered(String text)
   {
     if (text == null || text.isEmpty()) return;
+    _composingText = "";
     _inputBuffer.append(text);
-    updateInputDisplay();
-    scheduleTranslationDebounced();
+    onBufferMutated();
   }
 
   public void onBackspace()
   {
-    if (_inputBuffer.length() > 0)
+    if (_composingText != null && !_composingText.isEmpty())
+    {
+      int end = _composingText.length();
+      int start = Character.offsetByCodePoints(_composingText, end, -1);
+      _composingText = _composingText.substring(0, start);
+      onBufferMutated();
+    }
+    else if (_inputBuffer.length() > 0)
     {
       int end = _inputBuffer.length();
       _inputBuffer.delete(_inputBuffer.offsetByCodePoints(end, -1), end);
-      updateInputDisplay();
-      if (_inputBuffer.length() == 0)
-      {
-        clearBuffer();
-      }
-      else
-      {
-        scheduleTranslationDebounced();
-      }
+      onBufferMutated();
     }
     else
     {
@@ -570,7 +684,23 @@ public class TranslateBarView extends LinearLayout
         InputConnection ic = _keyboard2.getTargetAppInputConnection();
         if (ic != null)
         {
-          ic.deleteSurroundingText(1, 0);
+          CharSequence selected = ic.getSelectedText(0);
+          if (selected != null && selected.length() > 0)
+          {
+            ic.commitText("", 1);
+          }
+          else
+          {
+            CharSequence before = ic.getTextBeforeCursor(2, 0);
+            int deleteLen = 1;
+            if (before != null && before.length() == 2
+                && Character.isHighSurrogate(before.charAt(0))
+                && Character.isLowSurrogate(before.charAt(1)))
+            {
+              deleteLen = 2;
+            }
+            ic.deleteSurroundingText(deleteLen, 0);
+          }
         }
       }
     }
@@ -580,7 +710,7 @@ public class TranslateBarView extends LinearLayout
   {
     if (_etInput != null)
     {
-      String text = _inputBuffer.toString();
+      String text = getFullInputText();
       _etInput.setText(text);
       if (text.length() > 0)
       {
@@ -613,10 +743,10 @@ public class TranslateBarView extends LinearLayout
   {
     invalidateTranslation();
     if (!_isOpen || _keyboard2 == null) return;
-    final String textToTranslate = _inputBuffer.toString().trim();
+    final String textToTranslate = getFullInputText().trim();
     if (textToTranslate.isEmpty())
     {
-      if (_progressBar != null) _progressBar.setVisibility(View.GONE);
+      if (_progressBar != null && !_isDownloadingModel) _progressBar.setVisibility(View.GONE);
       return;
     }
 
@@ -641,7 +771,7 @@ public class TranslateBarView extends LinearLayout
                 || sessionId != _keyboard2.getInputSessionId()
                 || target != _keyboard2.getTargetAppInputConnection()) return;
             _isTranslating = false;
-            if (_progressBar != null) _progressBar.setVisibility(View.GONE);
+            if (_progressBar != null && !_isDownloadingModel) _progressBar.setVisibility(View.GONE);
 
             // Stream live composing text directly into active editor!
             if (_keyboard2 != null && translatedText != null)
@@ -650,6 +780,7 @@ public class TranslateBarView extends LinearLayout
               if (ic != null)
               {
                 ic.setComposingText(translatedText, 1);
+                _hasActiveTargetComposing = !translatedText.isEmpty();
                 _lastCommittedTranslatedText = translatedText;
               }
             }
@@ -660,13 +791,13 @@ public class TranslateBarView extends LinearLayout
           {
             if (!_isOpen || revision != _translationRevision) return;
             _isTranslating = false;
-            if (_progressBar != null) _progressBar.setVisibility(View.GONE);
+            if (_progressBar != null && !_isDownloadingModel) _progressBar.setVisibility(View.GONE);
           }
         });
   }
 
   public boolean isBufferEmpty()
   {
-    return _inputBuffer.length() == 0;
+    return _inputBuffer.length() == 0 && (_composingText == null || _composingText.isEmpty());
   }
 }

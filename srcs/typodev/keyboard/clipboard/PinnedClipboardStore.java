@@ -24,13 +24,38 @@ public class PinnedClipboardStore
     {
       _instance = new PinnedClipboardStore(context != null ? context.getApplicationContext() : null);
     }
+    else if (context != null)
+    {
+      if (_instance._context == null)
+      {
+        _instance._context = context.getApplicationContext();
+      }
+      if (!_instance._loaded)
+      {
+        _instance.load();
+      }
+    }
     return _instance;
   }
 
-  private final Context _context;
+  private volatile Context _context;
   private final List<String> _pinnedList = new ArrayList<>();
   private final java.util.Map<String, String> _shortcuts = new java.util.LinkedHashMap<>();
   private boolean _loaded;
+
+  private static boolean isDirectBootLocked(Context context)
+  {
+    if (context == null || android.os.Build.VERSION.SDK_INT < 24) return false;
+    try
+    {
+      android.os.UserManager um = (android.os.UserManager) context.getSystemService(Context.USER_SERVICE);
+      return um != null && !um.isUserUnlocked();
+    }
+    catch (Throwable ignored)
+    {
+      return false;
+    }
+  }
 
   public PinnedClipboardStore(Context context)
   {
@@ -172,6 +197,10 @@ public class PinnedClipboardStore
       _loaded = true;
       return;
     }
+    if (isDirectBootLocked(_context))
+    {
+      return;
+    }
     try
     {
       SharedPreferences prefs = _context.getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE);
@@ -207,7 +236,7 @@ public class PinnedClipboardStore
 
   private synchronized void save()
   {
-    if (_context == null) return;
+    if (_context == null || isDirectBootLocked(_context) || !_loaded) return;
     try
     {
       JSONArray arr = new JSONArray();

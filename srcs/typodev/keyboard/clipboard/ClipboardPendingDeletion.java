@@ -21,4 +21,7 @@ public final class ClipboardPendingDeletion {
     if (now >= deadline) { expired.addAll(keys); keys.clear(); }
     return expired;
   }
+  public long remainingDelay(long now) {
+    return keys.isEmpty() ? 0L : Math.max(0L, deadline - now);
+  }
 }

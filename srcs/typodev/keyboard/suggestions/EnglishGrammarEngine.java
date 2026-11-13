@@ -222,6 +222,22 @@ public class EnglishGrammarEngine
     _superscriptMap.put("th", "ᵗʰ");
   }
 
+  public static String expectedOrdinalSuffix(String digits)
+  {
+    if (digits == null || digits.isEmpty()) return "th";
+    int len = digits.length();
+    if (len >= 2)
+    {
+      char tens = digits.charAt(len - 2);
+      if (tens == '1') return "th";
+    }
+    char ones = digits.charAt(len - 1);
+    if (ones == '1') return "st";
+    if (ones == '2') return "nd";
+    if (ones == '3') return "rd";
+    return "th";
+  }
+
   /**
    * Generates spelling, contraction, and ordinal candidates
    * for the input word.
@@ -256,18 +272,18 @@ public class EnglishGrammarEngine
       candidates.add(new Candidate(formatted, Candidate.Source.TYPO_CORRECTION, 245, 1, 0.95f));
     }
 
-    // 3. Ordinal & Superscript Suggestions (e.g. "3rd" -> "3rd", "3ʳᵈ")
+    // 3. Ordinal & Superscript Suggestions (e.g. "3rd" -> "3rd", "3ʳᵈ", and fixes "2rd" -> "2nd")
     Matcher ordMatcher = ORDINAL_PATTERN.matcher(raw);
     if (ordMatcher.matches())
     {
       String num = ordMatcher.group(1);
-      String suffix = ordMatcher.group(2).toLowerCase(Locale.ROOT);
-      String supSuffix = _superscriptMap.get(suffix);
+      String validSuffix = expectedOrdinalSuffix(num);
+      String supSuffix = _superscriptMap.get(validSuffix);
       if (supSuffix != null)
       {
         candidates.add(new Candidate(num + supSuffix, Candidate.Source.CODE_SNIPPET, 248, 0, 1.0f));
       }
-      candidates.add(new Candidate(num + suffix, Candidate.Source.CORE_LEXICON, 240, 0, 1.0f));
+      candidates.add(new Candidate(num + validSuffix, Candidate.Source.CORE_LEXICON, 240, 0, 1.0f));
     }
     else
     {
@@ -276,11 +292,8 @@ public class EnglishGrammarEngine
       {
         String num = prefixMatcher.group(1);
         char ch = Character.toLowerCase(prefixMatcher.group(2).charAt(0));
-        String fullSuffix = null;
-        if (ch == 's' && num.endsWith("1") && !num.endsWith("11")) fullSuffix = "st";
-        else if (ch == 'n' && num.endsWith("2") && !num.endsWith("12")) fullSuffix = "nd";
-        else if (ch == 'r' && num.endsWith("3") && !num.endsWith("13")) fullSuffix = "rd";
-        else if (ch == 't') fullSuffix = "th";
+        String validSuffix = expectedOrdinalSuffix(num);
+        String fullSuffix = (validSuffix.charAt(0) == ch) ? validSuffix : null;
 
         if (fullSuffix != null)
         {

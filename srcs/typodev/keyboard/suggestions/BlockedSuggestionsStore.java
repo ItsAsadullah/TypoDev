@@ -32,12 +32,38 @@ public class BlockedSuggestionsStore
     {
       _instance = new BlockedSuggestionsStore(context != null ? context.getApplicationContext() : null);
     }
+    else if (context != null)
+    {
+      if (_instance._context == null)
+      {
+        _instance._context = context.getApplicationContext();
+      }
+      if (!_instance._loaded)
+      {
+        _instance.loadFromDisk();
+      }
+    }
     return _instance;
   }
 
-  private final Context _context;
+  private volatile Context _context;
+  private volatile boolean _loaded = false;
   private final ConcurrentHashMap<String, Boolean> _blocked = new ConcurrentHashMap<>();
   private final ExecutorService _ioExecutor = Executors.newSingleThreadExecutor();
+
+  private static boolean isDirectBootLocked(Context context)
+  {
+    if (context == null || android.os.Build.VERSION.SDK_INT < 24) return false;
+    try
+    {
+      android.os.UserManager um = (android.os.UserManager) context.getSystemService(Context.USER_SERVICE);
+      return um != null && !um.isUserUnlocked();
+    }
+    catch (Throwable ignored)
+    {
+      return false;
+    }
+  }
 
   public BlockedSuggestionsStore(Context context)
   {
@@ -45,6 +71,10 @@ public class BlockedSuggestionsStore
     if (_context != null)
     {
       loadFromDisk();
+    }
+    else
+    {
+      _loaded = true;
     }
   }
 
@@ -107,7 +137,7 @@ public class BlockedSuggestionsStore
 
   private void scheduleSave()
   {
-    if (_context == null) return;
+    if (_context == null || isDirectBootLocked(_context)) return;
     _ioExecutor.execute(new Runnable()
     {
       @Override
@@ -120,8 +150,12 @@ public class BlockedSuggestionsStore
 
   private synchronized void saveToDisk()
   {
-    if (_context == null) return;
-    File file = new File(_context.getFilesDir(), STORE_FILE_NAME);
+    if (_context == null || isDirectBootLocked(_context)) return;
+    if (!_loaded) loadFromDisk();
+    if (!_loaded) return;
+    File file;
+    try { file = new File(_context.getFilesDir(), STORE_FILE_NAME); }
+    catch (Exception ignored) { return; }
     try (FileOutputStream fos = new FileOutputStream(file);
          OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8))
     {
@@ -137,9 +171,13 @@ public class BlockedSuggestionsStore
 
   private synchronized void loadFromDisk()
   {
-    if (_context == null) return;
-    File file = new File(_context.getFilesDir(), STORE_FILE_NAME);
-    if (!file.exists()) return;
+    if (_loaded) return;
+    if (_context == null) { _loaded = true; return; }
+    if (isDirectBootLocked(_context)) return;
+    File file;
+    try { file = new File(_context.getFilesDir(), STORE_FILE_NAME); }
+    catch (Exception ignored) { return; }
+    if (!file.exists()) { _loaded = true; return; }
 
     try (FileInputStream fis = new FileInputStream(file);
          BufferedReader br = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8)))
@@ -153,6 +191,7 @@ public class BlockedSuggestionsStore
           _blocked.put(w.toLowerCase(Locale.ROOT), Boolean.TRUE);
         }
       }
+      _loaded = true;
     }
     catch (Exception ignored) {}
   }

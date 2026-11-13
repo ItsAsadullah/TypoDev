@@ -15,8 +15,8 @@ import typodev.keyboard.Utils;
 public final class SavedNotesDialog {
   private SavedNotesDialog() {}
   public static void show(Context context, Keyboard2 keyboard) {
-    SavedNoteStore store = new SavedNoteStore(context);
     try {
+      SavedNoteStore store = new SavedNoteStore(context);
       List<SavedNoteStore.Note> notes = store.list();
       AlertDialog.Builder dialog = new AlertDialog.Builder(context).setTitle(R.string.slash_saved_notes)
           .setNegativeButton(android.R.string.cancel, null);

@@ -1030,7 +1030,11 @@ public class AvroData {
                 }, "ূ"),
             }),
             new PatternEntry("E", "এ", null),
-            new PatternEntry("O", "ও", null),
+            new PatternEntry("O", "ও", new PatternRule[] {
+                new PatternRule(new MatchCondition[] {
+                    new MatchCondition(true, "consonant", null, false),
+                }, "ো"),
+            }),
             new PatternEntry("k", "ক", null),
             new PatternEntry("g", "গ", null),
             new PatternEntry("j", "জ", null),

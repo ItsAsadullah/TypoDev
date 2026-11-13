@@ -108,8 +108,12 @@ public final class NumericPadView extends LinearLayout {
   }
   private void deleteEditor(InputConnection connection) {
     CharSequence selected = connection.getSelectedText(0);
-    if (selected != null && selected.length() > 0) connection.commitText("", 1);
-    else if (!connection.deleteSurroundingText(1, 0)) {
+    if (selected != null && selected.length() > 0) { connection.commitText("", 1); return; }
+    CharSequence before = connection.getTextBeforeCursor(2, 0);
+    int delLen = (before != null && before.length() == 2
+        && Character.isHighSurrogate(before.charAt(0))
+        && Character.isLowSurrogate(before.charAt(1))) ? 2 : 1;
+    if (!connection.deleteSurroundingText(delLen, 0)) {
       connection.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
       connection.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
     }

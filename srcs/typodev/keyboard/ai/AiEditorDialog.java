@@ -50,12 +50,23 @@ public class AiEditorDialog
       return;
     }
 
+    if (typodev.keyboard.suggestions.CandidatesView.isPasswordField(keyboard.getCurrentInputEditorInfo()))
+    {
+      Toast.makeText(context, "AI tools are disabled in password fields", Toast.LENGTH_SHORT).show();
+      return;
+    }
+    if (keyboard.getKeyEventHandler() != null)
+    {
+      keyboard.getKeyEventHandler().commitAvroComposing();
+    }
     final InputConnection ic = keyboard.getCurrentInputConnection();
     if (ic == null)
     {
       Toast.makeText(context, "No active input field", Toast.LENGTH_SHORT).show();
       return;
     }
+    ic.finishComposingText();
+    final long sessionId = keyboard.getInputSessionId();
 
     CharSequence sel = ic.getSelectedText(0);
     final boolean hasSelection = (sel != null && sel.length() > 0);
@@ -76,13 +87,15 @@ public class AiEditorDialog
       initialText = before.toString();
     }
 
-    new EditorSession(context, keyboard, initialText, hasSelection).open();
+    new EditorSession(context, keyboard, ic, sessionId, initialText, hasSelection).open();
   }
 
   private static class EditorSession
   {
     private final Context context;
     private final Keyboard2 keyboard;
+    private final InputConnection sourceConnection;
+    private final long sessionId;
     private final String originalText;
     private final boolean hasSelection;
 
@@ -91,6 +104,7 @@ public class AiEditorDialog
     private boolean emojify = true;
     private String currentResult = "";
     private boolean isGenerating = false;
+    private long requestRevision = 0L;
 
     private AlertDialog dialog;
     private TextView tvHeaderTitle;
@@ -108,10 +122,13 @@ public class AiEditorDialog
     private Button btnApply;
     private Button btnCopy;
 
-    public EditorSession(Context context, Keyboard2 keyboard, String text, boolean hasSelection)
+    public EditorSession(Context context, Keyboard2 keyboard, InputConnection sourceConnection,
+        long sessionId, String text, boolean hasSelection)
     {
       this.context = context;
       this.keyboard = keyboard;
+      this.sourceConnection = sourceConnection;
+      this.sessionId = sessionId;
       this.originalText = text;
       this.hasSelection = hasSelection;
       this.currentResult = text;
@@ -632,7 +649,7 @@ public class AiEditorDialog
 
     private void triggerActiveTab()
     {
-      if (isGenerating) return;
+      final long rev = ++requestRevision;
       isGenerating = true;
 
       tvStatusLabel.setText("✨ AI Generating...");
@@ -652,7 +669,7 @@ public class AiEditorDialog
           @Override
           public void onSuccess(final GeminiAiService.GrammarDiffResult result)
           {
-            if (dialog == null || !dialog.isShowing()) return;
+            if (rev != requestRevision || dialog == null || !dialog.isShowing()) return;
             try
             {
               isGenerating = false;
@@ -727,7 +744,7 @@ public class AiEditorDialog
           @Override
           public void onError(final String errorMessage)
           {
-            if (dialog == null || !dialog.isShowing()) return;
+            if (rev != requestRevision || dialog == null || !dialog.isShowing()) return;
             try
             {
               isGenerating = false;
@@ -753,7 +770,7 @@ public class AiEditorDialog
           @Override
           public void onSuccess(final String resultText)
           {
-            if (dialog == null || !dialog.isShowing()) return;
+            if (rev != requestRevision || dialog == null || !dialog.isShowing()) return;
             try
             {
               isGenerating = false;
@@ -769,7 +786,7 @@ public class AiEditorDialog
           @Override
           public void onError(final String errorMessage)
           {
-            if (dialog == null || !dialog.isShowing()) return;
+            if (rev != requestRevision || dialog == null || !dialog.isShowing()) return;
             try
             {
               isGenerating = false;
@@ -802,20 +819,6 @@ public class AiEditorDialog
         return;
       }
 
-      // Always save to clipboard as well
-      try
-      {
-        ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        if (cm != null)
-        {
-          cm.setPrimaryClip(ClipData.newPlainText("AI Result", currentResult));
-        }
-        typodev.keyboard.ClipboardHistoryService.setRecentCopiedClip(currentResult);
-        typodev.keyboard.ClipboardHistoryService hs = typodev.keyboard.ClipboardHistoryService.get_service(context);
-        if (hs != null) hs.add_clip(currentResult);
-      }
-      catch (Throwable ignored) {}
-
       try
       {
         if (dialog != null && dialog.isShowing())
@@ -830,26 +833,45 @@ public class AiEditorDialog
       {
         InputConnection conn = keyboard.getTargetAppInputConnection();
         if (conn == null) conn = keyboard.getCurrentInputConnection();
-        if (conn != null)
+        if (conn != null && sessionId == keyboard.getInputSessionId()
+            && (sourceConnection == null || conn == sourceConnection)
+            && EditorTextGuard.matches(conn, originalText, hasSelection))
         {
           conn.beginBatchEdit();
-          if (hasSelection)
+          try
           {
-            applied = conn.commitText(currentResult, 1);
+            conn.finishComposingText();
+            if (hasSelection)
+            {
+              applied = conn.commitText(currentResult, 1);
+            }
+            else
+            {
+              conn.deleteSurroundingText(originalText.length(), 0);
+              applied = conn.commitText(currentResult, 1);
+            }
           }
-          else
+          finally
           {
-            conn.deleteSurroundingText(originalText.length(), 0);
-            applied = conn.commitText(currentResult, 1);
+            conn.endBatchEdit();
           }
-          conn.endBatchEdit();
         }
       }
       catch (Throwable ignored) {}
 
       if (!applied)
       {
-        typodev.keyboard.ClipboardHistoryService.paste(currentResult);
+        try
+        {
+          ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+          if (cm != null)
+          {
+            cm.setPrimaryClip(ClipData.newPlainText("AI Result", currentResult));
+          }
+        }
+        catch (Throwable ignored) {}
+        Toast.makeText(context, "Editor changed — result copied to clipboard", Toast.LENGTH_SHORT).show();
+        return;
       }
 
       Toast.makeText(context, "✨ Applied successfully!", Toast.LENGTH_SHORT).show();

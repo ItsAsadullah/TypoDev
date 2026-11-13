@@ -282,11 +282,11 @@ public final class ClipboardHistoryService
       {
         if (ent.isImage)
         {
-          dst.add(new typodev.keyboard.clipboard.ClipboardItem(ent.content, System.currentTimeMillis(), false, true, ent.uriString));
+          dst.add(new typodev.keyboard.clipboard.ClipboardItem(ent.content, ent.created_timestamp, false, true, ent.uriString));
         }
         else
         {
-          dst.add(new typodev.keyboard.clipboard.ClipboardItem(ent.content, System.currentTimeMillis(), false));
+          dst.add(new typodev.keyboard.clipboard.ClipboardItem(ent.content, ent.created_timestamp, false));
         }
       }
     }
@@ -345,7 +345,7 @@ public final class ClipboardHistoryService
     if (config == null || !config.clipboard_history_enabled || clip == null || clip.isEmpty())
       return;
     int size = _history.size();
-    if (clip.equals("") || (size > 0 && _history.get(0).content.equals(clip)))
+    if (clip.equals("") || (size > 0 && !_history.get(0).isImage && clip.equals(_history.get(0).content)))
     {
       if (isFreshCopy && !isClipDismissed(clip))
       {
@@ -353,8 +353,16 @@ public final class ClipboardHistoryService
       }
       return;
     }
-    if (size >= MAX_HISTORY_SIZE)
-      _history.remove(size - 1);
+    for (int i = _history.size() - 1; i >= 1; i--)
+    {
+      HistoryEntry existing = _history.get(i);
+      if (existing != null && !existing.isImage && clip.equals(existing.content))
+      {
+        _history.remove(i);
+      }
+    }
+    if (_history.size() >= MAX_HISTORY_SIZE)
+      _history.remove(_history.size() - 1);
     _history.add(0, new HistoryEntry(clip));
     if (isFreshCopy || !isClipDismissed(clip))
     {
@@ -384,7 +392,15 @@ public final class ClipboardHistoryService
       // An unbound history instance has no private storage or content resolver.
       int size = _history.size();
       if (size > 0 && _history.get(0).isImage && uriString.equals(_history.get(0).uriString)) return;
-      if (size >= MAX_HISTORY_SIZE) _history.remove(size - 1);
+      for (int i = _history.size() - 1; i >= 1; i--)
+      {
+        HistoryEntry existing = _history.get(i);
+        if (existing != null && existing.isImage && uriString.equals(existing.uriString))
+        {
+          _history.remove(i);
+        }
+      }
+      if (_history.size() >= MAX_HISTORY_SIZE) _history.remove(_history.size() - 1);
       _history.add(0, new HistoryEntry("[Image]", true, uriString));
       if (_listener != null) _listener.on_clipboard_history_change();
     }
@@ -493,6 +509,7 @@ public final class ClipboardHistoryService
   static final class HistoryEntry
   {
     public final String content;
+    public final long created_timestamp;
     public final long expiry_timestamp;
     public final boolean isImage;
     public final String uriString;
@@ -505,6 +522,7 @@ public final class ClipboardHistoryService
     public HistoryEntry(String c, boolean isImage, String uriString)
     {
       this.content = c;
+      this.created_timestamp = System.currentTimeMillis();
       this.isImage = isImage;
       this.uriString = uriString;
 

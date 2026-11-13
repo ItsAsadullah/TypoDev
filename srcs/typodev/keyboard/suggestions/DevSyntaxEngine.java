@@ -186,24 +186,24 @@ public class DevSyntaxEngine
     LinkedHashSet<Candidate> candidates = new LinkedHashSet<>();
     String token = (word != null) ? word.trim() : "";
 
-    // Check if user has typed '<' or '</' before the cursor
+    // Check if user has typed '<' or '</' immediately before the cursor/token (do not trim trailing spaces, e.g. "x < ")
     String prefixWithAngle = null;
-    if (textBeforeCursor != null)
+    if (textBeforeCursor != null && !textBeforeCursor.isEmpty()
+        && !Character.isWhitespace(textBeforeCursor.charAt(textBeforeCursor.length() - 1)))
     {
-      String trimmedBefore = textBeforeCursor.trim();
-      if (trimmedBefore.endsWith("</" + token))
+      if (!token.isEmpty() && textBeforeCursor.endsWith("</" + token))
       {
         prefixWithAngle = "</" + token;
       }
-      else if (trimmedBefore.endsWith("<" + token))
+      else if (!token.isEmpty() && textBeforeCursor.endsWith("<" + token))
       {
         prefixWithAngle = "<" + token;
       }
-      else if (trimmedBefore.endsWith("</"))
+      else if (token.isEmpty() && textBeforeCursor.endsWith("</"))
       {
         prefixWithAngle = "</";
       }
-      else if (trimmedBefore.endsWith("<"))
+      else if (token.isEmpty() && textBeforeCursor.endsWith("<"))
       {
         prefixWithAngle = "<";
       }

@@ -141,6 +141,15 @@ public class AiActionDialog
 
   private static void executeAiAction(final Context context, final Keyboard2 keyboard, final GeminiAiService.Action action)
   {
+    if (typodev.keyboard.suggestions.CandidatesView.isPasswordField(keyboard.getCurrentInputEditorInfo()))
+    {
+      Toast.makeText(context, "AI tools are disabled in password fields", Toast.LENGTH_SHORT).show();
+      return;
+    }
+    if (keyboard.getKeyEventHandler() != null)
+    {
+      keyboard.getKeyEventHandler().commitAvroComposing();
+    }
     final InputConnection ic = keyboard.getCurrentInputConnection();
     final long sessionId = keyboard.getInputSessionId();
     if (ic == null)
@@ -148,6 +157,7 @@ public class AiActionDialog
       Toast.makeText(context, "No active input field", Toast.LENGTH_SHORT).show();
       return;
     }
+    ic.finishComposingText();
 
     CharSequence selectedText = ic.getSelectedText(0);
     final boolean hasSelection = (selectedText != null && selectedText.length() > 0);
@@ -178,18 +188,6 @@ public class AiActionDialog
         if (sessionId != keyboard.getInputSessionId()
             || ic != keyboard.getCurrentInputConnection()
             || !EditorTextGuard.matches(ic, textToProcess, hasSelection)) return;
-        try
-        {
-          ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-          if (cm != null)
-          {
-            cm.setPrimaryClip(ClipData.newPlainText("AI Result", resultText));
-          }
-          typodev.keyboard.ClipboardHistoryService.setRecentCopiedClip(resultText);
-          typodev.keyboard.ClipboardHistoryService hs = typodev.keyboard.ClipboardHistoryService.get_service(context);
-          if (hs != null) hs.add_clip(resultText);
-        }
-        catch (Throwable ignored) {}
 
         boolean applied = false;
         try
@@ -199,16 +197,23 @@ public class AiActionDialog
           if (conn != null)
           {
             conn.beginBatchEdit();
-            if (hasSelection)
+            try
             {
-              applied = conn.commitText(resultText, 1);
+              conn.finishComposingText();
+              if (hasSelection)
+              {
+                applied = conn.commitText(resultText, 1);
+              }
+              else
+              {
+                conn.deleteSurroundingText(textToProcess.length(), 0);
+                applied = conn.commitText(resultText, 1);
+              }
             }
-            else
+            finally
             {
-              conn.deleteSurroundingText(textToProcess.length(), 0);
-              applied = conn.commitText(resultText, 1);
+              conn.endBatchEdit();
             }
-            conn.endBatchEdit();
           }
         }
         catch (Throwable ignored) {}
@@ -343,16 +348,22 @@ public class AiActionDialog
       }
     });
 
-    Window win = dialog.getWindow();
-    if (win != null)
+    try
     {
-      WindowManager.LayoutParams lp = win.getAttributes();
-      lp.token = keyboard.getWindow().getWindow().getDecorView().getWindowToken();
-      lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG;
-      win.setAttributes(lp);
-      win.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
-      win.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+      Window win = dialog.getWindow();
+      if (win != null && keyboard != null && keyboard.getWindow() != null
+          && keyboard.getWindow().getWindow() != null
+          && keyboard.getWindow().getWindow().getDecorView() != null)
+      {
+        WindowManager.LayoutParams lp = win.getAttributes();
+        lp.token = keyboard.getWindow().getWindow().getDecorView().getWindowToken();
+        lp.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG;
+        win.setAttributes(lp);
+        win.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+        win.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+      }
+      dialog.show();
     }
-    dialog.show();
+    catch (Throwable ignored) {}
   }
 }

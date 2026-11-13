@@ -283,19 +283,36 @@ public final class AlgebraFormulaEngine
     ParsedTerm ta = parseTerm(a);
     ParsedTerm tb = parseTerm(b);
 
-    long valA = "-".equals(opA) || "\u2212".equals(opA) ? -ta.coeff : ta.coeff;
-    long valB = "-".equals(opB) || "\u2212".equals(opB) ? -tb.coeff : tb.coeff;
-
+    boolean negA = "-".equals(opA) || "\u2212".equals(opA);
+    boolean negB = "-".equals(opB) || "\u2212".equals(opB);
     String xSq = squareTerm(tx, isBengali);
-    long sumAB = valA + valB;
+
+    if (!ta.vars.isEmpty() || !tb.vars.isEmpty())
+    {
+      StringBuilder sb = new StringBuilder(xSq);
+      sb.append(negB ? " - " : " + ").append(multiplyTerms(tx, tb, 1, isBengali));
+      sb.append(negA ? " - " : " + ").append(multiplyTerms(ta, tx, 1, isBengali));
+      sb.append((negA ^ negB) ? " - " : " + ").append(multiplyTerms(ta, tb, 1, isBengali));
+      String expansion = sb.toString();
+      String equation = "(" + x + (negA ? " - " : " + ") + a + ")(" + x + (negB ? " - " : " + ") + b + ") = " + expansion;
+      List<String> steps = new ArrayList<>();
+      steps.add("১. সূত্র: (x + a)(x + b) = x\u00B2 + bx + ax + ab");
+      steps.add("২. চূড়ান্ত ফলাফল: " + expansion);
+      return new AlgebraResult(matched, expansion, equation, steps);
+    }
+
+    long valA = negA ? -ta.coeff : ta.coeff;
+    long valB = negB ? -tb.coeff : tb.coeff;
+
+    long sumMid = (valA + valB) * tx.coeff;
     long prodAB = valA * valB;
 
     StringBuilder sb = new StringBuilder(xSq);
-    if (sumAB != 0)
+    if (sumMid != 0)
     {
-      if (sumAB > 0) sb.append(" + ");
+      if (sumMid > 0) sb.append(" + ");
       else sb.append(" - ");
-      long absSum = Math.abs(sumAB);
+      long absSum = Math.abs(sumMid);
       if (absSum != 1 || tx.vars.isEmpty())
       {
         sb.append(isBengali ? toBengaliNumber(absSum) : absSum);
@@ -325,20 +342,34 @@ public final class AlgebraFormulaEngine
 
   private static AlgebraResult expandTrinomialSquare(String matched, String u, String op1, String v, String op2, String w, boolean isBengali)
   {
-    String sq1 = u + "\u00B2";
-    String sq2 = v + "\u00B2";
-    String sq3 = w + "\u00B2";
+    ParsedTerm tu = parseTerm(u);
+    ParsedTerm tv = parseTerm(v);
+    ParsedTerm tw = parseTerm(w);
 
-    String signV = ("-".equals(op1) || "\u2212".equals(op1)) ? "-" : "+";
-    String signW = ("-".equals(op2) || "\u2212".equals(op2)) ? "-" : "+";
+    String sq1 = squareTerm(tu, isBengali);
+    String sq2 = squareTerm(tv, isBengali);
+    String sq3 = squareTerm(tw, isBengali);
 
-    String two = isBengali ? "২" : "2";
-    String expansion = sq1 + " + " + sq2 + " + " + sq3 + " + " + two + u + v + " + " + two + v + w + " + " + two + w + u;
+    boolean negV = "-".equals(op1) || "\u2212".equals(op1);
+    boolean negW = "-".equals(op2) || "\u2212".equals(op2);
+
+    String signUV = negV ? " - " : " + ";
+    String signVW = (negV ^ negW) ? " - " : " + ";
+    String signWU = negW ? " - " : " + ";
+
+    String termUV = multiplyTerms(tu, tv, 2, isBengali);
+    String termVW = multiplyTerms(tv, tw, 2, isBengali);
+    String termWU = multiplyTerms(tw, tu, 2, isBengali);
+
+    String expansion = sq1 + " + " + sq2 + " + " + sq3
+        + signUV + termUV
+        + signVW + termVW
+        + signWU + termWU;
     String equation = "(" + u + " " + op1 + " " + v + " " + op2 + " " + w + ")\u00B2 = " + expansion;
 
     List<String> steps = new ArrayList<>();
     steps.add("১. সূত্র: (A + B + C)\u00B2 = A\u00B2 + B\u00B2 + C\u00B2 + 2AB + 2BC + 2CA");
-    steps.add("২. সূত্রে A=" + u + ", B=" + v + ", C=" + w + " বসিয়ে হিসাব সম্পন্ন করা হয়েছে।");
+    steps.add("২. সূত্রে A=" + u + ", B=" + (negV ? "-" : "") + v + ", C=" + (negW ? "-" : "") + w + " বসিয়ে হিসাব সম্পন্ন করা হয়েছে।");
 
     return new AlgebraResult(matched, expansion, equation, steps);
   }

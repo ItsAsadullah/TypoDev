@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class EmojiGridView extends GridView
@@ -27,6 +28,7 @@ public class EmojiGridView extends GridView
 
   private List<Emoji> _emojiArray;
   private HashMap<Emoji, Integer> _lastUsed;
+  private boolean _lastUsedLoaded = false;
   private int _currentGroup = GROUP_LAST_USE;
   private android.view.GestureDetector _gestureDetector;
   private float _downX, _downY;
@@ -54,6 +56,7 @@ public class EmojiGridView extends GridView
     super(context, attrs);
     Emoji.init(context.getResources());
     setOnItemClickListener(this);
+    _lastUsed = new HashMap<Emoji, Integer>();
     loadLastUsed();
     initGestureDetector(context);
     setEmojiGroup(GROUP_LAST_USE);
@@ -78,13 +81,11 @@ public class EmojiGridView extends GridView
         {
           if (dx < 0)
           {
-            // Swiped left -> next category
             nextEmojiGroup();
             return true;
           }
           else
           {
-            // Swiped right -> previous category
             prevEmojiGroup();
             return true;
           }
@@ -114,7 +115,7 @@ public class EmojiGridView extends GridView
         if (dx > dy * 1.5f && dx > 25)
         {
           _isSwipingHorizontal = true;
-          return true; // Intercept horizontal swipe for emoji category paging
+          return true;
         }
         break;
     }
@@ -188,6 +189,7 @@ public class EmojiGridView extends GridView
     Emoji emoji = _emojiArray.get(pos);
     if (emoji == null || emoji.kv() == null)
       return;
+    if (!_lastUsedLoaded) loadLastUsed();
     Integer used = _lastUsed.get(emoji);
     _lastUsed.put(emoji, incrementUsage(used));
     config.handler.key_up(emoji.kv(), Pointers.Modifiers.EMPTY);
@@ -196,6 +198,7 @@ public class EmojiGridView extends GridView
 
   private List<Emoji> getLastEmojis()
   {
+    if (!_lastUsedLoaded) loadLastUsed();
     List<Emoji> list = new ArrayList<>(_lastUsed.keySet());
     Collections.sort(list, new Comparator<Emoji>()
         {
@@ -221,6 +224,7 @@ public class EmojiGridView extends GridView
   public void recordEmojiUsed(Emoji emoji)
   {
     if (emoji == null) return;
+    if (!_lastUsedLoaded) loadLastUsed();
     Integer used = _lastUsed.get(emoji);
     _lastUsed.put(emoji, incrementUsage(used));
     saveLastUsed();
@@ -240,6 +244,8 @@ public class EmojiGridView extends GridView
 
   private void saveLastUsed()
   {
+    if (!_lastUsedLoaded) loadLastUsed();
+    if (!_lastUsedLoaded) return;
     SharedPreferences.Editor edit;
     try { edit = emojiSharedPreferences().edit(); }
     catch (Exception _e) { return; }
@@ -252,10 +258,20 @@ public class EmojiGridView extends GridView
 
   private void loadLastUsed()
   {
-    _lastUsed = new HashMap<Emoji, Integer>();
+    if (_lastUsed == null)
+      _lastUsed = new HashMap<Emoji, Integer>();
+    if (_lastUsedLoaded)
+      return;
+    if (android.os.Build.VERSION.SDK_INT >= 24)
+    {
+      try
+      {
+        android.os.UserManager um = (android.os.UserManager) getContext().getSystemService(Context.USER_SERVICE);
+        if (um != null && !um.isUserUnlocked()) return;
+      }
+      catch (Throwable ignored) {}
+    }
     SharedPreferences prefs;
-    // Storage might not be available (eg. the device is locked), avoid
-    // crashing.
     Set<String> lastUseSet;
     try
     {
@@ -271,14 +287,19 @@ public class EmojiGridView extends GridView
         String[] data = emojiData.split("-", 2);
         Emoji emoji;
         if (data.length != 2)
-          continue ;
+          continue;
         emoji = Emoji.getEmojiByString(data[1]);
         if (emoji == null)
-          continue ;
+          continue;
         int count = parseUsageCount(data[0]);
         if (count > 0)
-          _lastUsed.put(emoji, count);
+        {
+          Integer existing = _lastUsed.get(emoji);
+          int merged = existing == null ? count : (int) Math.min((long) Integer.MAX_VALUE, (long) existing + count);
+          _lastUsed.put(emoji, merged);
+        }
       }
+    _lastUsedLoaded = true;
   }
 
   static int parseUsageCount(String value)

@@ -55,23 +55,64 @@ public class UserVocabularyStore
     {
       _instance = new UserVocabularyStore(context != null ? context.getApplicationContext() : null);
     }
+    else if (context != null)
+    {
+      if (_instance._context == null)
+      {
+        _instance._context = context.getApplicationContext();
+      }
+      if (!_instance._loaded)
+      {
+        _instance.initIfUnlocked();
+      }
+    }
     return _instance;
   }
 
-  private final Context _context;
+  private volatile Context _context;
+  private volatile boolean _loaded = false;
   private final ConcurrentHashMap<String, WordStats> _words = new ConcurrentHashMap<>();
   private final ExecutorService _ioExecutor = Executors.newSingleThreadExecutor();
   private volatile boolean _learningEnabled = true;
+
+  private static boolean isDirectBootLocked(Context context)
+  {
+    if (context == null || android.os.Build.VERSION.SDK_INT < 24) return false;
+    try
+    {
+      android.os.UserManager um = (android.os.UserManager) context.getSystemService(Context.USER_SERVICE);
+      return um != null && !um.isUserUnlocked();
+    }
+    catch (Throwable ignored)
+    {
+      return false;
+    }
+  }
 
   public UserVocabularyStore(Context context)
   {
     _context = context;
     if (_context != null)
     {
+      initIfUnlocked();
+    }
+    else
+    {
+      _loaded = true;
+    }
+  }
+
+  private synchronized void initIfUnlocked()
+  {
+    if (_loaded || _context == null || isDirectBootLocked(_context)) return;
+    try
+    {
       SharedPreferences prefs = _context.getSharedPreferences(PREF_SETTINGS, Context.MODE_PRIVATE);
       _learningEnabled = prefs.getBoolean(KEY_LEARNING_ENABLED, true);
       loadFromDisk();
+      _loaded = true;
     }
+    catch (Exception ignored) {}
   }
 
   public boolean isLearningEnabled()
@@ -82,12 +123,16 @@ public class UserVocabularyStore
   public void setLearningEnabled(boolean enabled)
   {
     _learningEnabled = enabled;
-    if (_context != null)
+    if (_context != null && !isDirectBootLocked(_context))
     {
-      _context.getSharedPreferences(PREF_SETTINGS, Context.MODE_PRIVATE)
-          .edit()
-          .putBoolean(KEY_LEARNING_ENABLED, enabled)
-          .apply();
+      try
+      {
+        _context.getSharedPreferences(PREF_SETTINGS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_LEARNING_ENABLED, enabled)
+            .apply();
+      }
+      catch (Exception ignored) {}
     }
   }
 
@@ -156,15 +201,20 @@ public class UserVocabularyStore
   public void recordRejection(String rejectedWord, String originalTyped)
   {
     if (rejectedWord == null) return;
-    String key = cleanWord(rejectedWord).toLowerCase(Locale.ROOT);
+    String clean = cleanWord(rejectedWord);
+    String key = clean.toLowerCase(Locale.ROOT);
     if (key.isEmpty()) return;
 
     WordStats stats = _words.get(key);
     if (stats != null)
     {
       stats.rejections += 2; // Strong penalty for rejection
-      scheduleSave();
     }
+    else
+    {
+      _words.put(key, new WordStats(clean, 0, System.currentTimeMillis(), 2, false));
+    }
+    scheduleSave();
   }
 
   /**
@@ -174,7 +224,8 @@ public class UserVocabularyStore
   {
     if (word == null) return false;
     String key = cleanWord(word).toLowerCase(Locale.ROOT);
-    return _words.containsKey(key);
+    WordStats stats = _words.get(key);
+    return stats != null && (stats.frequency > 0 || stats.isUserAdded);
   }
 
   /**
@@ -197,6 +248,7 @@ public class UserVocabularyStore
     {
       return Collections.emptyList();
     }
+    if (!_loaded) initIfUnlocked();
 
     String cleanPrefix = prefix.trim().toLowerCase(Locale.ROOT);
     int pLen = cleanPrefix.length();
@@ -205,7 +257,7 @@ public class UserVocabularyStore
     List<Candidate> results = new ArrayList<>();
     for (WordStats ws : _words.values())
     {
-      if (isSkipLearningWord(ws.word)) continue;
+      if ((ws.frequency <= 0 && !ws.isUserAdded) || isSkipLearningWord(ws.word)) continue;
       String wLower = ws.word.toLowerCase(Locale.ROOT);
       if (wLower.startsWith(cleanPrefix))
       {
@@ -245,7 +297,7 @@ public class UserVocabularyStore
   {
     if (word == null) return 0f;
     WordStats ws = _words.get(cleanWord(word).toLowerCase(Locale.ROOT));
-    if (ws == null) return 0f;
+    if (ws == null || (ws.frequency <= 0 && !ws.isUserAdded)) return 0f;
     long ageMs = System.currentTimeMillis() - ws.lastUsedTime;
     if (ageMs < 3600000L) return 1.0f;
     if (ageMs < 86400000L) return 0.7f;
@@ -259,10 +311,14 @@ public class UserVocabularyStore
   public void clearLearnedData()
   {
     _words.clear();
-    if (_context != null)
+    if (_context != null && !isDirectBootLocked(_context))
     {
-      File f = new File(_context.getFilesDir(), STORE_FILE_NAME);
-      if (f.exists()) f.delete();
+      try
+      {
+        File f = new File(_context.getFilesDir(), STORE_FILE_NAME);
+        if (f.exists()) f.delete();
+      }
+      catch (Exception ignored) {}
     }
   }
 
@@ -282,12 +338,17 @@ public class UserVocabularyStore
 
   public int getWordCount()
   {
-    return _words.size();
+    int count = 0;
+    for (WordStats ws : _words.values())
+    {
+      if (ws.frequency > 0 || ws.isUserAdded) count++;
+    }
+    return count;
   }
 
   private void scheduleSave()
   {
-    if (_context == null) return;
+    if (_context == null || isDirectBootLocked(_context)) return;
     _ioExecutor.execute(new Runnable()
     {
       @Override
@@ -300,7 +361,9 @@ public class UserVocabularyStore
 
   private synchronized void saveToDisk()
   {
-    if (_context == null) return;
+    if (_context == null || isDirectBootLocked(_context)) return;
+    if (!_loaded) initIfUnlocked();
+    if (!_loaded) return;
     File file = new File(_context.getFilesDir(), STORE_FILE_NAME);
     try (FileOutputStream fos = new FileOutputStream(file);
          OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8))

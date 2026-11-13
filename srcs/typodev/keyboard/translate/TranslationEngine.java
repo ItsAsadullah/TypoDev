@@ -717,18 +717,22 @@ public class TranslationEngine
       public void run()
       {
         final String offlineResult = translateOffline(context, text, sourceLang, targetLang);
-        final String result = (offlineResult != null && !offlineResult.trim().isEmpty())
-            ? offlineResult
-            : text;
 
         postToMainThread(new Runnable()
         {
           @Override
           public void run()
           {
-            if (callback != null)
+            if (callback == null) return;
+            if (offlineResult != null && !offlineResult.trim().isEmpty())
             {
-              callback.onSuccess(result, true);
+              callback.onSuccess(offlineResult, true);
+            }
+            else
+            {
+              callback.onError(originalError != null && !originalError.isEmpty()
+                  ? originalError
+                  : "অফলাইনে এই ভাষার অনুবাদ উপলব্ধ নেই");
             }
           }
         });

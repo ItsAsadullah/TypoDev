@@ -52,7 +52,10 @@ public final class Suggestions
 
   public void started()
   {
-    _enabled = _config.editor_config.should_show_candidates_view && !_config.editor_config.is_password;
+    _enabled = (_config == null || _config.suggestions_enabled)
+        && _config != null
+        && _config.editor_config.should_show_candidates_view
+        && !_config.editor_config.is_password;
     _second_last_word = "";
     _last_word = "";
     clear();
@@ -196,7 +199,6 @@ public final class Suggestions
     }
 
     NextWordPredictor predictor = NextWordPredictor.instance(_context);
-    if (_config.editor_config.allow_personalized_learning) predictor.learnSentence(textBefore);
 
     List<String> nextWords = predictor.predictFromSentence(textBefore, MAX_COUNT);
     int i = 0;
@@ -230,7 +232,13 @@ public final class Suggestions
 
     if (textBefore != null)
     {
-      predict_sentence_completion(textBefore.toString());
+      String tb = textBefore.toString();
+      if (_config != null && _config.editor_config != null && _config.editor_config.allow_personalized_learning)
+      {
+        NextWordPredictor.instance(_context).learnSentence(tb);
+      }
+      set_last_word(prevWord);
+      predict_sentence_completion(tb);
       return;
     }
 
@@ -474,6 +482,7 @@ public final class Suggestions
       }
       _onlineDebounce = null;
     }
+    _onlineRequestSeq++;
   }
 
   int query_suggestions(String word)
@@ -516,7 +525,7 @@ public final class Suggestions
       boolean first_char_upper = (word != null && !word.isEmpty() && Character.isUpperCase(word.charAt(0)));
       String subWord = apply_substitutions(word);
       boolean bengaliMode = isBengaliMode() || containsBengaliChar(rawWord);
-      boolean isAvroBanglish = (isAvroMode() || bengaliMode) && BanglishEngine.isLatinOnly(rawWord) && rawWord != null && !rawWord.isEmpty();
+      boolean isAvroBanglish = isAvroMode() && BanglishEngine.isLatinOnly(rawWord) && rawWord != null && !rawWord.isEmpty();
 
       if (!isAvroBanglish)
       {
@@ -736,7 +745,18 @@ public final class Suggestions
         try
         {
           List<Candidate> bnCands = BanglishEngine.instance().generateCandidates(rawWord, 5, _context);
-          rawCandidates.addAll(bnCands);
+          for (Candidate bc : bnCands)
+          {
+            if (bc != null)
+            {
+              // In non-Avro mode, Banglish candidates are tap-to-select, not forced on Spacebar
+              if (bc.source == Candidate.Source.AUTOCORRECT)
+              {
+                bc.source = Candidate.Source.BANGLISH;
+              }
+              rawCandidates.add(bc);
+            }
+          }
         }
         catch (Throwable ignored) {}
       }
@@ -818,9 +838,10 @@ public final class Suggestions
         }
       } // end: !isAvroBanglish NextWordPredictor block
 
-      // 10. Filter blocked suggestions and strict English mode
+      // 10. Filter blocked suggestions, apply user rejection/recency stats, and enforce strict English mode
       // Cache reference to avoid repeated singleton lookup in tight loop
       BlockedSuggestionsStore blockedStore = BlockedSuggestionsStore.instance(_context);
+      UserVocabularyStore userVocabStore = (_context != null) ? UserVocabularyStore.instance(_context) : null;
       List<Candidate> candidatesToRank = new ArrayList<>(rawCandidates.size());
       for (Candidate c : rawCandidates)
       {
@@ -834,6 +855,11 @@ public final class Suggestions
             continue;
           if (blockedStore.isBlocked(c.word))
             continue;
+          if (userVocabStore != null)
+          {
+            c.rejectionPenalty = Math.max(c.rejectionPenalty, userVocabStore.getRejectionPenalty(c.word));
+            c.recencyScore = Math.max(c.recencyScore, userVocabStore.getRecencyBoost(c.word));
+          }
           candidatesToRank.add(c);
         }
       }
@@ -952,6 +978,16 @@ public final class Suggestions
     return false;
   }
 
+  private static boolean hasInternalUpperCase(String s)
+  {
+    if (s == null || s.length() <= 1) return false;
+    for (int k = 1; k < s.length(); k++)
+    {
+      if (Character.isUpperCase(s.charAt(k))) return true;
+    }
+    return false;
+  }
+
   void capitalize_results()
   {
     for (int i = 0; i < count; i++)
@@ -960,8 +996,13 @@ public final class Suggestions
       {
         String s = suggestions[i];
         if (_clipboardShortcutTexts.contains(s)) continue;
-        // Do not capitalize tags, code snippets, or formulas
+        // Do not capitalize tags, code snippets, URLs, or formulas
         if (s.startsWith("<") || s.contains("(") || s.contains(";") || s.contains(":") || s.contains("="))
+        {
+          continue;
+        }
+        // Do not clobber mixed-case brand/camelCase words like iPhone, eBay, macOS, GitHub, useState
+        if (Character.isLowerCase(s.charAt(0)) && hasInternalUpperCase(s))
         {
           continue;
         }
@@ -1009,6 +1050,7 @@ public final class Suggestions
 
   private android.os.Handler _onlineHandler = null;
   private Runnable _onlineDebounce = null;
+  private long _onlineRequestSeq = 0;
 
   private android.os.Handler getOnlineHandler()
   {
@@ -1036,13 +1078,14 @@ public final class Suggestions
     {
       handler.removeCallbacks(_onlineDebounce);
     }
+    final long reqSeq = ++_onlineRequestSeq;
 
     _onlineDebounce = new Runnable()
     {
       @Override
       public void run()
       {
-        if (verbatim_word == null || !verbatim_word.equalsIgnoreCase(rawWord))
+        if (!_enabled || reqSeq != _onlineRequestSeq || verbatim_word == null || !verbatim_word.equalsIgnoreCase(rawWord))
         {
           return;
         }
@@ -1059,16 +1102,20 @@ public final class Suggestions
           @Override
           public void onSuccess(final String query, final List<String> results)
           {
-            if (verbatim_word == null || !verbatim_word.equalsIgnoreCase(query) || results == null || results.isEmpty())
+            if (!_enabled || reqSeq != _onlineRequestSeq
+                || verbatim_word == null || !verbatim_word.equalsIgnoreCase(query)
+                || results == null || results.isEmpty())
             {
               return;
             }
 
+            BlockedSuggestionsStore blockedStore = BlockedSuggestionsStore.instance(_context);
             boolean updated = false;
             for (String bn : results)
             {
               if (bn == null || bn.trim().isEmpty() || !BanglishEngine.isBengaliScript(bn)) continue;
               String cleanBn = bn.trim();
+              if (blockedStore.isBlocked(cleanBn)) continue;
               boolean exists = false;
               for (int s = 0; s < count; s++)
               {
