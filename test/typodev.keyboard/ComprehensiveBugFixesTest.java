@@ -357,6 +357,37 @@ public class ComprehensiveBugFixesTest
     assertTrue("Surrogate-pair emoji must remain intact in upside_down", upside.contains("😀"));
   }
 
+  @Test
+  public void directBootRoutingAndManifestHardeningAreConsistent() throws Exception
+  {
+    assertFalse(DirectBootAwarePreferences.isDirectBootLocked(null));
+    Context appCtx = RuntimeEnvironment.getApplication();
+    assertFalse(DirectBootAwarePreferences.isDirectBootLocked(appCtx));
+
+    android.content.Intent catIntent = SettingsCategoryActivity.createIntent(
+        appCtx, SettingsCategoryActivity.CAT_AI);
+    assertEquals(SettingsCategoryActivity.CAT_AI,
+        catIntent.getStringExtra(SettingsCategoryActivity.EXTRA_CATEGORY));
+    assertTrue((catIntent.getFlags() & android.content.Intent.FLAG_ACTIVITY_NEW_TASK) != 0);
+
+    org.w3c.dom.Document doc = javax.xml.parsers.DocumentBuilderFactory.newInstance()
+        .newDocumentBuilder().parse(new java.io.File("AndroidManifest.xml"));
+    org.w3c.dom.Element app = (org.w3c.dom.Element) doc.getElementsByTagName("application").item(0);
+    assertEquals("true", app.getAttribute("android:hardwareAccelerated"));
+
+    org.w3c.dom.NodeList activities = doc.getElementsByTagName("activity");
+    for (int i = 0; i < activities.getLength(); i++)
+    {
+      org.w3c.dom.Element act = (org.w3c.dom.Element) activities.item(i);
+      String name = act.getAttribute("android:name");
+      assertNotEquals("typodev.keyboard.ai.NewStyleActivity", name);
+      if ("typodev.keyboard.dict.DictionariesActivity".equals(name))
+      {
+        assertEquals("false", act.getAttribute("android:exported"));
+      }
+    }
+  }
+
   private static boolean containsCandidateWord(List<Candidate> list, String target)
   {
     for (Candidate c : list)

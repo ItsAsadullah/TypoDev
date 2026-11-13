@@ -33,6 +33,20 @@ public class SettingsCategoryActivity extends PreferenceActivity
   public static final String CAT_CLIPBOARD = "clipboard";
   public static final String CAT_ABOUT = "about";
 
+  public static Intent createIntent(android.content.Context context, String categoryKey)
+  {
+    Intent intent = new Intent(context, SettingsCategoryActivity.class);
+    if (categoryKey != null)
+    {
+      intent.putExtra(EXTRA_CATEGORY, categoryKey);
+    }
+    if (!(context instanceof android.app.Activity))
+    {
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+    return intent;
+  }
+
   private boolean _preferencesAvailable;
   private String _category;
 

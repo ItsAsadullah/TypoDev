@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:hardwareAccelerated="false">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
   <uses-permission android:name="android.permission.INTERNET"/>
@@ -11,7 +11,7 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/>
 
-  <application android:label="@string/app_name" android:allowBackup="false" android:fullBackupContent="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:hardwareAccelerated="false" android:largeHeap="true">
+  <application android:label="@string/app_name" android:allowBackup="false" android:fullBackupContent="false" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:hardwareAccelerated="true" android:largeHeap="true">
     <activity android:name="typodev.keyboard.ai.ImageTextActivity"
               android:theme="@style/SnippetManagerTheme" android:exported="false"
               android:configChanges="orientation|screenSize|keyboardHidden"
@@ -68,16 +68,11 @@
       </intent-filter>
     </activity>
 
-    <activity android:name="typodev.keyboard.dict.DictionariesActivity" android:icon="@mipmap/ic_launcher" android:theme="@style/settingsTheme" android:exported="true" android:directBootAware="true">
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN"/>
-      </intent-filter>
-    </activity>
-
-    <activity android:name="typodev.keyboard.ai.NewStyleActivity"
-              android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"
-              android:windowSoftInputMode="adjustResize"
-              android:exported="false" />
+    <activity android:name="typodev.keyboard.dict.DictionariesActivity"
+              android:icon="@mipmap/ic_launcher"
+              android:theme="@style/settingsTheme"
+              android:exported="false"
+              android:directBootAware="true" />
 
     <activity android:name="typodev.keyboard.snippet.SnippetManagerActivity"
               android:icon="@mipmap/ic_launcher"

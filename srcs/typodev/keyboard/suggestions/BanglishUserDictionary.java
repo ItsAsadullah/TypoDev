@@ -245,16 +245,7 @@ public class BanglishUserDictionary
 
   private static boolean isDirectBootLocked(Context ctx)
   {
-    if (ctx == null || android.os.Build.VERSION.SDK_INT < 24) return false;
-    try
-    {
-      android.os.UserManager um = (android.os.UserManager) ctx.getSystemService(Context.USER_SERVICE);
-      return um != null && !um.isUserUnlocked();
-    }
-    catch (Throwable ignored)
-    {
-      return false;
-    }
+    return typodev.keyboard.DirectBootAwarePreferences.isDirectBootLocked(ctx);
   }
 
   private synchronized void saveToDisk()

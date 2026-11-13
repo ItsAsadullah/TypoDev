@@ -53,16 +53,7 @@ public class BlockedSuggestionsStore
 
   private static boolean isDirectBootLocked(Context context)
   {
-    if (context == null || android.os.Build.VERSION.SDK_INT < 24) return false;
-    try
-    {
-      android.os.UserManager um = (android.os.UserManager) context.getSystemService(Context.USER_SERVICE);
-      return um != null && !um.isUserUnlocked();
-    }
-    catch (Throwable ignored)
-    {
-      return false;
-    }
+    return typodev.keyboard.DirectBootAwarePreferences.isDirectBootLocked(context);
   }
 
   public BlockedSuggestionsStore(Context context)

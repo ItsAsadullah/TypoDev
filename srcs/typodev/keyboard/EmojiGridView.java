@@ -262,15 +262,8 @@ public class EmojiGridView extends GridView
       _lastUsed = new HashMap<Emoji, Integer>();
     if (_lastUsedLoaded)
       return;
-    if (android.os.Build.VERSION.SDK_INT >= 24)
-    {
-      try
-      {
-        android.os.UserManager um = (android.os.UserManager) getContext().getSystemService(Context.USER_SERVICE);
-        if (um != null && !um.isUserUnlocked()) return;
-      }
-      catch (Throwable ignored) {}
-    }
+    if (DirectBootAwarePreferences.isDirectBootLocked(getContext()))
+      return;
     SharedPreferences prefs;
     Set<String> lastUseSet;
     try

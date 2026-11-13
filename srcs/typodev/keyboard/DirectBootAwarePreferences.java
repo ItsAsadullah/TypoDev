@@ -18,6 +18,25 @@ public final class DirectBootAwarePreferences
     return manager != null && manager.isUserUnlocked();
   }
 
+  /**
+   * Returns true only when running on API 24+ while UserManager explicitly
+   * reports the credential-encrypted storage is still locked (Direct Boot).
+   * Safely returns false for null/mock test contexts without USER_SERVICE.
+   */
+  public static boolean isDirectBootLocked(Context context)
+  {
+    if (context == null || VERSION.SDK_INT < 24) return false;
+    try
+    {
+      android.os.UserManager um = (android.os.UserManager) context.getSystemService(Context.USER_SERVICE);
+      return um != null && !um.isUserUnlocked();
+    }
+    catch (Throwable ignored)
+    {
+      return false;
+    }
+  }
+
   /* On API >= 24, preferences are read from the device protected storage. This
    * storage is less protected than the default, no personnal or sensitive
    * information is stored there (only the keyboard settings). This storage is

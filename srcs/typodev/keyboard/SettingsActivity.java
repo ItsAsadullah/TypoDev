@@ -177,9 +177,7 @@ public class SettingsActivity extends Activity
   {
     try
     {
-      Intent intent = new Intent(this, SettingsCategoryActivity.class);
-      intent.putExtra(SettingsCategoryActivity.EXTRA_CATEGORY, categoryKey);
-      startActivity(intent);
+      startActivity(SettingsCategoryActivity.createIntent(this, categoryKey));
     }
     catch (Exception e)
     {

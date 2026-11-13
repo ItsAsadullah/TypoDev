@@ -928,10 +928,12 @@ public class AiSettingsDialog
       public void onClick(View v)
       {
         dialog.dismiss();
-        Intent intent = new Intent(context, typodev.keyboard.SettingsActivity.class);
-        intent.putExtra(typodev.keyboard.SettingsCategoryActivity.EXTRA_CATEGORY, typodev.keyboard.SettingsCategoryActivity.CAT_AI);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(intent);
+        try
+        {
+          context.startActivity(typodev.keyboard.SettingsCategoryActivity.createIntent(
+              context, typodev.keyboard.SettingsCategoryActivity.CAT_AI));
+        }
+        catch (Throwable ignored) {}
       }
     });
     root.addView(btnOpenFullSettings);

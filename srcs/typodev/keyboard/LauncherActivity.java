@@ -370,11 +370,9 @@ public class LauncherActivity extends Activity implements Handler.Callback
 
           try
           {
-            Intent intent = new Intent(LauncherActivity.this, targetClass);
-            if (extraCategory != null)
-            {
-              intent.putExtra(SettingsCategoryActivity.EXTRA_CATEGORY, extraCategory);
-            }
+            Intent intent = (targetClass == SettingsCategoryActivity.class)
+                ? SettingsCategoryActivity.createIntent(LauncherActivity.this, extraCategory)
+                : new Intent(LauncherActivity.this, targetClass);
             startActivity(intent);
           }
           catch (Throwable ignored) {}
